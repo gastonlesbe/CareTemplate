@@ -1,13 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
     app:cardUseCompatPadding="true"
-    app:cardElevation="2dp"
-    app:cardBackgroundColor="#151515">
+    app:cardElevation="2dp">
 
     <LinearLayout
         android:orientation="vertical"
@@ -15,107 +12,96 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <!-- Fila 1: checkbox + sujeto + título -->
+        <!-- Primera línea: nombre del sujeto + fecha -->
         <LinearLayout
             android:orientation="horizontal"
-            android:gravity="center_vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
+
+            <TextView
+                android:id="@+id/tvSubject"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="(Sujeto)"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"/>
+
+            <TextView
+                android:id="@+id/tvWhen"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="dd/MM HH:mm"
+                android:textColor="#B0FFFFFF"
+                android:textSize="12sp"/>
+        </LinearLayout>
+
+        <!-- Título del evento -->
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Título del evento"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginTop="4dp"/>
+
+        <!-- Nota opcional (si no la usás, queda GONE y no molesta al adapter) -->
+        <TextView
+            android:id="@+id/tvNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#B0FFFFFF"
+            android:textSize="13sp"
+            android:visibility="gone"
+            android:layout_marginTop="2dp"
+            android:text=""/>
+
+        <!-- Pie: costo + acciones + checkbox realizado -->
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvCost"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="$0.00"
+                android:textColor="#03DAC5"
+                android:textStyle="bold"
+                android:textSize="14sp"/>
+
+            <ImageButton
+                android:id="@+id/btnEdit"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/edit"
+                android:src="@drawable/ic_edit"
+                app:tint="#FFFFFF" />
+
+            <ImageButton
+                android:id="@+id/btnDelete"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/delete"
+                android:src="@drawable/ic_delete"
+                app:tint="#FFFFFF" />
 
             <CheckBox
                 android:id="@+id/cbDone"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:buttonTint="#03DAC5"/>
-
-            <TextView
-                android:id="@+id/tvSubject"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="Sujeto"
-                android:textStyle="bold"
-                android:textColor="#03DAC5"
-                android:textSize="14sp"/>
-
-            <TextView
-                android:id="@+id/tvTitle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1"
-                android:text="Título del evento"
+                android:text="Realizado"
                 android:textColor="#FFFFFF"
-                android:textSize="16sp"/>
-            <TextView
-                android:id="@+id/tvNote"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:layout_marginEnd="8dp"
-                android:ellipsize="end"
-                android:maxLines="2"
-                android:textColor="#B0FFFFFF"
-                android:textSize="12sp"
-                app:layout_constraintTop_toBottomOf="@id/tvTitle"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/cbDone"
-                app:layout_constraintHorizontal_bias="0" />
-
-        </LinearLayout>
-
-        <!-- Fila 2: cuándo y costo -->
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_marginTop="6dp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <TextView
-                android:id="@+id/tvWhen"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Hoy 14:30"
-                android:textColor="#B0FFFFFF"
-                android:textSize="13sp"/>
-
-            <TextView
-                android:id="@+id/tvCost"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="$0.00"
-                android:textColor="#B0FFFFFF"
-                android:textSize="13sp"/>
-        </LinearLayout>
-
-        <!-- Fila 3: acciones -->
-        <LinearLayout
-            android:orientation="horizontal"
-            android:gravity="end"
-            android:layout_marginTop="8dp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <ImageButton
-                android:id="@+id/btnEdit"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:contentDescription="@string/app_name"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:padding="6dp"
-                app:tint="#FFFFFF"
-                android:src="@drawable/ic_edit"/>
-
-            <ImageButton
-                android:id="@+id/btnDelete"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:contentDescription="@string/app_name"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:padding="6dp"
-                app:tint="#FFFFFF"
-                android:src="@drawable/ic_delete"/>
+                android:layout_marginStart="8dp"/>
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>
