@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:background="#151515" android:padding="12dp" android:layout_marginBottom="8dp">
+
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="Sujeto · Evento" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold"/>
+
+    <TextView
+        android:id="@+id/tvWhen"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="20/10 14:00" android:textColor="#B0FFFFFF" android:textSize="13sp" android:layout_marginTop="4dp"/>
+
+    <TextView
+        android:id="@+id/tvCost"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="$0.00" android:textColor="#03DAC5" android:textStyle="bold" android:layout_marginTop="6dp"/>
+</LinearLayout>

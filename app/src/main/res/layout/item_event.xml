@@ -42,11 +42,12 @@
             android:id="@+id/tvTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center"
             android:text="Título del evento"
             android:textColor="#FFFFFF"
-            android:textStyle="bold"
             android:textSize="16sp"
-            android:layout_marginTop="4dp"/>
+            android:textStyle="bold" />
 
         <!-- Nota opcional (si no la usás, queda GONE y no molesta al adapter) -->
         <TextView
@@ -61,11 +62,11 @@
 
         <!-- Pie: costo + acciones + checkbox realizado -->
         <LinearLayout
-            android:orientation="horizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:gravity="center_vertical">
+            android:gravity="center|center_vertical"
+            android:orientation="horizontal">
 
             <TextView
                 android:id="@+id/tvCost"
@@ -74,8 +75,8 @@
                 android:layout_weight="1"
                 android:text="$0.00"
                 android:textColor="#03DAC5"
-                android:textStyle="bold"
-                android:textSize="14sp"/>
+                android:textSize="14sp"
+                android:textStyle="bold" />
 
             <ImageButton
                 android:id="@+id/btnEdit"
@@ -99,9 +100,9 @@
                 android:id="@+id/cbDone"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
                 android:text="Realizado"
-                android:textColor="#FFFFFF"
-                android:layout_marginStart="8dp"/>
+                android:textColor="#FFFFFF" />
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

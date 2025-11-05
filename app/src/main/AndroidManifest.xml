@@ -48,6 +48,8 @@
             </intent-filter>
         </activity>
         <activity android:name=".ui.SubjectListActivity" />
+        <activity android:name=".ui.ExpensesActivity" />
+
 
 
 

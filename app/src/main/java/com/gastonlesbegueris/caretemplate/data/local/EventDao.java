@@ -89,4 +89,15 @@ public interface EventDao {
             "WHERE appType = :appType AND deleted = 0 AND subjectId = :subjectId " +
             "ORDER BY dueAt ASC")
     LiveData<List<EventEntity>> observeBySubject(String appType, String subjectId);
+
+    // Eventos en un rango (para agenda diaria/mes)
+
+
+    // Lista de eventos realizados en el rango (para Expenses)
+    @Query("SELECT * FROM events " +
+            "WHERE appType = :appType AND deleted = 0 AND realized = 1 " +
+            "AND dueAt >= :start AND dueAt < :end " +
+            "ORDER BY dueAt DESC")
+    java.util.List<EventEntity> listRealizedInRange(String appType, long start, long end);
+
 }
