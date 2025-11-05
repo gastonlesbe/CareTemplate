@@ -94,14 +94,15 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.VH> {
     static class VH extends RecyclerView.ViewHolder {
         TextView tvTitle, tvSubjectName, tvWhen, tvCost;
         CheckBox cbDone;
-        ImageButton btnDelete;
+        ImageButton btnDelete, btnEdit;
         VH(@NonNull View v) {
             super(v);
             tvTitle = v.findViewById(R.id.tvTitle);
-            tvSubjectName = v.findViewById(R.id.tvSubjectName);
+            tvSubjectName = v.findViewById(R.id.tvSubject);
             tvWhen = v.findViewById(R.id.tvWhen);
             tvCost = v.findViewById(R.id.tvCost);
             cbDone = v.findViewById(R.id.cbDone);
+            btnEdit   = v.findViewById(R.id.btnEdit);
             btnDelete = v.findViewById(R.id.btnDelete);
         }
     }

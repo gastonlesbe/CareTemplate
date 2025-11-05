@@ -81,6 +81,7 @@ public class LocalEventAdapter extends RecyclerView.Adapter<LocalEventAdapter.VH
                 h.tvNote.setVisibility(View.VISIBLE);
                 h.tvNote.setText(e.note);
             } else {
+                h.tvNote.setText("");
                 h.tvNote.setVisibility(View.GONE);
             }
         }
