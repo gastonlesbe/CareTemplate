@@ -100,4 +100,17 @@ public interface EventDao {
             "ORDER BY dueAt DESC")
     java.util.List<EventEntity> listRealizedInRange(String appType, long start, long end);
 
+    @Query("SELECT * FROM events " +
+            "WHERE appType = :app AND deleted = 0 AND realized = 1 " +
+            "AND (:subjectId IS NULL OR subjectId = :subjectId) " +
+            "AND dueAt BETWEEN :start AND :end " +
+            "ORDER BY dueAt DESC")
+    List<EventEntity> listExpensesRealized(String app, String subjectId, long start, long end);
+
+    @Query("SELECT SUM(cost) FROM events " +
+            "WHERE appType = :app AND deleted = 0 AND realized = 1 " +
+            "AND (:subjectId IS NULL OR subjectId = :subjectId) " +
+            "AND dueAt BETWEEN :start AND :end")
+    Double sumExpensesRealized(String app, String subjectId, long start, long end);
+
 }

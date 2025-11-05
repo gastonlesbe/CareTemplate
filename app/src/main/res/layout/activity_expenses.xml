@@ -14,6 +14,29 @@
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:text="Totales" android:textColor="#B0FFFFFF" android:paddingBottom="8dp"/>
 
+    <LinearLayout
+        android:id="@+id/llTop"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp">
+
+        <Spinner
+            android:id="@+id/spSubjectsFilter"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"/>
+
+        <TextView
+            android:id="@+id/tvTotal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Total: $0.00"
+            android:textStyle="bold"
+            android:paddingStart="12dp"/>
+    </LinearLayout>
+
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvExpenses"
         android:layout_width="match_parent" android:layout_height="0dp"
