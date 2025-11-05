@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "32907552935",
+    "project_id": "care-template-78bb1",
+    "storage_bucket": "care-template-78bb1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:32907552935:android:3843bb63ad006bf0e25382",
+        "android_client_info": {
+          "package_name": "com.gastonlesbegueris.caretemplate"
+        
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBVtWdbLU2ArBHQWX79MT11xJ9KJttpB8g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

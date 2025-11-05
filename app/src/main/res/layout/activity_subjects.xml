@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#101010">
+
+    <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent">
+        <TextView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Sujetos" android:textSize="20sp" android:textStyle="bold"
+            android:textColor="#03DAC5" android:padding="16dp" android:background="#181818"/>
+        <TextView
+            android:id="@+id/tvEmptySubjects" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="No hay sujetos" android:textColor="#FFFFFF" android:layout_gravity="center" android:padding="16dp"
+            android:visibility="gone"/>
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvSubjects" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+            android:padding="12dp"/>
+    </LinearLayout>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAddSubject"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="24dp"
+        app:srcCompat="@android:drawable/ic_input_add"
+        android:contentDescription="Agregar sujeto"/>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

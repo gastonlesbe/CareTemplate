@@ -1,0 +1,86 @@
+{
+  "project_info": {
+    "project_number": "32907552935",
+    "project_id": "care-template-78bb1",
+    "storage_bucket": "care-template-78bb1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:32907552935:android:3843bb63ad006bf0e25382",
+        "android_client_info": {
+          "package_name": "com.gastonlesbegueris.caretemplate"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBVtWdbLU2ArBHQWX79MT11xJ9KJttpB8g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:32907552935:android:80da3b1e6dfe100be25382",
+        "android_client_info": {
+          "package_name": "com.gastonlesbegueris.caretemplate.cars"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBVtWdbLU2ArBHQWX79MT11xJ9KJttpB8g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:32907552935:android:e9d0f7c821fcad10e25382",
+        "android_client_info": {
+          "package_name": "com.gastonlesbegueris.caretemplate.family"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBVtWdbLU2ArBHQWX79MT11xJ9KJttpB8g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:32907552935:android:f7602595e6377288e25382",
+        "android_client_info": {
+          "package_name": "com.gastonlesbegueris.caretemplate.pets"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBVtWdbLU2ArBHQWX79MT11xJ9KJttpB8g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

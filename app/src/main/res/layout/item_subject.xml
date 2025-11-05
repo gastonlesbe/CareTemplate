@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:background="?android:attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true">
+
+    <ImageView
+        android:id="@+id/ivIcon"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_gravity="center_vertical"
+        android:src="@drawable/ic_header_flavor"
+        android:contentDescription="@string/app_name"
+        android:tint="#03DAC5" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginStart="12dp"
+        android:layout_weight="1">
+
+        <TextView
+            android:id="@+id/tvSubjectName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Nombre"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF" />
+
+        <TextView
+            android:id="@+id/tvSubjectInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Edad: 3a 2m · Peso: 7.2 kg   |   152.000 km"
+            android:textSize="14sp"
+            android:textColor="#B0FFFFFF"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:layout_marginTop="2dp"/>
+
+        <TextView
+            android:id="@+id/tvSubjectExtra"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Próximo: 21/10 10:00 · Vacuna"
+            android:textSize="13sp"
+            android:textColor="#90FFFFFF"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:layout_marginTop="2dp"/>
+    </LinearLayout>
+</LinearLayout>
