@@ -112,5 +112,24 @@ public interface EventDao {
             "AND (:subjectId IS NULL OR subjectId = :subjectId) " +
             "AND dueAt BETWEEN :start AND :end")
     Double sumExpensesRealized(String app, String subjectId, long start, long end);
+    @androidx.room.Query(
+            "SELECT strftime('%Y-%m', datetime(realizedAt/1000,'unixepoch','localtime')) AS ym, " +
+                    "       SUM(cost) AS total " +
+                    "FROM events " +
+                    "WHERE appType = :appType AND realized = 1 " +
+                    "  AND realizedAt BETWEEN :fromMillis AND :toMillis " +
+                    "GROUP BY ym " +
+                    "ORDER BY ym"
+    )
+    java.util.List<com.gastonlesbegueris.caretemplate.data.model.MonthTotal> listMonthlyTotals(
+            String appType, long fromMillis, long toMillis
+    );
+
+
+    @Query("SELECT COUNT(*) FROM events WHERE appType=:appType")
+    int countEventsForApp(String appType);
+
+
+
 
 }

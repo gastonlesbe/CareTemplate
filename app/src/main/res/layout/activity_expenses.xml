@@ -1,45 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent"
-    android:background="#101010" android:padding="12dp">
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent" android:padding="16dp"
+    android:background="#101010">
 
     <TextView
-        android:id="@+id/tvHeader"
-        android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="Gastos del mes" android:textSize="18sp" android:textStyle="bold"
-        android:textColor="#FFFFFF" android:paddingBottom="8dp"/>
-
-    <TextView
-        android:id="@+id/tvTotals"
-        android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="Totales" android:textColor="#B0FFFFFF" android:paddingBottom="8dp"/>
-
-    <LinearLayout
-        android:id="@+id/llTop"
-        android:layout_width="match_parent"
+        android:id="@+id/tvMonthTitle"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="12dp">
+        android:text="Gastos del mes"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="8dp"/>
 
-        <Spinner
-            android:id="@+id/spSubjectsFilter"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"/>
+    <TextView
+        android:id="@+id/tvMonthTotal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Total: $0.00"
+        android:textColor="#03DAC5"
+        android:textSize="16sp"
+        android:layout_marginBottom="12dp"/>
 
-        <TextView
-            android:id="@+id/tvTotal"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Total: $0.00"
-            android:textStyle="bold"
-            android:paddingStart="12dp"/>
-    </LinearLayout>
-
+    <Button
+        android:id="@+id/btnExportCsv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Exportar CSV"/>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvExpenses"
-        android:layout_width="match_parent" android:layout_height="0dp"
-        android:layout_weight="1" android:clipToPadding="false"
-        android:paddingBottom="12dp"/>
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="12dp"
+        android:layout_weight="1"/>
+
 </LinearLayout>

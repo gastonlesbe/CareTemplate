@@ -1,16 +1,20 @@
 package com.gastonlesbegueris.caretemplate.ui;
 
 public class DaySummary {
-    private final long dayStartMillis;   // inicio del día (00:00) en millis
-    private final int eventsCount;       // total de eventos del día
-    private final int realizedCount;     // cuántos realizados
-    private final Double expensesSum;    // suma de costos (solo realizados con costo)
+    long dayStartMillis;
+    int eventsCount;
+    int realizedCount;
+    Double expensesSum;
 
-    public DaySummary(long dayStartMillis, int eventsCount, int realizedCount, Double expensesSum) {
+    // 👇 nuevo
+    public String mainColorHex;  // puede ser "#FF0000" o null
+
+    public DaySummary(long dayStartMillis, int eventsCount, int realizedCount, Double expensesSum, String mainColorHex) {
         this.dayStartMillis = dayStartMillis;
         this.eventsCount = eventsCount;
         this.realizedCount = realizedCount;
         this.expensesSum = expensesSum;
+        this.mainColorHex = mainColorHex;
     }
 
     public long getDayStartMillis() { return dayStartMillis; }

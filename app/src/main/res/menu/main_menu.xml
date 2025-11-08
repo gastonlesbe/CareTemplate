@@ -23,4 +23,9 @@
         android:id="@+id/action_expenses"
         android:title="Gastos"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/action_expenses_chart"
+        android:title="Gráfico de gastos"
+        app:showAsAction="never" />
+
 </menu>

@@ -1,17 +1,8 @@
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath libs.gradle
-        classpath libs.google.services
-    }
+// build.gradle (root)
+plugins {
+    // intencionalmente vacío: las versiones ya están en settings.gradle.kts
 }
 
-allprojects {
-    repositories {
-
-
-    }
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
 }

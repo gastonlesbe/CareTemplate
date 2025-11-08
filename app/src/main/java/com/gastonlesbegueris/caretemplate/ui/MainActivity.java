@@ -128,6 +128,11 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new android.content.Intent(this, ExpensesActivity.class));
             return true;
         }
+        else if (id == R.id.action_expenses_chart) {
+            startActivity(new android.content.Intent(this, ExpensesCharActivity.class));
+            return true;
+        }
+
 
         return super.onOptionsItemSelected(item);
     }
@@ -502,6 +507,8 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(this, "Título requerido", Toast.LENGTH_SHORT).show();
                         return;
                     }
+                    if (!LimitGuard.canCreateEvent(this, db, appType)) return;
+
                     pickDateTime(e.dueAt, dueAt -> updateLocal(e, title, dueAt));
                 })
                 .setNeutralButton("Eliminar", (d, w) -> softDelete(e.id))
@@ -594,6 +601,8 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
+        if (!LimitGuard.canCreateSubject(this, db, appType)) return;
+
     }
 
     private void insertSubjectMinimal(String name) {

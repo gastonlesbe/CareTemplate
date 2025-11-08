@@ -1,6 +1,6 @@
 plugins {
-    id 'com.android.application'
-    id 'com.google.gms.google-services'
+    id("com.android.application")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -85,4 +85,6 @@ dependencies {
 
     // Ads
     implementation 'com.google.android.gms:play-services-ads:24.7.0'
+    implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
+
 }
