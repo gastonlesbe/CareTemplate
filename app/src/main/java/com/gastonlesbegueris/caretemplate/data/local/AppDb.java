@@ -1,34 +1,33 @@
 package com.gastonlesbegueris.caretemplate.data.local;
 
+import android.content.Context;
+
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
-import android.content.Context;
 
 @Database(
         entities = { EventEntity.class, SubjectEntity.class },
-        version = 6,                      // ⬅️ incrementá si ya usaste 6
-        exportSchema = false              // ⬅️ saca el warning
+        version = 7,                 // <-- SUBÍ la versión
+        exportSchema = false
 )
 public abstract class AppDb extends RoomDatabase {
-
     public abstract EventDao eventDao();
     public abstract SubjectDao subjectDao();
 
-    private static volatile AppDb INSTANCE;
+    private static volatile AppDb I;
 
-    public static AppDb get(Context ctx) {
-        if (INSTANCE == null) {
+    public static AppDb get(Context c) {
+        if (I == null) {
             synchronized (AppDb.class) {
-                if (INSTANCE == null) {
-                    INSTANCE = Room.databaseBuilder(
-                                    ctx.getApplicationContext(),
-                                    AppDb.class, "caretemplate.db")
-                            .fallbackToDestructiveMigration() // rápido para dev; luego migraciones reales
+                if (I == null) {
+                    I = Room.databaseBuilder(c.getApplicationContext(), AppDb.class, "caretemplate.db")
+                            // En desarrollo, esto evita migraciones largas:
+                            .fallbackToDestructiveMigration()          // <-- borra y recrea
                             .build();
                 }
             }
         }
-        return INSTANCE;
+        return I;
     }
 }
