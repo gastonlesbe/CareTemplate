@@ -109,7 +109,7 @@ public class SubjectListActivity extends AppCompatActivity {
             subj.name = name;
             subj.birthDate = ("cars".equals(appType) || "house".equals(appType)) ? null : birthMillis;
             subj.currentMeasure = measure;
-            subj.photoUrl = null;
+
             subj.notes = notes == null ? "" : notes;
             subj.updatedAt = System.currentTimeMillis();
             subj.deleted = 0;

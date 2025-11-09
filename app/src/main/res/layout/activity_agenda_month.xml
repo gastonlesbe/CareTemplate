@@ -1,42 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbarMonth"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
         android:background="?attr/colorSurface"
-        app:title="Agenda"
-        app:navigationIcon="@drawable/ic_event"
-        app:titleCentered="true" />
+        android:titleTextColor="?android:attr/textColorPrimary" />
 
-    <LinearLayout
+    <TextView
+        android:id="@+id/tvMonthTotals"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:paddingTop="?attr/actionBarSize">
+        android:layout_height="wrap_content"
+        android:text=" "
+        android:padding="12dp"
+        android:textStyle="bold"
+        android:visibility="gone"/>
 
-        <TextView
-            android:id="@+id/tvMonthTotals"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="12dp"
-            android:text="Totales del mes"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:textColor="@android:color/black" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvMonth"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:paddingBottom="12dp"/>
-    </LinearLayout>
-
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvMonth"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+</LinearLayout>

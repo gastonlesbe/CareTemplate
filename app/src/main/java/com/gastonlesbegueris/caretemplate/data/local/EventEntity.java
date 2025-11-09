@@ -6,22 +6,20 @@ import androidx.room.PrimaryKey;
 
 @Entity(tableName = "events")
 public class EventEntity {
-    @PrimaryKey @NonNull public String id;
+    @PrimaryKey @NonNull public String id;   // 👈 obligatorio @NonNull
+    public String uid;                       // opcional
+    public String appType;
 
-    public String uid;            // opcional
-    public String appType;        // "pets" | "cars" | "family" | "house"
-    public String subjectId;      // FK lógico a SubjectEntity.id
-
+    public String subjectId;
     public String title;
     public String note;
 
-    public Double cost;           // costo planeado/real
-    public int realized;          // 0 = pendiente, 1 = realizado
+    public Long   dueAt;         // millis
+    public Double cost;          // puede ser null
+    public int    realized;      // 0/1
+    public Long   realizedAt;    // 👈 NUEVO: millis cuando se marca realizado
 
-    public long dueAt;            // fecha/hora planeada (millis)
-    public Long realizedAt;       // <-- NUEVA columna: cuándo se marcó como realizado (millis) - puede ser null
-
-    public long updatedAt;        // auditoría
-    public int deleted;           // 0/1 (borrado lógico)
-    public int dirty;             // 0/1 (pendiente de sync)
+    public long   updatedAt;     // millis
+    public int    deleted;       // 0/1
+    public int    dirty;         // 0/1 (pendiente de sync)
 }

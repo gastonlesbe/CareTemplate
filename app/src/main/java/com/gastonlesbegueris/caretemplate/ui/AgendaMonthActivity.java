@@ -1,8 +1,10 @@
 package com.gastonlesbegueris.caretemplate.ui;
 
 import android.os.Bundle;
+import android.view.View;
 import android.widget.TextView;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
@@ -10,6 +12,7 @@ import com.gastonlesbegueris.caretemplate.R;
 import com.gastonlesbegueris.caretemplate.data.local.AppDb;
 import com.gastonlesbegueris.caretemplate.data.local.EventDao;
 import com.gastonlesbegueris.caretemplate.data.local.EventEntity;
+import com.gastonlesbegueris.caretemplate.data.model.DaySummary;
 import com.google.android.material.appbar.MaterialToolbar;
 
 import java.text.SimpleDateFormat;
@@ -25,133 +28,111 @@ public class AgendaMonthActivity extends AppCompatActivity {
     private EventDao eventDao;
     private String appType;
 
-    private androidx.recyclerview.widget.RecyclerView rvMonth;
-    private TextView tvMonthTotals;
+    private androidx.recyclerview.widget.RecyclerView rv;
     private DaySummaryAdapter adapter;
+    private TextView tvTotals;
+    private final SimpleDateFormat fmtMonth = new SimpleDateFormat("MMMM yyyy", new Locale("es"));
 
-    @Override
-    protected void onCreate(Bundle s) {
-        super.onCreate(s);
+    @Override protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_agenda_month);
 
-        // DAO
+        appType = getString(R.string.app_type);
         eventDao = AppDb.get(this).eventDao();
 
-        // appType (desde resValue del flavor)
-        appType = getString(R.string.app_type);
+        MaterialToolbar toolbar = findViewById(R.id.toolbarMonth);
+        setSupportActionBar(toolbar);
+        toolbar.setNavigationIcon(com.google.android.material.R.drawable.abc_ic_ab_back_material);
 
-        // Toolbar
-        MaterialToolbar tb = findViewById(R.id.toolbarMonth);
-        setSupportActionBar(tb);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        tb.setNavigationOnClickListener(v -> finish());
-        tb.setTitle(tituloMesActual());
+        toolbar.setNavigationOnClickListener(v -> finish());
+        toolbar.setTitle("Agenda mensual");
 
-        tvMonthTotals = findViewById(R.id.tvMonthTotals);
-        rvMonth = findViewById(R.id.rvMonth);
-        rvMonth.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new DaySummaryAdapter();
-        rvMonth.setAdapter(adapter);
+        rv = findViewById(R.id.rvMonth);
+        rv.setLayoutManager(new LinearLayoutManager(this));
+        adapter = new DaySummaryAdapter(summary -> {
+            // Si querés abrir el día, acá podrías lanzar una pantalla por día
+        });
+        rv.setAdapter(adapter);
 
-        // Observar los eventos y refrescar mes actual
-        eventDao.observeActive(appType).observe(this, this::renderMonth);
+        tvTotals = findViewById(R.id.tvMonthTotals);
+
+        loadMonth();
     }
 
-    private String tituloMesActual() {
-        Calendar c = Calendar.getInstance();
-        SimpleDateFormat df = new SimpleDateFormat("MMMM yyyy", Locale.getDefault());
-        return df.format(c.getTime());
-    }
+    private void loadMonth() {
+        new Thread(() -> {
+            long[] range = monthRange(System.currentTimeMillis());
+            long start = range[0];
+            long end   = range[1];
 
-    private void renderMonth(List<EventEntity> data) {
-        if (data == null) data = new ArrayList<>();
+            List<EventEntity> all = eventDao.listInRange(appType, start, end);
 
-        // Rango del mes actual
-        long start = monthStartMillis();
-        long end = monthEndMillis();
-
-        // Agrupar por día (solo eventos del mes)
-        Map<Long, List<EventEntity>> byDay = new LinkedHashMap<>();
-        for (EventEntity e : data) {
-            if (e.dueAt < start || e.dueAt >= end) continue;
-            long dayStart = dayStartMillis(e.dueAt);
-            List<EventEntity> list = byDay.get(dayStart);
-            if (list == null) {
-                list = new ArrayList<>();
-                byDay.put(dayStart, list);
+            // Agrupar por día (inicio del día)
+            Map<Long, List<EventEntity>> byDay = new LinkedHashMap<>();
+            Calendar c = Calendar.getInstance();
+            for (EventEntity e : all) {
+                long k = dayStart(e.dueAt, c);
+                byDay.computeIfAbsent(k, kk -> new ArrayList<>()).add(e);
             }
-            list.add(e);
-        }
 
-        // Construir summaries
-        List<DaySummary> summaries = new ArrayList<>();
-        int totalPlanned = 0;
-        int totalRealized = 0;
-        double totalExpenses = 0.0;
+            List<DaySummary> summaries = new ArrayList<>();
+            double plannedSum = 0.0;
+            double realizedSum = 0.0;
 
-        for (Map.Entry<Long, List<EventEntity>> entry : byDay.entrySet()) {
-            long dayStart = entry.getKey();
-            List<EventEntity> events = entry.getValue();
+            for (Map.Entry<Long, List<EventEntity>> en : byDay.entrySet()) {
+                long day = en.getKey();
+                List<EventEntity> list = en.getValue();
+                int total = list.size();
+                int done  = 0;
+                Double expenses = null;
 
-            int eventsCount = events.size();
-            int realizedCount = 0;
-            double sum = 0.0;
-
-            for (EventEntity e : events) {
-                if (e.realized == 1) {
-                    realizedCount++;
-                    if (e.cost != null) sum += e.cost;
+                for (EventEntity e : list) {
+                    if (e.realized == 1) {
+                        done++;
+                        if (e.cost != null) {
+                            realizedSum += e.cost;
+                            expenses = (expenses == null ? 0.0 : expenses) + e.cost;
+                        }
+                    } else {
+                        if (e.cost != null) plannedSum += e.cost;
+                    }
                 }
+                summaries.add(new DaySummary(day, total, done, expenses));
             }
 
-            summaries.add(new DaySummary(
-                    dayStart,
-                    eventsCount,
-                    realizedCount,
-                    events.isEmpty() ? 0.0 : sum
-            ));
+            String monthTitle = fmtMonth.format(start);
+            String totalsText = String.format(Locale.getDefault(),
+                    "%s · Planificado: $%.2f · Realizado: $%.2f", monthTitle, plannedSum, realizedSum);
 
-            totalPlanned += eventsCount;
-            totalRealized += realizedCount;
-            totalExpenses += sum;
-        }
-
-        adapter.submit(summaries);
-
-        // Totales del mes
-        String resumen = "Eventos: " + totalPlanned +
-                "   ·   Realizados: " + totalRealized +
-                "   ·   Gastos: $" + String.format(Locale.getDefault(), "%.2f", totalExpenses);
-        tvMonthTotals.setText(resumen);
+            runOnUiThread(() -> {
+                adapter.submit(summaries);
+                tvTotals.setText(totalsText);
+                tvTotals.setVisibility(View.VISIBLE);
+            });
+        }).start();
     }
 
-    private long dayStartMillis(long anyMillis) {
+    private long[] monthRange(long anyTimeMillis) {
         Calendar c = Calendar.getInstance();
-        c.setTimeInMillis(anyMillis);
-        c.set(Calendar.HOUR_OF_DAY, 0);
-        c.set(Calendar.MINUTE, 0);
-        c.set(Calendar.SECOND, 0);
-        c.set(Calendar.MILLISECOND, 0);
-        return c.getTimeInMillis();
-    }
-
-    private long monthStartMillis() {
-        Calendar c = Calendar.getInstance();
+        c.setTimeInMillis(anyTimeMillis);
         c.set(Calendar.DAY_OF_MONTH, 1);
         c.set(Calendar.HOUR_OF_DAY, 0);
         c.set(Calendar.MINUTE, 0);
         c.set(Calendar.SECOND, 0);
         c.set(Calendar.MILLISECOND, 0);
-        return c.getTimeInMillis();
+        long start = c.getTimeInMillis();
+
+        c.add(Calendar.MONTH, 1);
+        long end = c.getTimeInMillis() - 1;
+        return new long[]{start, end};
     }
 
-    private long monthEndMillis() {
-        Calendar c = Calendar.getInstance();
-        c.set(Calendar.DAY_OF_MONTH, c.getActualMaximum(Calendar.DAY_OF_MONTH));
-        c.set(Calendar.HOUR_OF_DAY, 23);
-        c.set(Calendar.MINUTE, 59);
-        c.set(Calendar.SECOND, 59);
-        c.set(Calendar.MILLISECOND, 999);
+    private long dayStart(long time, Calendar c) {
+        c.setTimeInMillis(time);
+        c.set(Calendar.HOUR_OF_DAY, 0);
+        c.set(Calendar.MINUTE, 0);
+        c.set(Calendar.SECOND, 0);
+        c.set(Calendar.MILLISECOND, 0);
         return c.getTimeInMillis();
     }
 }

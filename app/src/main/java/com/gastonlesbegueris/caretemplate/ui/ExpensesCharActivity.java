@@ -14,6 +14,8 @@ import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.formatter.ValueFormatter;
+import com.gastonlesbegueris.caretemplate.data.model.DaySummary;
+
 
 
 import java.util.*;
@@ -58,7 +60,7 @@ public class ExpensesCharActivity extends AppCompatActivity {
             c.set(Calendar.MILLISECOND, 999);
             long to = c.getTimeInMillis();
 
-            List<MonthTotal> rows = dao.listMonthlyTotals(appType, from, to);
+            List<MonthTotal> rows = dao.listMonthTotals(appType);
 
             // mapa ym -> total
             Map<String, Double> map = new HashMap<>();

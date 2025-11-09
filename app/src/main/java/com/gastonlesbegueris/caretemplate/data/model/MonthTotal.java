@@ -1,28 +1,17 @@
 package com.gastonlesbegueris.caretemplate.data.model;
 
 import androidx.room.ColumnInfo;
-import androidx.room.Ignore;
 
 public class MonthTotal {
-    @ColumnInfo(name = "year")
-    public int year;
+    /** inicio de mes en millis */
+    @ColumnInfo(name = "monthStart")
+    public long monthStart;
 
-    @ColumnInfo(name = "month")
-    public int month; // 1..12
-    @ColumnInfo(name = "monthStart") public long monthStart;     // inicio del mes (00:00 UTC) en millis
-    @ColumnInfo(name = "plannedSum") public double plannedSum;    // suma costos de eventos no realizados
-    @ColumnInfo(name = "realizedSum") public double realizedSum;  // suma costos de eventos realizados
+    /** suma de costos planificados (realized=0) */
+    @ColumnInfo(name = "plannedSum")
+    public Double plannedSum;
 
-    @Ignore
-    public void computeMonthStartLocalTZ() {
-        java.util.Calendar cal = java.util.Calendar.getInstance();
-        cal.set(java.util.Calendar.YEAR, year);
-        cal.set(java.util.Calendar.MONTH, month - 1);
-        cal.set(java.util.Calendar.DAY_OF_MONTH, 1);
-        cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
-        cal.set(java.util.Calendar.MINUTE, 0);
-        cal.set(java.util.Calendar.SECOND, 0);
-        cal.set(java.util.Calendar.MILLISECOND, 0);
-        monthStart = cal.getTimeInMillis();
-    }
+    /** suma de costos realizados (realized=1) */
+    @ColumnInfo(name = "realizedSum")
+    public Double realizedSum;
 }

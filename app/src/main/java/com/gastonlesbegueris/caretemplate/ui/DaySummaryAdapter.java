@@ -9,8 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.gastonlesbegueris.caretemplate.R;
-import com.gastonlesbegueris.caretemplate.ui.DaySummary;
-
+import com.gastonlesbegueris.caretemplate.data.model.DaySummary;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -21,14 +20,13 @@ import java.util.Locale;
 public class DaySummaryAdapter extends RecyclerView.Adapter<DaySummaryAdapter.VH> {
 
     public interface OnDayClick { void onClick(DaySummary summary); }
+    public DaySummaryAdapter() { this.listener = null; } // si no usas clicks
 
     private final List<DaySummary> items = new ArrayList<>();
-    private OnDayClick listener = null;
+    private final OnDayClick listener;
     private final SimpleDateFormat fmtDay = new SimpleDateFormat("EEE dd", Locale.getDefault());
 
-    public DaySummaryAdapter() {
-        this.listener = listener;
-    }
+    public DaySummaryAdapter(OnDayClick listener) { this.listener = listener; }
 
     public void submit(List<DaySummary> data) {
         items.clear();
