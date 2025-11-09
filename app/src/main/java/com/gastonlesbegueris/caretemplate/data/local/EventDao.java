@@ -91,4 +91,17 @@ public interface EventDao {
            ORDER BY dueAt ASC
            """)
     LiveData<List<EventEntity>> observeByDay(String appType, long from, long to);
+    @Query("""
+SELECT 
+  strftime('%s', date(dueAt/1000,'unixepoch','start of month'))*1000 AS monthStart,
+  SUM(CASE WHEN realized=0 THEN COALESCE(cost,0) ELSE 0 END) AS plannedSum,
+  SUM(CASE WHEN realized=1 THEN COALESCE(cost,0) ELSE 0 END) AS realizedSum
+FROM events
+WHERE appType=:appType AND deleted=0
+GROUP BY strftime('%Y-%m', date(dueAt/1000,'unixepoch'))
+ORDER BY monthStart ASC
+""")
+    List<com.gastonlesbegueris.caretemplate.data.model.MonthTotal> listMonthTotals(String appType);
+
+
 }

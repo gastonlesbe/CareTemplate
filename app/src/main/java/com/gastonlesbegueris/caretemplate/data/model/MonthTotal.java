@@ -3,8 +3,13 @@ package com.gastonlesbegueris.caretemplate.data.model;
 import androidx.room.ColumnInfo;
 
 public class MonthTotal {
-    @ColumnInfo(name = "year")  public int year;      // 2025
-    @ColumnInfo(name = "month") public int month;     // 1..12
-    @ColumnInfo(name = "plannedSum")  public double plannedSum;
-    @ColumnInfo(name = "realizedSum") public double realizedSum;
+    @ColumnInfo(name = "monthStart") public long monthStart;
+    @ColumnInfo(name = "plannedSum") public Double plannedSum;
+    @ColumnInfo(name = "realizedSum") public Double realizedSum;
+
+    public MonthTotal(long monthStart, Double plannedSum, Double realizedSum) {
+        this.monthStart = monthStart;
+        this.plannedSum = plannedSum;
+        this.realizedSum = realizedSum;
+    }
 }
