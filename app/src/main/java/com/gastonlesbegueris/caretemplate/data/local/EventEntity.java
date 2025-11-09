@@ -1,7 +1,6 @@
 package com.gastonlesbegueris.caretemplate.data.local;
 
 import androidx.annotation.NonNull;
-import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
@@ -9,19 +8,20 @@ import androidx.room.PrimaryKey;
 public class EventEntity {
     @PrimaryKey @NonNull public String id;
 
-    @ColumnInfo(name = "uid") public String uid;
-    @ColumnInfo(name = "appType") public String appType;
-    @ColumnInfo(name = "subjectId") public String subjectId;
+    public String uid;            // opcional
+    public String appType;        // "pets" | "cars" | "family" | "house"
+    public String subjectId;      // FK lógico a SubjectEntity.id
 
-    @ColumnInfo(name = "title") public String title;
-    @ColumnInfo(name = "note")  public String note;
+    public String title;
+    public String note;
 
-    @ColumnInfo(name = "cost")     public Double cost;     // puede ser null
-    @ColumnInfo(name = "realized") public int realized;    // 0/1
-    @ColumnInfo(name = "realizedAt") public Long realizedAt; // 👈 NUEVA COLUMNA (nullable)
+    public Double cost;           // costo planeado/real
+    public int realized;          // 0 = pendiente, 1 = realizado
 
-    @ColumnInfo(name = "dueAt")     public long dueAt;
-    @ColumnInfo(name = "updatedAt") public long updatedAt;
-    @ColumnInfo(name = "deleted")   public int deleted;    // 0/1
-    @ColumnInfo(name = "dirty")     public int dirty;      // 0/1
+    public long dueAt;            // fecha/hora planeada (millis)
+    public Long realizedAt;       // <-- NUEVA columna: cuándo se marcó como realizado (millis) - puede ser null
+
+    public long updatedAt;        // auditoría
+    public int deleted;           // 0/1 (borrado lógico)
+    public int dirty;             // 0/1 (pendiente de sync)
 }
