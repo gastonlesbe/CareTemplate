@@ -1,39 +1,32 @@
 package com.gastonlesbegueris.caretemplate.ui;
 
-import android.content.Context;
-import androidx.appcompat.app.AlertDialog;
-import com.gastonlesbegueris.caretemplate.data.local.*;
+import com.gastonlesbegueris.caretemplate.data.local.EventDao;
+import com.gastonlesbegueris.caretemplate.data.local.SubjectDao;
 
 public class LimitGuard {
+    private final EventDao eventDao;
+    private final SubjectDao subjectDao;
+    private final String appType;
 
-    public static final int FREE_SUBJECTS_MAX = 3;
-    public static final int FREE_EVENTS_MAX   = 30;
-
-    public static boolean canCreateSubject(Context ctx, AppDb db, String appType) {
-        int count = db.subjectDao().countForApp(appType);
-        if (count >= FREE_SUBJECTS_MAX) {
-            new AlertDialog.Builder(ctx)
-                    .setTitle("Límite alcanzado")
-                    .setMessage("En la versión gratuita podés crear hasta " + FREE_SUBJECTS_MAX +
-                            " sujetos. Próximamente: Premium para desbloquear ilimitado.")
-                    .setPositiveButton("Ok", null)
-                    .show();
-            return false;
-        }
-        return true;
+    public LimitGuard(EventDao eventDao, SubjectDao subjectDao, String appType) {
+        this.eventDao = eventDao;
+        this.subjectDao = subjectDao;
+        this.appType = appType;
     }
 
-    public static boolean canCreateEvent(Context ctx, AppDb db, String appType) {
-        int count = db.eventDao().countEventsForApp(appType);
-        if (count >= FREE_EVENTS_MAX) {
-            new AlertDialog.Builder(ctx)
-                    .setTitle("Límite alcanzado")
-                    .setMessage("En la versión gratuita podés crear hasta " + FREE_EVENTS_MAX +
-                            " eventos. Próximamente: Premium para desbloquear ilimitado.")
-                    .setPositiveButton("Ok", null)
-                    .show();
-            return false;
-        }
-        return true;
+    /** cuántos sujetos activos hay */
+    public int subjectCount() {
+        try { return subjectDao.countForApp(appType); } catch (Exception e) { return 0; }
     }
+
+    /** cuántos eventos activos hay */
+    public int eventCount() {
+        try { return eventDao.countEventsForApp(appType); } catch (Exception e) { return 0; }
+    }
+
+    /** ¿supera el límite gratis de sujetos? */
+    public boolean subjectsOverLimit(int maxFree) { return subjectCount() >= maxFree; }
+
+    /** ¿supera el límite gratis de eventos? */
+    public boolean eventsOverLimit(int maxFree) { return eventCount() >= maxFree; }
 }

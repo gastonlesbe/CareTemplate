@@ -5,7 +5,7 @@ import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.Query;
 import androidx.room.Update;
-
+import static androidx.room.OnConflictStrategy.REPLACE;
 import com.gastonlesbegueris.caretemplate.data.model.MonthTotal;
 
 import java.util.List;
@@ -30,10 +30,10 @@ public interface EventDao {
     EventEntity nextEvent(String appType, String subjectId, long from);
 
     // ====== NUEVOS, usados por Agenda & Expenses ======
+// EventDao.java  (dentro de la interface)
+    @Query("SELECT COUNT(*) FROM events WHERE appType = :app AND deleted = 0")
+    int countEventsForApp(String app);
 
-    // Eventos en rango (pendientes o realizados, no borrados)
-    @Query("SELECT * FROM events WHERE appType=:appType AND deleted=0 AND dueAt BETWEEN :start AND :end ORDER BY dueAt ASC")
-    List<EventEntity> listInRange(String appType, long start, long end);
 
     // Realizados por realizedAt (por si difiere de dueAt)
 
@@ -42,58 +42,93 @@ public interface EventDao {
     @Query("UPDATE events SET realized=1, realizedAt=:now, updatedAt=:now, dirty=1 WHERE id IN (:ids)")
     void markRealized(List<String> ids, long now);
 
-    @Query("UPDATE events SET realized=1, realizedAt=:now, updatedAt=:now, dirty=1 WHERE id=:id")
-    void markRealizedOne(String id, long now);
-
-    @Query("UPDATE events SET realized=0, realizedAt=NULL, updatedAt=:now, dirty=1 WHERE id=:id")
-    void markUnrealizedOne(String id, long now);
-
-    @Query("UPDATE events SET cost=:cost, updatedAt=:now, dirty=1 WHERE id=:id")
-    void setCost(String id, Double cost, long now);
 
     @Query("SELECT * FROM events WHERE appType=:appType AND deleted=0 AND realized=0 AND dueAt <= :now ORDER BY dueAt ASC")
     List<EventEntity> listDueUnrealized(String appType, long now);
 
     // ====== Agendas por día ======
 
-    // Observa eventos planificados (pendientes o realizados) en un rango de días por dueAt
-    @Query("SELECT * FROM events WHERE appType=:appType AND deleted=0 AND dueAt BETWEEN :start AND :end ORDER BY dueAt ASC")
-    LiveData<List<EventEntity>> observeByDay(String appType, long start, long end);
-
-    // Suma de costos planificados (eventos no realizados) por dueAt
-    @Query("SELECT SUM(cost) FROM events WHERE appType=:appType AND deleted=0 AND realized=0 AND dueAt BETWEEN :start AND :end")
-    Double sumPlannedCostInRange(String appType, long start, long end);
-
-    // Suma de costos realizados por realizedAt
-    @Query("SELECT SUM(cost) FROM events WHERE appType=:appType AND deleted=0 AND realized=1 AND realizedAt BETWEEN :start AND :end")
-    Double sumRealizedCostInRange(String appType, long start, long end);
 
 
-    // Totales por mes (usa dueAt para agrupar, y realized para separar planificado vs realizado)
-    @Query("""
-        SELECT
-          (strftime('%s', date(strftime('%Y-%m-01', datetime(dueAt/1000, 'unixepoch')))) * 1000) AS monthStart,
-          SUM(CASE WHEN realized = 0 THEN COALESCE(cost, 0) ELSE 0 END) AS plannedSum,
-          SUM(CASE WHEN realized = 1 THEN COALESCE(cost, 0) ELSE 0 END) AS realizedSum
-        FROM events
-        WHERE appType = :appType AND deleted = 0
-        GROUP BY strftime('%Y-%m', datetime(dueAt/1000, 'unixepoch'))
-        ORDER BY monthStart DESC
-    """)
-    List<com.gastonlesbegueris.caretemplate.data.model.MonthTotal> listMonthTotals(String appType);
 
-    // Realizados en rango (para “Gastos” por período, si lo necesitás luego)
-    @Query("""
-        SELECT * FROM events
-        WHERE appType = :appType
-          AND deleted = 0
-          AND realized = 1
-          AND realizedAt BETWEEN :from AND :to
-        ORDER BY realizedAt DESC
-    """)
-    List<com.gastonlesbegueris.caretemplate.data.local.EventEntity> listRealizedInRange(
+    /**
+     * Totales por mes (planificado vs realizado)
+     */
+
+
+    /**
+     * Eventos realizados en rango [from,to] (para detalles si luego querés)
+     */
+    @Query(
+            "SELECT * FROM events " +
+                    "WHERE appType = :appType AND deleted = 0 AND realized = 1 " +
+                    "AND dueAt BETWEEN :from AND :to " +
+                    "ORDER BY dueAt DESC"
+    )
+    java.util.List<com.gastonlesbegueris.caretemplate.data.local.EventEntity> listRealizedInRange(
             String appType, long from, long to
     );
+
+    // Listado con totales por mes (pendiente vs realizado)
+    @Query("""
+           SELECT strftime('%Y-%m-01', datetime(dueAt/1000,'unixepoch')) AS monthStart,
+                  SUM(CASE WHEN realized=0 THEN COALESCE(cost,0) ELSE 0 END) AS plannedSum,
+                  SUM(CASE WHEN realized=1 THEN COALESCE(cost,0) ELSE 0 END) AS realizedSum
+           FROM events
+           WHERE appType = :appType AND deleted = 0
+           GROUP BY monthStart
+           ORDER BY monthStart DESC
+           """)
+    List<com.gastonlesbegueris.caretemplate.data.model.MonthTotal> listMonthTotals(String appType);
+
+    // Para ExpensesActivity (si querés listar eventos en rango)
+    @Query("SELECT * FROM events WHERE appType=:appType AND deleted=0 AND dueAt BETWEEN :from AND :to ORDER BY dueAt DESC")
+    List<EventEntity> listInRange(String appType, long from, long to);
+
+    // Sumas en rango (si son usadas en Agenda)
+    @Query("SELECT SUM(COALESCE(cost,0)) FROM events WHERE appType=:appType AND deleted=0 AND realized=0 AND dueAt BETWEEN :from AND :to")
+    Double sumPlannedCostInRange(String appType, long from, long to);
+
+    @Query("SELECT SUM(COALESCE(cost,0)) FROM events WHERE appType=:appType AND deleted=0 AND realized=1 AND realizedAt BETWEEN :from AND :to")
+    Double sumRealizedCostInRange(String appType, long from, long to);
+
+    // Observación por día (si la pantalla Agenda la pide). Agrupás por inicio de día.
+    @Query("""
+           SELECT * FROM events
+           WHERE appType=:appType AND deleted=0
+             AND dueAt BETWEEN :from AND :to
+           ORDER BY dueAt ASC
+           """)
+    LiveData<List<EventEntity>> observeByDay(String appType, long from, long to);
+
+    // Helpers de toggle
+    @Query("UPDATE events SET realized=1, realizedAt=:ts, updatedAt=:ts, dirty=1 WHERE id=:id")
+    void markRealizedOne(String id, long ts);
+
+    @Query("UPDATE events SET realized=0, realizedAt=NULL, updatedAt=:ts, dirty=1 WHERE id=:id")
+    void markUnrealizedOne(String id, long ts);
+
+    @Query("UPDATE events SET cost=:cost, updatedAt=:ts, dirty=1 WHERE id=:id")
+    void setCost(String id, Double cost, long ts);
+    // =========== 🔴 MÉTODOS PARA SYNC (lo que te falta) ===========
+    // 1) listar registros "sucios" (a subir)
+    @Query("SELECT * FROM events WHERE dirty=1")
+    List<EventEntity> listDirty();
+
+    // 2) marcarlos como limpios luego del push OK
+    @Query("UPDATE events SET dirty=0 WHERE id IN (:ids)")
+    void markClean(List<String> ids);
+
+    // 3) último updated local por app (para usar en pull)
+    @Query("SELECT IFNULL(MAX(updatedAt), 0) FROM events WHERE appType = :app")
+    long lastUpdatedForApp(String app);
+
+    // 4) inserción masiva desde la nube (pull)
+    @Insert(onConflict = REPLACE)
+    void insertAll(List<EventEntity> list);
+
 }
+
+
 
 

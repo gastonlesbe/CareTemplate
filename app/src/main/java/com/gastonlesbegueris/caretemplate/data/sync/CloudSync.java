@@ -159,7 +159,7 @@ public class CloudSync {
     public void push(Ok ok, @Nullable Err err) {
         new Thread(() -> {
             try {
-                final List<EventEntity> dirty = eventDao.listDirty(appType);
+                final List<EventEntity> dirty = eventDao.listDirty();
                 if (dirty == null || dirty.isEmpty()) {
                     if (ok != null) ok.run();
                     return;

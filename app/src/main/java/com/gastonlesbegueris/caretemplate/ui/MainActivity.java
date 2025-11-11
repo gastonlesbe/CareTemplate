@@ -21,6 +21,8 @@ import com.gastonlesbegueris.caretemplate.data.sync.CloudSync;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.gastonlesbegueris.caretemplate.util.LimitGuard;
+
 
 import java.util.List;
 import java.util.UUID;
@@ -128,10 +130,7 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new android.content.Intent(this, ExpensesActivity.class));
             return true;
         }
-        else if (id == R.id.action_expenses_chart) {
-            startActivity(new android.content.Intent(this, ExpensesCharActivity.class));
-            return true;
-        }
+
 
 
         return super.onOptionsItemSelected(item);
@@ -489,6 +488,8 @@ public class MainActivity extends AppCompatActivity {
             e.deleted = 0;
             e.dirty = 1;
             eventDao.insert(e);
+            com.gastonlesbegueris.caretemplate.util.LimitGuard.onEventCreated(this, appType);
+
             runOnUiThread(() -> Toast.makeText(this, "Guardado local ✅", Toast.LENGTH_SHORT).show());
         }).start();
     }
@@ -620,6 +621,7 @@ public class MainActivity extends AppCompatActivity {
             s.deleted = 0;
             s.dirty = 1;
             subjectDao.insert(s);
+            com.gastonlesbegueris.caretemplate.util.LimitGuard.onSubjectCreated(this, appType);
 
             currentSubjectId = s.id;
             getSharedPreferences("prefs", MODE_PRIVATE)

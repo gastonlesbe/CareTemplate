@@ -14,6 +14,7 @@ import com.gastonlesbegueris.caretemplate.data.model.MonthTotal;
 import com.google.android.material.appbar.MaterialToolbar;
 
 import java.util.List;
+import java.util.Locale;
 
 public class ExpensesActivity extends AppCompatActivity {
 
@@ -21,7 +22,7 @@ public class ExpensesActivity extends AppCompatActivity {
     private String appType;
 
     private RecyclerView rv;
-    private ExpensesListAdapter adapter;
+    private ExpensesAdapter adapter;
     private TextView tvTotal;
 
     @Override
@@ -34,7 +35,6 @@ public class ExpensesActivity extends AppCompatActivity {
 
         MaterialToolbar toolbar = findViewById(R.id.toolbarExpenses);
         setSupportActionBar(toolbar);
-        toolbar.setNavigationIcon(R.drawable.ic_back);
         toolbar.setNavigationOnClickListener(v -> finish());
         toolbar.setTitle("Gastos");
 
@@ -42,7 +42,7 @@ public class ExpensesActivity extends AppCompatActivity {
 
         rv = findViewById(R.id.rvExpenses);
         rv.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new ExpensesListAdapter();
+        adapter = new ExpensesAdapter();
         rv.setAdapter(adapter);
 
         loadData();
@@ -53,15 +53,16 @@ public class ExpensesActivity extends AppCompatActivity {
             List<MonthTotal> rows = eventDao.listMonthTotals(appType);
 
             double total = 0.0;
-            for (MonthTotal m : rows) {
-                if (m.realizedSum != null) total += m.realizedSum;
+            if (rows != null) {
+                for (MonthTotal m : rows) {
+                    if (m.realizedSum != null) total += m.realizedSum;
+                }
             }
 
             final double finalTotal = total;
-
             runOnUiThread(() -> {
                 adapter.submit(rows);
-                tvTotal.setText(String.format("Total gastado: $%.2f", finalTotal));
+                tvTotal.setText(String.format(Locale.getDefault(), "Total gastado: $%.2f", finalTotal));
             });
         }).start();
     }

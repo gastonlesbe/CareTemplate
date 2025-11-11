@@ -11,29 +11,22 @@ import com.gastonlesbegueris.caretemplate.data.local.EventEntity;
 import com.gastonlesbegueris.caretemplate.data.local.SubjectDao;
 import com.gastonlesbegueris.caretemplate.data.local.SubjectEntity;
 
-@Database(
-        entities = { EventEntity.class, SubjectEntity.class },
-        version = 10,          // 👈 SUBÍ el número
-        exportSchema = false
-)
+@Database(entities = { EventEntity.class, SubjectEntity.class }, version = 11, exportSchema = false)
 public abstract class AppDb extends RoomDatabase {
-
+    private static volatile AppDb I;
     public abstract EventDao eventDao();
     public abstract SubjectDao subjectDao();
 
-    private static volatile AppDb INSTANCE;
-
-    public static AppDb get(Context ctx) {
-        if (INSTANCE == null) {
+    public static AppDb get(Context c) {
+        if (I == null) {
             synchronized (AppDb.class) {
-                if (INSTANCE == null) {
-                    INSTANCE = Room.databaseBuilder(ctx.getApplicationContext(),
-                                    AppDb.class, "caretemplate.db")
-                            .fallbackToDestructiveMigration()   // 👈 rápido para dev
+                if (I == null) {
+                    I = Room.databaseBuilder(c.getApplicationContext(), AppDb.class, "caretemplate.db")
+                            .fallbackToDestructiveMigration()   // SOLO dev
                             .build();
                 }
             }
         }
-        return INSTANCE;
+        return I;
     }
 }
