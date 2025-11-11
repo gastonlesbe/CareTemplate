@@ -6,18 +6,42 @@
     android:layout_height="match_parent"
     android:background="#101010">
 
-    <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
         <TextView
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:text="Sujetos" android:textSize="20sp" android:textStyle="bold"
-            android:textColor="#03DAC5" android:padding="16dp" android:background="#181818"/>
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Sujetos"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="#03DAC5"
+            android:padding="16dp"
+            android:background="#181818"/>
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbarSubjects"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="" />
+
         <TextView
-            android:id="@+id/tvEmptySubjects" android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="No hay sujetos" android:textColor="#FFFFFF" android:layout_gravity="center" android:padding="16dp"
+            android:id="@+id/tvEmptySubjects"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No hay sujetos"
+            android:textColor="#FFFFFF"
+            android:layout_gravity="center"
+            android:padding="16dp"
             android:visibility="gone"/>
         <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvSubjects" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+            android:id="@+id/rvSubjects"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:padding="12dp"/>
+
     </LinearLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -29,4 +53,5 @@
         android:layout_marginBottom="24dp"
         app:srcCompat="@android:drawable/ic_input_add"
         android:contentDescription="Agregar sujeto"/>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

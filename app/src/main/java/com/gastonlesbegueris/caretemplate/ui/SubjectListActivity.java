@@ -15,6 +15,7 @@ import com.gastonlesbegueris.caretemplate.data.local.EventDao;
 import com.gastonlesbegueris.caretemplate.data.local.EventEntity;
 import com.gastonlesbegueris.caretemplate.data.local.SubjectDao;
 import com.gastonlesbegueris.caretemplate.data.local.SubjectEntity;
+import com.google.android.material.appbar.MaterialToolbar;
 
 import java.util.List;
 import java.util.UUID;
@@ -30,6 +31,12 @@ public class SubjectListActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_subjects);
+
+        MaterialToolbar toolbar = findViewById(R.id.toolbarSubjects);
+        setSupportActionBar(toolbar);
+        toolbar.setTitle("Sujetos");
+        toolbar.setNavigationIcon(R.drawable.ic_back);
+        toolbar.setNavigationOnClickListener(v -> finish());
 
         appType = getString(R.string.app_type); // viene del flavor
         db  = AppDb.get(this);

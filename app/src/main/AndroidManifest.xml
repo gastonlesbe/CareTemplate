@@ -49,7 +49,7 @@
         </activity>
         <activity android:name=".ui.SubjectListActivity" />
         <activity android:name=".ui.ExpensesActivity" />
-        <activity android:name=".ui.ExpensesCharActivity"
+
             android:exported="false" />
 
 
