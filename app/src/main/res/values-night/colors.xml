@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Marca (pueden ser iguales o más oscuros) -->
-    <color name="brand_primary">#3F51B5</color>
-    <color name="brand_secondary">#03DAC5</color>
+    <!-- Paleta Oscuro -->
+    <color name="app_primary">#03DAC5</color>
+    <color name="app_on_primary">#00201C</color>
 
-    <!-- Superficies (oscuro) -->
-    <color name="background">#121212</color>
-    <color name="surface">#1E1E1E</color>
-    <color name="on_surface">#FFFFFF</color>
+    <color name="app_secondary">#80CBC4</color>
+    <color name="app_on_secondary">#001A18</color>
+
+    <color name="app_background">#101010</color>
+    <color name="app_on_background">#FFFFFF</color>
+
+    <color name="app_surface">#181818</color>
+    <color name="app_on_surface">#EDEDED</color>
+
+    <color name="app_error">#CF6679</color>
+    <color name="app_on_error">#1C1B1F</color>
 </resources>
+

@@ -24,17 +24,14 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="(Sujeto)"
-                android:textStyle="bold"
-                android:textColor="#FFFFFF"
-                android:textSize="14sp"/>
+                style="@style/AppText.Subtitle"/>
 
             <TextView
                 android:id="@+id/tvWhen"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="dd/MM HH:mm"
-                android:textColor="#B0FFFFFF"
-                android:textSize="12sp"/>
+                style="@style/AppText.Small"/>
         </LinearLayout>
 
         <!-- Título del evento -->
@@ -45,8 +42,7 @@
             android:layout_marginTop="4dp"
             android:gravity="center"
             android:text="Título del evento"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
+            style="@style/AppText.Subtitle"
             android:textStyle="bold" />
 
         <!-- Nota opcional (si no la usás, queda GONE y no molesta al adapter) -->
@@ -54,8 +50,7 @@
             android:id="@+id/tvNote"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="#B0FFFFFF"
-            android:textSize="13sp"
+            style="@style/AppText.Subtitle"
             android:visibility="gone"
             android:layout_marginTop="2dp"
             android:text=""/>
@@ -74,31 +69,38 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="$0.00"
-                android:textColor="#03DAC5"
-                android:textSize="14sp"
+                style="@style/AppText.Small"
                 android:textStyle="bold" />
 
-            <ImageButton
+            <com.google.android.material.button.MaterialButton
+                style="@style/Widget.MaterialComponents.Button.Icon"
                 android:id="@+id/btnEdit"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                app:icon="@drawable/ic_edit"
+                app:iconTint="@color/app_on_primary"
+                app:backgroundTint="?attr/colorPrimary"
+                app:cornerRadius="50dp"
                 android:contentDescription="@string/edit"
-                android:src="@drawable/ic_edit"
-                app:tint="#FFFFFF" />
+                android:layout_margin="8dp"
+                 />
 
-            <ImageButton
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnDelete"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
+                style="@style/Widget.MaterialComponents.Button.Icon"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
                 android:contentDescription="@string/delete"
+                app:icon="@drawable/ic_delete"
                 android:src="@drawable/ic_delete"
-                app:tint="#FFFFFF" />
+                app:iconTint="@color/app_on_primary"
+                app:backgroundTint="?attr/colorPrimary"
+                app:cornerRadius="50dp"
+                android:layout_margin="8dp"/>
 
             <CheckBox
                 android:id="@+id/cbDone"
-                android:layout_width="wrap_content"
+                android:layout_width="50dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:text="Realizado"

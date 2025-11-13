@@ -1,13 +1,45 @@
 <resources>
-    <style name="Theme.App" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Colores clave -->
-        <item name="colorPrimary">@color/brand_primary</item>
-        <item name="colorSecondary">@color/brand_secondary</item>
+    <!-- Tema base -->
+    <style name="Theme.CareTemplate" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Core -->
+        <item name="colorPrimary">@color/app_primary</item>
+        <item name="colorOnPrimary">@color/app_on_primary</item>
+        <item name="colorSecondary">@color/app_secondary</item>
+        <item name="colorOnSecondary">@color/app_on_secondary</item>
+        <item name="android:colorBackground">@color/app_background</item>
+        <item name="colorSurface">@color/app_surface</item>
+        <item name="colorOnSurface">@color/app_on_surface</item>
+        <item name="colorError">@color/app_error</item>
+        <item name="colorOnError">@color/app_on_error</item>
 
-        <!-- Superficies y textos -->
-        <item name="colorSurface">@color/surface</item>
-        <item name="colorOnSurface">@color/on_surface</item>
-        <item name="android:windowBackground">@color/background</item>
+        <!-- Status bar / Nav bar -->
+        <item name="android:statusBarColor">@color/app_surface</item>
+        <item name="android:navigationBarColor">@color/app_surface</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:textColor">?attr/colorOnBackground</item>
+        <item name="android:buttonStyle">@style/AppButton</item>
+        <item name="android:imageButtonStyle">@style/AppIconButton</item>
+
+
+
+        <!-- Tipografías -->
+        <item name="textAppearanceHeadline6">@style/Text.H6</item>
+        <item name="textAppearanceSubtitle1">@style/Text.Subtitle</item>
+        <item name="textAppearanceBody1">@style/Text.Body</item>
+        <item name="textAppearanceButton">@style/Text.Button</item>
+
+        <!-- Component defaults -->
+        <item name="materialButtonStyle">@style/Widget.App.Button.Primary</item>
+        <item name="materialButtonOutlinedStyle">@style/Widget.App.Button.Outlined</item>
+        <item name="floatingActionButtonStyle">@style/Widget.App.FAB</item>
+        <item name="toolbarStyle">@style/Widget.App.Toolbar</item>
+
+        <!-- Shapes -->
+        <item name="shapeAppearanceSmallComponent">@style/Shape.Rounded</item>
+        <item name="shapeAppearanceMediumComponent">@style/Shape.Rounded</item>
+        <item name="shapeAppearanceLargeComponent">@style/Shape.Rounded</item>
     </style>
 </resources>
-

@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbarMonth"
+        style="@style/Widget.App.Toolbar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="8dp"
-        android:background="?attr/colorSurface"
-        android:titleTextColor="?android:attr/textColorPrimary" />
+        android:layout_height="?attr/actionBarSize"
+        app:title="@string/app_name" />
+
 
     <TextView
         android:id="@+id/tvMonthTotals"
@@ -16,7 +19,7 @@
         android:layout_height="wrap_content"
         android:text=" "
         android:padding="12dp"
-        android:textStyle="bold"
+        style="@style/AppText.Small"
         android:visibility="gone"/>
 
     <androidx.recyclerview.widget.RecyclerView

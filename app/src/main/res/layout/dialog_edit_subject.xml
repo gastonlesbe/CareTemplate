@@ -1,42 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="wrap_content">
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
 
     <LinearLayout
-        android:orientation="vertical" android:padding="16dp"
-        android:layout_width="match_parent" android:layout_height="wrap_content">
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
 
-        <EditText
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.App.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:id="@+id/etName"
-            android:hint="Nombre"
-            android:inputType="textCapWords"
-            android:layout_width="match_parent" android:layout_height="wrap_content"/>
+            android:hint="Nombre">
+            <com.google.android.material.textfield.TextInputEditText
+                style="@style/Widget.App.TextInputEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+        </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Fecha de nacimiento/instalación (solo se usa en pets/family) -->
-        <EditText
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.App.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:id="@+id/etBirth"
-            android:hint="Fecha (dd/MM/aaaa)"
-            android:focusable="false"
-            android:clickable="true"
-            android:layout_marginTop="12dp"
-            android:layout_width="match_parent" android:layout_height="wrap_content"/>
-
+            android:hint="Fecha (dd/MM/aaaa)">
+            <com.google.android.material.textfield.TextInputEditText
+                style="@style/Widget.App.TextInputEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+        </com.google.android.material.textfield.TextInputLayout>
         <!-- Peso u Odómetro, según flavor -->
-        <EditText
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.App.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:id="@+id/etMeasure"
             android:hint="Medida"
-            android:inputType="numberDecimal"
-            android:layout_marginTop="12dp"
-            android:layout_width="match_parent" android:layout_height="wrap_content"/>
+            android:inputType="numberDecimal">
 
-        <EditText
+            <com.google.android.material.textfield.TextInputEditText
+                style="@style/Widget.App.TextInputEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.App.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:id="@+id/etNotes"
             android:hint="Notas"
             android:inputType="textMultiLine"
-            android:minLines="3"
-            android:gravity="top"
-            android:layout_marginTop="12dp"
-            android:layout_width="match_parent" android:layout_height="wrap_content"/>
+            android:minLines="3">
 
+            <com.google.android.material.textfield.TextInputEditText
+                style="@style/Widget.App.TextInputEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+        </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
 </ScrollView>

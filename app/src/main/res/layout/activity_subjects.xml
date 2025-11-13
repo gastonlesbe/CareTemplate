@@ -6,34 +6,35 @@
     android:layout_height="match_parent"
     android:background="#101010">
 
+
+
     <LinearLayout
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbarSubjects"
+            style="@style/Widget.App.Toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="@string/app_name" />
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Sujetos"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:textColor="#03DAC5"
+            style="@style/AppText.Subtitle"
             android:padding="16dp"
-            android:background="#181818"/>
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbarSubjects"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            app:title="" />
+            />
+
 
         <TextView
             android:id="@+id/tvEmptySubjects"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="No hay sujetos"
-            android:textColor="#FFFFFF"
-            android:layout_gravity="center"
-            android:padding="16dp"
+            style="@style/AppText.Subtitle"
             android:visibility="gone"/>
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvSubjects"

@@ -5,12 +5,17 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
-    <EditText
-        android:id="@+id/etTitle"
+    <com.google.android.material.textfield.TextInputLayout
+        style="@style/Widget.App.TextInputLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Título"
-        android:inputType="textCapSentences" />
+        android:hint="Título">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/etTitle"
+        style="@style/Widget.App.TextInputEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+</com.google.android.material.textfield.TextInputLayout>
 
     <Spinner
         android:id="@+id/spSubject"
@@ -18,11 +23,15 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp" />
 
-    <EditText
-        android:id="@+id/etCost"
+    <com.google.android.material.textfield.TextInputLayout
+        style="@style/Widget.App.TextInputLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:hint="Costo (opcional)"
-        android:inputType="numberDecimal" />
+        android:hint="Título"
+        android:id="@+id/etCost">
+    <com.google.android.material.textfield.TextInputEditText
+        style="@style/Widget.App.TextInputEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+</com.google.android.material.textfield.TextInputLayout>
 </LinearLayout>

@@ -20,8 +20,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Kefu"
-            android:textStyle="bold"
-            android:textSize="16sp" />
+            style="@style/AppText.Subtitle"/>
 
         <LinearLayout
             android:layout_marginTop="6dp"
@@ -33,6 +32,7 @@
                 android:id="@+id/tvCount"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                style="@style/AppText.Small"
                 android:layout_weight="1"
                 android:text="Eventos: 0" />
 
@@ -41,6 +41,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                style="@style/AppText.Small"
                 android:gravity="end"
                 android:text="Plan: $0.00" />
         </LinearLayout>
@@ -51,7 +52,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="end"
-            android:textStyle="bold"
+            style="@style/AppText.Small"
             android:text="Real: $0.00" />
     </LinearLayout>
 </androidx.cardview.widget.CardView>

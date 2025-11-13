@@ -18,8 +18,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Junio 2025"
-            android:textStyle="bold"
-            android:textSize="18sp"
+            style="@style/AppText.Subtitle"
             android:paddingBottom="4dp"/>
 
         <TextView
@@ -27,7 +26,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Planificado: $0.00"
-            android:textSize="14sp"
+            style="@style/AppText.Small"
             android:paddingBottom="2dp"/>
 
         <TextView
@@ -35,6 +34,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Realizado: $0.00"
-            android:textSize="14sp"/>
+            style="@style/AppText.Small"/>
+
     </LinearLayout>
 </androidx.cardview.widget.CardView>

@@ -8,24 +8,8 @@
     android:fitsSystemWindows="true"
     android:background="#101010">
 
-    <com.google.android.material.appbar.AppBarLayout
-        android:id="@+id/appbar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:fitsSystemWindows="true"
-        android:background="#181818"
-        android:elevation="4dp">
 
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            app:title="@string/app_name"
-            app:titleTextColor="#FFFFFF"
-            app:navigationIconTint="#03DAC5"
-            app:menu="@menu/main_menu"
-            android:singleLineTitle="true"/>
-    </com.google.android.material.appbar.AppBarLayout>
+
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvEvents"
@@ -39,6 +23,13 @@
         android:background="#101010"
         app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        style="@style/Widget.App.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        app:title="@string/app_name" />
+
     <LinearLayout
         android:id="@+id/emptyState"
         android:orientation="vertical"
@@ -49,13 +40,13 @@
         android:visibility="gone"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
+
         <TextView
             android:id="@+id/tvAppName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/app_name"
-            android:textSize="22sp"
-            android:textStyle="bold"
+            style="@style/AppText.Small"
             android:textColor="#03DAC5"
             android:layout_marginBottom="8dp"/>
 
@@ -64,8 +55,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="No hay datos ingresados aún"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"/>
+            style="@style/AppText.Small"/>
     </LinearLayout>
 
     <!-- Mini FAB: SUJETO (usa el icono del flavor) -->
@@ -76,6 +66,7 @@
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="24dp"
         android:layout_marginBottom="104dp"
+        style="@style/Widget.App.FAB"
         android:contentDescription="Nuevo sujeto"
         app:srcCompat="@drawable/ic_header_flavor"
         android:visibility="gone"
@@ -84,6 +75,7 @@
     <!-- Mini FAB: EVENTO (calendario) -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAddEvent"
+        style="@style/Widget.App.FAB"
         android:layout_width="56dp"
         android:layout_height="56dp"
         android:layout_gravity="bottom|end"
@@ -98,13 +90,13 @@
     <!-- FAB principal -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAdd"
+        style="@style/Widget.App.FAB"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="24dp"
-        android:layout_marginBottom="24dp"
-        app:srcCompat="@android:drawable/ic_input_add"
-        android:contentDescription="Agregar" />
+        android:layout_marginBottom="40dp"
+        app:srcCompat="@drawable/ic_add" />
 
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

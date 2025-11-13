@@ -5,19 +5,24 @@
 
     <TextView
         android:id="@+id/tvDay"
-        android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:textStyle="bold" android:textSize="16sp"/>
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        style="@style/AppText.Small"
+        />
 
     <TextView
         android:id="@+id/tvCounts"
-        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:textSize="14sp"/>
+        style="@style/AppText.Small"/>
 
     <TextView
         android:id="@+id/tvExpenses"
-        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
-        android:textSize="14sp" android:textColor="#FF5722"
-        android:visibility="gone"/>
+        android:textSize="14sp"
+        android:visibility="gone"
+        style="@style/AppText.Small"/>
 </LinearLayout>

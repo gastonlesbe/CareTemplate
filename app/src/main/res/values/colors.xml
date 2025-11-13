@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Marca -->
-    <color name="brand_primary">#3F51B5</color>
-    <color name="brand_secondary">#03DAC5</color>
+    <!-- Paleta Claro -->
+    <color name="app_primary">#03DAC5</color>
+    <color name="app_on_primary">#00332F</color>
 
-    <!-- Superficies (claro) -->
-    <color name="background">#FFFFFF</color>
-    <color name="surface">#FFFFFF</color>
-    <color name="on_surface">#121212</color>
-    <color name="teal_700">#018786</color>
-    <color name="teal_200">#03DAC5</color>
-    <color name="black">#000000</color>
-    <color name="white">#FFFFFF</color>
+    <color name="app_secondary">#4DB6AC</color>
+    <color name="app_on_secondary">#00302C</color>
+
+    <color name="app_background">#FFFFFF</color>
+    <color name="app_on_background">#121212</color>
+
+    <color name="app_surface">#FFFFFF</color>
+    <color name="app_on_surface">#1A1A1A</color>
+
+    <color name="app_error">#B00020</color>
+    <color name="app_on_error">#FFFFFF</color>
 </resources>
+
