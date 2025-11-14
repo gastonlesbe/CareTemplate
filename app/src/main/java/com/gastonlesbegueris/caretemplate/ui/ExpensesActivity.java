@@ -35,6 +35,7 @@ public class ExpensesActivity extends AppCompatActivity {
 
         MaterialToolbar toolbar = findViewById(R.id.toolbarExpenses);
         setSupportActionBar(toolbar);
+        toolbar.setNavigationIcon(R.drawable.ic_back); // 👈 asegurate que sea ic_back, no ic_black
         toolbar.setNavigationOnClickListener(v -> finish());
         toolbar.setTitle("Gastos");
 

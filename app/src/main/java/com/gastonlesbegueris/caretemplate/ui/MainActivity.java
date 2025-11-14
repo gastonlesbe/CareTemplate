@@ -281,44 +281,42 @@ public class MainActivity extends AppCompatActivity {
             adapter.setSubjectsMap(map);
         });
     }
-    // ===== Header dinámico =====
+    // ===== Header simple en el Home =====
     private void refreshHeader() {
         new Thread(() -> {
-            SubjectEntity s = (currentSubjectId == null) ? null : subjectDao.findOne(currentSubjectId);
-            EventEntity next = (currentSubjectId == null) ? null : eventDao.nextEvent(appType, currentSubjectId, System.currentTimeMillis());
+            // Buscamos el sujeto actual solo para elegir icono y color, nada más
+            SubjectEntity s = (currentSubjectId == null)
+                    ? null
+                    : subjectDao.findOne(currentSubjectId);
 
             runOnUiThread(() -> {
                 MaterialToolbar toolbar = findViewById(R.id.toolbar);
                 if (toolbar == null) return;
 
+                // Siempre: nombre de la app
+                toolbar.setTitle(getString(R.string.app_name));
+
+                // Nunca mostramos subtítulo acá
+                toolbar.setSubtitle(null);
+
+                // Icono por defecto (perro / auto / casa / familia según flavor)
+                int iconRes = R.drawable.ic_header_flavor;
+                String tintHex = "#03DAC5";
+
                 if (s != null) {
-                    String m1;
-                    if ("cars".equals(appType) || "house".equals(appType)) {
-                        m1 = (s.currentMeasure == null ? "-" : (Math.round(s.currentMeasure) + " km"));
-                    } else {
-                        m1 = "Edad: " + formatAge(s.birthDate);
-                        if (s.currentMeasure != null) m1 += " · Peso: " + s.currentMeasure + " kg";
+                    iconRes = getIconResForSubject(s.iconKey);
+                    if (s.colorHex != null && !s.colorHex.isEmpty()) {
+                        tintHex = s.colorHex;
                     }
-                    String m2 = (next == null) ? "Próximo: —"
-                            : "Próximo: " + new java.text.SimpleDateFormat("dd/MM HH:mm")
-                            .format(new java.util.Date(next.dueAt));
-
-                    toolbar.setTitle(getString(R.string.app_name));
-                    toolbar.setSubtitle(m1 + "   |   " + m2);
-
-                    int iconRes = getIconResForSubject(s.iconKey);
-                    toolbar.setNavigationIcon(iconRes);
-                    String hex = (s.colorHex == null || s.colorHex.isEmpty()) ? "#03DAC5" : s.colorHex;
-                    try {
-                        if (toolbar.getNavigationIcon() != null) {
-                            toolbar.getNavigationIcon().setTint(android.graphics.Color.parseColor(hex));
-                        }
-                    } catch (Exception ignore) {}
-                } else {
-                    toolbar.setTitle(getString(R.string.app_name));
-                    toolbar.setSubtitle(null);
-                    toolbar.setNavigationIcon(R.drawable.ic_header_flavor);
                 }
+
+                toolbar.setNavigationIcon(iconRes);
+                try {
+                    if (toolbar.getNavigationIcon() != null) {
+                        toolbar.getNavigationIcon()
+                                .setTint(android.graphics.Color.parseColor(tintHex));
+                    }
+                } catch (Exception ignore) {}
             });
         }).start();
     }

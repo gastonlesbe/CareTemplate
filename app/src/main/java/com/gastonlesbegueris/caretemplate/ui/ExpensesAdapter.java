@@ -37,7 +37,14 @@ public class ExpensesAdapter extends RecyclerView.Adapter<ExpensesAdapter.VH> {
 
     @Override public void onBindViewHolder(@NonNull VH h, int pos) {
         MonthTotal m = items.get(pos);
-        h.tvMonth.setText(fmt.format(new Date(m.monthStart)));
+        // monthStart is in format "YYYY-MM-01" (String from SQL query)
+        try {
+            SimpleDateFormat inputFmt = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+            Date date = inputFmt.parse(m.monthStart);
+            h.tvMonth.setText(fmt.format(date));
+        } catch (Exception e) {
+            h.tvMonth.setText(m.monthStart); // fallback to raw string
+        }
         double planned  = (m.plannedSum  == null) ? 0.0 : m.plannedSum;
         double realized = (m.realizedSum == null) ? 0.0 : m.realizedSum;
         h.tvPlanned.setText(String.format(Locale.getDefault(), "Planificado: $%.2f", planned));

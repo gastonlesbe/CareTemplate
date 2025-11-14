@@ -17,11 +17,13 @@
     <item
         android:id="@+id/action_subjects"
         android:title="Sujetos"
+        android:icon="@drawable/ic_line_user"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/action_expenses"
         android:title="Gastos"
+        android:icon="@drawable/ic_line_money"
         app:showAsAction="never" />
 
 

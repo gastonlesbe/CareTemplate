@@ -2,6 +2,7 @@ package com.gastonlesbegueris.caretemplate.ui;
 
 import android.os.Bundle;
 import android.text.InputType;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -19,6 +20,8 @@ import com.google.android.material.appbar.MaterialToolbar;
 
 import java.util.List;
 import java.util.UUID;
+import com.google.android.material.textfield.TextInputLayout;
+import com.google.android.material.textfield.TextInputEditText;
 
 public class SubjectListActivity extends AppCompatActivity {
 
@@ -34,9 +37,10 @@ public class SubjectListActivity extends AppCompatActivity {
 
         MaterialToolbar toolbar = findViewById(R.id.toolbarSubjects);
         setSupportActionBar(toolbar);
-        toolbar.setTitle("Sujetos");
         toolbar.setNavigationIcon(R.drawable.ic_back);
         toolbar.setNavigationOnClickListener(v -> finish());
+        toolbar.setTitle("Sujetos");
+
 
         appType = getString(R.string.app_type); // viene del flavor
         db  = AppDb.get(this);
@@ -51,7 +55,7 @@ public class SubjectListActivity extends AppCompatActivity {
         rv.setLayoutManager(new LinearLayoutManager(this));
         rv.setAdapter(adapter);
 
-        findViewById(R.id.fabAddSubject).setOnClickListener(v -> showAddDialog());
+        findViewById(R.id.btnAddSubject).setOnClickListener(v -> showAddDialog());
 
         // observar lista de sujetos
         dao.observeActive(appType).observe(this, (List<SubjectEntity> list) -> {
@@ -61,12 +65,12 @@ public class SubjectListActivity extends AppCompatActivity {
                     String info  = buildInfoLine(subj);
                     String extra = buildExtraLine(subj);
                     rows.add(new SubjectAdapter.SubjectRow(subj, info, extra));
-                }
+                }/*
                 runOnUiThread(() -> {
                     adapter.submitRows(rows);
                     findViewById(R.id.tvEmptySubjects)
                             .setVisibility(rows.isEmpty() ? android.view.View.VISIBLE : android.view.View.GONE);
-                });
+                });*/
             }).start();
         });
     }
@@ -128,42 +132,56 @@ public class SubjectListActivity extends AppCompatActivity {
             runOnUiThread(() -> Toast.makeText(this, "Sujeto creado ✅", Toast.LENGTH_SHORT).show());
         }).start();
     }
-
-    // ---------- Editar ----------
     private void showEditDialog(SubjectEntity subj) {
-        final android.view.View view = getLayoutInflater().inflate(R.layout.dialog_edit_subject, null, false);
+        View view = getLayoutInflater().inflate(R.layout.dialog_subject, null);
 
-        final EditText etName    = view.findViewById(R.id.etName);
-        final EditText etBirth   = view.findViewById(R.id.etBirth);
-        final EditText etMeasure = view.findViewById(R.id.etMeasure);
-        final EditText etNotes   = view.findViewById(R.id.etNotes);
+        TextInputLayout tilName  = view.findViewById(R.id.tilName);
+        TextInputEditText etName = view.findViewById(R.id.etName);
 
-        setupDialogUiByFlavor(etBirth, etMeasure);
+        TextInputLayout tilMeasure  = view.findViewById(R.id.tilMeasure);
+        TextInputEditText etMeasure = view.findViewById(R.id.etMeasure);
 
+        TextInputLayout tilNotes  = view.findViewById(R.id.tilNotes);
+        TextInputEditText etNotes = view.findViewById(R.id.etNotes);
+
+        // precargar datos del sujeto
         etName.setText(subj.name);
-        if (subj.birthDate != null) {
-            java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("dd/MM/yyyy");
-            etBirth.setText(f.format(new java.util.Date(subj.birthDate)));
+        if (subj.currentMeasure != null) {
+            etMeasure.setText(String.valueOf(subj.currentMeasure));
         }
-        if (subj.currentMeasure != null) etMeasure.setText(String.valueOf(subj.currentMeasure));
         etNotes.setText(subj.notes == null ? "" : subj.notes);
-        etBirth.setOnClickListener(v -> pickDateInto(etBirth));
 
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Editar sujeto")
                 .setView(view)
-                .setPositiveButton("Guardar", (d,w)-> {
-                    String name = etName.getText().toString().trim();
+                .setPositiveButton("Guardar", (d, w) -> {
+                    String name = etName.getText() == null ? "" : etName.getText().toString().trim();
+                    String m    = etMeasure.getText() == null ? "" : etMeasure.getText().toString().trim();
+                    String notes = etNotes.getText() == null ? "" : etNotes.getText().toString().trim();
+
                     if (name.isEmpty()) {
-                        Toast.makeText(this,"Nombre requerido",Toast.LENGTH_SHORT).show();
+                        android.widget.Toast.makeText(this, "Nombre requerido", android.widget.Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    Long birthMillis = parseDateOrNull(etBirth.getText().toString().trim());
-                    Double measure = safeParseDouble(etMeasure.getText().toString().trim());
-                    String notes = etNotes.getText().toString().trim();
-                    updateSubjectFull(subj, name, birthMillis, measure, notes);
+
+                    Double measure = null;
+                    try { if (!m.isEmpty()) measure = Double.parseDouble(m); } catch (Exception ignore) {}
+                    final Double finalMeasure = measure; // Make effectively final for lambda
+
+                    // actualizar en background
+                    new Thread(() -> {
+                        subj.name = name;
+                        subj.currentMeasure = finalMeasure;
+                        subj.notes = notes;
+                        subj.updatedAt = System.currentTimeMillis();
+                        subj.dirty = 1;
+                        AppDb.get(this).subjectDao().update(subj);
+
+                        runOnUiThread(() ->
+                                android.widget.Toast.makeText(this, "Sujeto actualizado ✅", android.widget.Toast.LENGTH_SHORT).show()
+                        );
+                    }).start();
                 })
-                .setNeutralButton("Eliminar", (d,w)-> softDelete(subj.id))
                 .setNegativeButton("Cancelar", null)
                 .show();
     }
