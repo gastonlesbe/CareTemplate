@@ -12,11 +12,20 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <!-- Primera línea: nombre del sujeto + fecha -->
+        <!-- Primera línea: icono del sujeto + nombre del sujeto + fecha -->
         <LinearLayout
             android:orientation="horizontal"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/ivSubjectIcon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginEnd="8dp"
+                android:contentDescription="Icono del sujeto"
+                android:scaleType="fitCenter" />
 
             <TextView
                 android:id="@+id/tvSubject"
@@ -37,12 +46,22 @@
         <!-- Título del evento -->
         <TextView
             android:id="@+id/tvTitle"
+            style="@style/AppText.Subtitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:gravity="center"
             android:text="Título del evento"
-            style="@style/AppText.Subtitle"
+            android:textStyle="bold" />
+
+
+        <TextView
+            android:id="@+id/tvCost"
+            style="@style/AppText.Small"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="end"
+            android:text="$0.00"
             android:textStyle="bold" />
 
         <!-- Nota opcional (si no la usás, queda GONE y no molesta al adapter) -->
@@ -63,14 +82,6 @@
             android:gravity="center|center_vertical"
             android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/tvCost"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="$0.00"
-                style="@style/AppText.Small"
-                android:textStyle="bold" />
 
             <com.google.android.material.button.MaterialButton
                 style="@style/Widget.MaterialComponents.Button.Icon"
@@ -100,7 +111,7 @@
 
             <CheckBox
                 android:id="@+id/cbDone"
-                android:layout_width="50dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:text="Realizado"

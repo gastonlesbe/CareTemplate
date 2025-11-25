@@ -58,9 +58,27 @@ public class MainActivity extends AppCompatActivity {
         // 3) Toolbar
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        toolbar.setNavigationIcon(R.drawable.ic_header_flavor);
+        
+        // Ensure ActionBar shows title
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayShowTitleEnabled(true);
+            getSupportActionBar().setDisplayHomeAsUpEnabled(false);
+        }
+        
         toolbar.setTitle(getString(R.string.app_name));
         toolbar.setSubtitle(null);
+        // Set default icon immediately (will be updated by refreshHeader() if subject exists)
+        toolbar.setNavigationIcon(R.drawable.ic_header_flavor);
+        try {
+            android.graphics.drawable.Drawable icon = toolbar.getNavigationIcon();
+            if (icon != null) {
+                icon = icon.mutate();
+                icon.setTint(android.graphics.Color.parseColor("#03DAC5"));
+                toolbar.setNavigationIcon(icon);
+            }
+        } catch (Exception ignore) {}
+        // Icon will be updated by refreshHeader() if a subject is selected
+        refreshHeader();
 
         // 4) Lista + Adapter
         setupEventsList();               // crea adapter y setea RecyclerView
@@ -111,15 +129,32 @@ public class MainActivity extends AppCompatActivity {
 
     } else if (id == R.id.action_sync) {
             startSyncIconAnimation();
-            if (FirebaseAuth.getInstance().getCurrentUser() == null) {
-                FirebaseAuth.getInstance().signInAnonymously()
-                        .addOnSuccessListener(a -> doSync())
-                        .addOnFailureListener(e -> {
-                            stopSyncIconAnimation();
-                            Toast.makeText(this, "Auth error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                        });
-            } else {
-                doSync();
+            try {
+                if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+                    FirebaseAuth.getInstance().signInAnonymously()
+                            .addOnSuccessListener(authResult -> {
+                                if (authResult != null && authResult.getUser() != null) {
+                                    doSync();
+                                } else {
+                                    stopSyncIconAnimation();
+                                    Toast.makeText(this, "Error: No se pudo autenticar", Toast.LENGTH_LONG).show();
+                                }
+                            })
+                            .addOnFailureListener(e -> {
+                                stopSyncIconAnimation();
+                                String errorMsg = e.getMessage();
+                                if (errorMsg != null && errorMsg.contains("SecurityException")) {
+                                    Toast.makeText(this, "Error de configuración. Verifica Firebase Console y SHA-1", Toast.LENGTH_LONG).show();
+                                } else {
+                                    Toast.makeText(this, "Auth error: " + errorMsg, Toast.LENGTH_LONG).show();
+                                }
+                            });
+                } else {
+                    doSync();
+                }
+            } catch (Exception e) {
+                stopSyncIconAnimation();
+                Toast.makeText(this, "Error al iniciar sync: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
             return true;
         } else if (id == R.id.action_subjects) {
@@ -157,45 +192,91 @@ public class MainActivity extends AppCompatActivity {
         menuItemSync.setEnabled(true);
     }
 
+    private void showSyncError(String context, Exception e) {
+        String errorMsg = e.getMessage();
+        String userMessage;
+        
+        if (errorMsg == null) {
+            userMessage = context + ": Error desconocido";
+        } else if (errorMsg.contains("Failed to get service") || 
+                   errorMsg.contains("reconnection") || 
+                   errorMsg.contains("UNAVAILABLE") ||
+                   errorMsg.contains("DEADLINE_EXCEEDED") ||
+                   errorMsg.contains("network")) {
+            userMessage = "Error de conexión. Verifica tu internet e intenta de nuevo";
+        } else if (errorMsg.contains("PERMISSION_DENIED") || errorMsg.contains("permission")) {
+            userMessage = "Error de permisos. Verifica la configuración de Firestore";
+        } else if (errorMsg.contains("UNAUTHENTICATED") || errorMsg.contains("auth")) {
+            userMessage = "Error de autenticación. Intenta sincronizar de nuevo";
+        } else if (errorMsg.contains("SecurityException")) {
+            userMessage = "Error de seguridad. Verifica SHA-1 en Firebase Console";
+        } else {
+            userMessage = context + ": " + errorMsg;
+        }
+        
+        Toast.makeText(this, userMessage, Toast.LENGTH_LONG).show();
+    }
+
     // ===== Sync Cloud <-> Local =====
     private void doSync() {
-        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        CloudSync sync = new CloudSync(
-                eventDao,
-                subjectDao,
-                FirebaseFirestore.getInstance(),
-                uid,
-                "CareTemplate",   // nombre lógico de la app en Firestore
-                appType
-        );
+        try {
+            com.google.firebase.auth.FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+            if (user == null) {
+                runOnUiThread(() -> {
+                    stopSyncIconAnimation();
+                    Toast.makeText(this, "Error: Usuario no autenticado", Toast.LENGTH_LONG).show();
+                });
+                return;
+            }
+            
+            String uid = user.getUid();
+            CloudSync sync = new CloudSync(
+                    eventDao,
+                    subjectDao,
+                    FirebaseFirestore.getInstance(),
+                    uid,
+                    "CareTemplate",   // nombre lógico de la app en Firestore
+                    appType
+            );
 
-        sync.pushSubjects(() -> {
-            sync.push(() -> {
-                runOnUiThread(() -> Toast.makeText(this, "Push OK ✅", Toast.LENGTH_SHORT).show());
-                sync.pullSubjects(() -> {
-                    sync.pull(
-                            () -> runOnUiThread(() -> {
-                                Toast.makeText(this, "Pull OK ✅", Toast.LENGTH_SHORT).show();
-                                stopSyncIconAnimation();
-                                refreshHeader();
-                            }),
-                            e -> runOnUiThread(() -> {
-                                Toast.makeText(this, "Pull error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                                stopSyncIconAnimation();
-                            })
-                    );
+            sync.pushSubjects(() -> {
+                sync.push(() -> {
+                    runOnUiThread(() -> Toast.makeText(this, "Push OK ✅", Toast.LENGTH_SHORT).show());
+                    sync.pullSubjects(() -> {
+                        sync.pull(
+                                () -> runOnUiThread(() -> {
+                                    Toast.makeText(this, "Pull OK ✅", Toast.LENGTH_SHORT).show();
+                                    stopSyncIconAnimation();
+                                    refreshHeader();
+                                }),
+                                e -> runOnUiThread(() -> {
+                                    showSyncError("Pull error", e);
+                                    stopSyncIconAnimation();
+                                })
+                        );
+                    }, e -> runOnUiThread(() -> {
+                        showSyncError("Pull subjects error", e);
+                        stopSyncIconAnimation();
+                    }));
                 }, e -> runOnUiThread(() -> {
-                    Toast.makeText(this, "Pull subjects error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    showSyncError("Push events error", e);
                     stopSyncIconAnimation();
                 }));
             }, e -> runOnUiThread(() -> {
-                Toast.makeText(this, "Push events error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                showSyncError("Push subjects error", e);
                 stopSyncIconAnimation();
             }));
-        }, e -> runOnUiThread(() -> {
-            Toast.makeText(this, "Push subjects error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            stopSyncIconAnimation();
-        }));
+        } catch (SecurityException e) {
+            runOnUiThread(() -> {
+                stopSyncIconAnimation();
+                Toast.makeText(this, "Error de seguridad. Verifica la configuración de Firebase (SHA-1)", Toast.LENGTH_LONG).show();
+            });
+        } catch (Exception e) {
+            runOnUiThread(() -> {
+                stopSyncIconAnimation();
+                Toast.makeText(this, "Error en sync: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            });
+        }
     }
 
     // ===== Lista de eventos =====
@@ -272,64 +353,156 @@ public class MainActivity extends AppCompatActivity {
     // 👇 Esto va afuera, no dentro de observeLocal()
     private void observeSubjectsForAdapter() {
         subjectDao.observeActive(appType).observe(this, subjects -> {
-            java.util.Map<String, String> map = new java.util.HashMap<>();
+            java.util.Map<String, String> nameMap = new java.util.HashMap<>();
+            java.util.Map<String, String> iconKeyMap = new java.util.HashMap<>();
             if (subjects != null) {
                 for (com.gastonlesbegueris.caretemplate.data.local.SubjectEntity s : subjects) {
-                    map.put(s.id, s.name);
+                    nameMap.put(s.id, s.name);
+                    if (s.iconKey != null) {
+                        iconKeyMap.put(s.id, s.iconKey);
+                    }
                 }
             }
-            adapter.setSubjectsMap(map);
+            adapter.setSubjectsMap(nameMap);
+            adapter.setSubjectIconKeys(iconKeyMap);
         });
     }
     // ===== Header simple en el Home =====
     private void refreshHeader() {
-        new Thread(() -> {
-            // Buscamos el sujeto actual solo para elegir icono y color, nada más
-            SubjectEntity s = (currentSubjectId == null)
-                    ? null
-                    : subjectDao.findOne(currentSubjectId);
+        runOnUiThread(() -> {
+            MaterialToolbar toolbar = findViewById(R.id.toolbar);
+            if (toolbar == null) return;
 
-            runOnUiThread(() -> {
-                MaterialToolbar toolbar = findViewById(R.id.toolbar);
-                if (toolbar == null) return;
+            // Siempre: nombre de la app
+            toolbar.setTitle(getString(R.string.app_name));
 
-                // Siempre: nombre de la app
-                toolbar.setTitle(getString(R.string.app_name));
+            // Nunca mostramos subtítulo acá
+            toolbar.setSubtitle(null);
 
-                // Nunca mostramos subtítulo acá
-                toolbar.setSubtitle(null);
+            // Icono siempre del flavor (perro / auto / casa / familia según flavor)
+            int iconRes = R.drawable.ic_header_flavor;
+            String tintHex = "#03DAC5";
 
-                // Icono por defecto (perro / auto / casa / familia según flavor)
-                int iconRes = R.drawable.ic_header_flavor;
-                String tintHex = "#03DAC5";
-
-                if (s != null) {
-                    iconRes = getIconResForSubject(s.iconKey);
-                    if (s.colorHex != null && !s.colorHex.isEmpty()) {
-                        tintHex = s.colorHex;
-                    }
+            // Set icon and ensure it's visible
+            toolbar.setNavigationIcon(iconRes);
+            try {
+                android.graphics.drawable.Drawable icon = toolbar.getNavigationIcon();
+                if (icon != null) {
+                    icon = icon.mutate(); // Make a mutable copy
+                    icon.setTint(android.graphics.Color.parseColor(tintHex));
+                    toolbar.setNavigationIcon(icon);
                 }
-
+            } catch (Exception e) {
+                // If tinting fails, at least ensure icon is set
                 toolbar.setNavigationIcon(iconRes);
-                try {
-                    if (toolbar.getNavigationIcon() != null) {
-                        toolbar.getNavigationIcon()
-                                .setTint(android.graphics.Color.parseColor(tintHex));
-                    }
-                } catch (Exception ignore) {}
-            });
-        }).start();
+            }
+        });
     }
 
     private int getIconResForSubject(String key) {
         if (key == null) return R.drawable.ic_line_user;
         switch (key) {
+            // Pets
             case "cat":   return R.drawable.ic_line_cat;
             case "dog":   return R.drawable.ic_line_dog;
-            case "car":   return R.drawable.ic_line_car;
+            // Family
+            case "man":   return R.drawable.ic_line_man;
+            case "woman": return R.drawable.ic_line_woman;
+            // House
+            case "apartment": return R.drawable.ic_line_apartment;
             case "house": return R.drawable.ic_line_house;
+            case "office": return R.drawable.ic_line_office;
+            case "local": return R.drawable.ic_line_local;
+            case "store": return R.drawable.ic_line_store;
+            // Vehicles
+            case "car":   return R.drawable.ic_line_car;
+            case "bike":  return R.drawable.ic_line_bike;
+            case "motorbike": return R.drawable.ic_line_motorbike;
+            case "truck": return R.drawable.ic_line_truck;
+            case "pickup": return R.drawable.ic_line_pickup;
+            case "suv":   return R.drawable.ic_line_suv;
+            // Default
             case "user":  return R.drawable.ic_line_user;
             default:      return R.drawable.ic_line_user;
+        }
+    }
+
+    // Obtiene los iconos disponibles según el tipo de app
+    private java.util.List<IconOption> getAvailableIcons() {
+        java.util.List<IconOption> icons = new java.util.ArrayList<>();
+        if ("pets".equals(appType)) {
+            icons.add(new IconOption("cat", R.drawable.ic_line_cat));
+            icons.add(new IconOption("dog", R.drawable.ic_line_dog));
+        } else if ("family".equals(appType)) {
+            icons.add(new IconOption("man", R.drawable.ic_line_man));
+            icons.add(new IconOption("woman", R.drawable.ic_line_woman));
+        } else if ("house".equals(appType)) {
+            icons.add(new IconOption("apartment", R.drawable.ic_line_apartment));
+            icons.add(new IconOption("house", R.drawable.ic_line_house));
+            icons.add(new IconOption("office", R.drawable.ic_line_office));
+            icons.add(new IconOption("local", R.drawable.ic_line_local));
+            icons.add(new IconOption("store", R.drawable.ic_line_store));
+        } else if ("cars".equals(appType)) {
+            icons.add(new IconOption("car", R.drawable.ic_line_car));
+            icons.add(new IconOption("bike", R.drawable.ic_line_bike));
+            icons.add(new IconOption("motorbike", R.drawable.ic_line_motorbike));
+            icons.add(new IconOption("truck", R.drawable.ic_line_truck));
+            icons.add(new IconOption("pickup", R.drawable.ic_line_pickup));
+            icons.add(new IconOption("suv", R.drawable.ic_line_suv));
+        } else {
+            icons.add(new IconOption("user", R.drawable.ic_line_user));
+        }
+        return icons;
+    }
+
+    // Clase auxiliar para opciones de icono
+    private static class IconOption {
+        final String key;
+        final int drawableRes;
+        IconOption(String key, int drawableRes) {
+            this.key = key;
+            this.drawableRes = drawableRes;
+        }
+    }
+
+    // Popula el grid de iconos
+    private void populateIconGrid(android.widget.GridLayout grid, final String[] selectedKey) {
+        if (grid == null) return;
+        grid.removeAllViews();
+        
+        java.util.List<IconOption> icons = getAvailableIcons();
+        int size = (int) (48 * getResources().getDisplayMetrics().density);
+        int margin = (int) (8 * getResources().getDisplayMetrics().density);
+        
+        for (IconOption icon : icons) {
+            android.widget.ImageView iv = new android.widget.ImageView(this);
+            android.widget.GridLayout.LayoutParams params = new android.widget.GridLayout.LayoutParams();
+            params.width = size;
+            params.height = size;
+            params.setMargins(margin, margin, margin, margin);
+            iv.setLayoutParams(params);
+            iv.setImageResource(icon.drawableRes);
+            iv.setPadding(margin, margin, margin, margin);
+            iv.setBackgroundResource(android.R.drawable.dialog_holo_light_frame);
+            iv.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
+            
+            // Tint inicial
+            if (icon.key.equals(selectedKey[0])) {
+                iv.setBackgroundColor(0x3303DAC5);
+            }
+            
+            iv.setOnClickListener(v -> {
+                // Reset all backgrounds
+                for (int i = 0; i < grid.getChildCount(); i++) {
+                    View child = grid.getChildAt(i);
+                    child.setBackgroundResource(android.R.drawable.dialog_holo_light_frame);
+                }
+                // Set selected background
+                v.setBackgroundColor(0x3303DAC5);
+                selectedKey[0] = icon.key;
+            });
+            
+            grid.addView(iv);
         }
     }
 
@@ -410,9 +583,15 @@ public class MainActivity extends AppCompatActivity {
     // ===== Crear / Editar / Borrar eventos =====
     private void showAddEventDialog() {
         final android.view.View view = getLayoutInflater().inflate(R.layout.dialog_add_event, null);
-        final android.widget.EditText etTitle = view.findViewById(R.id.etTitle);
-        final android.widget.EditText etCost  = view.findViewById(R.id.etCost);
+        final com.google.android.material.textfield.TextInputEditText etTitle = view.findViewById(R.id.etTitle);
+        final com.google.android.material.textfield.TextInputEditText etCost  = view.findViewById(R.id.etCost);
         final android.widget.Spinner sp       = view.findViewById(R.id.spSubject);
+
+        // Verificar que las vistas se encontraron
+        if (etTitle == null || etCost == null || sp == null) {
+            Toast.makeText(this, "Error al cargar el diálogo", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         // cargar sujetos en background
         new Thread(() -> {
@@ -439,7 +618,7 @@ public class MainActivity extends AppCompatActivity {
                         .setTitle("Nuevo evento")
                         .setView(view)
                         .setPositiveButton("Elegir fecha/hora", (d, w) -> {
-                            final String title = etTitle.getText().toString().trim();
+                            final String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
                             if (title.isEmpty()) {
                                 Toast.makeText(this, "Título requerido", Toast.LENGTH_SHORT).show();
                                 return;
@@ -449,9 +628,13 @@ public class MainActivity extends AppCompatActivity {
                                 return;
                             }
                             final int pos = sp.getSelectedItemPosition();
+                            if (pos < 0 || pos >= subjects.size()) {
+                                Toast.makeText(this, "Seleccioná un sujeto", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
                             final String subjectId = subjects.get(pos).id;
 
-                            final String c = etCost.getText().toString().trim();
+                            final String c = etCost.getText() != null ? etCost.getText().toString().trim() : "";
                             final Double cost = c.isEmpty() ? null : safeParseDouble(c);
 
                             final String fTitle = title;
@@ -583,28 +766,40 @@ public class MainActivity extends AppCompatActivity {
 
     // ===== Crear sujeto rápido =====
     private void showQuickAddSubjectDialog() {
-        final android.widget.EditText et = new android.widget.EditText(this);
-        et.setHint("Nombre");
-        et.setInputType(android.text.InputType.TYPE_CLASS_TEXT);
+        if (!LimitGuard.canCreateSubject(this, db, appType)) return;
+
+        final android.view.View view = getLayoutInflater().inflate(R.layout.dialog_edit_subject, null, false);
+        final android.widget.EditText etName = view.findViewById(R.id.etName);
+        final android.widget.EditText etBirth = view.findViewById(R.id.etBirth);
+        final android.widget.EditText etMeasure = view.findViewById(R.id.etMeasure);
+        final android.widget.EditText etNotes = view.findViewById(R.id.etNotes);
+
+        // Hide fields not needed for quick add
+        if (etBirth != null) etBirth.setVisibility(android.view.View.GONE);
+        if (etMeasure != null) etMeasure.setVisibility(android.view.View.GONE);
+        if (etNotes != null) etNotes.setVisibility(android.view.View.GONE);
+
+        // Setup icon selection
+        final android.widget.GridLayout gridIcons = view.findViewById(R.id.gridIcons);
+        final String[] selectedIconKey = {defaultIconForFlavor()};
+        populateIconGrid(gridIcons, selectedIconKey);
 
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Nuevo sujeto")
-                .setView(et)
+                .setView(view)
                 .setPositiveButton("Guardar", (d, w) -> {
-                    String name = et.getText().toString().trim();
+                    String name = etName.getText().toString().trim();
                     if (name.isEmpty()) {
                         Toast.makeText(this, "Nombre requerido", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    insertSubjectMinimal(name);
+                    insertSubjectMinimal(name, selectedIconKey[0]);
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
-        if (!LimitGuard.canCreateSubject(this, db, appType)) return;
-
     }
 
-    private void insertSubjectMinimal(String name) {
+    private void insertSubjectMinimal(String name, String iconKey) {
         new Thread(() -> {
             SubjectEntity s = new SubjectEntity();
             s.id = UUID.randomUUID().toString();
@@ -613,7 +808,7 @@ public class MainActivity extends AppCompatActivity {
             s.birthDate = null;
             s.currentMeasure = null;
             s.notes = "";
-            s.iconKey = defaultIconForFlavor();
+            s.iconKey = (iconKey == null || iconKey.isEmpty()) ? defaultIconForFlavor() : iconKey;
             s.colorHex = "#03DAC5";
             s.updatedAt = System.currentTimeMillis();
             s.deleted = 0;

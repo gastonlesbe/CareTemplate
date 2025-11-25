@@ -5,8 +5,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
-import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
+import com.google.android.material.button.MaterialButton;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -31,6 +32,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.VH> {
 
     private final List<EventEntity> items = new ArrayList<>();
     private final HashMap<String, String> subjectNames = new HashMap<>();
+    private final HashMap<String, String> subjectIconKeys = new HashMap<>();
     private final OnEventClick listener;
 
     public EventAdapter(OnEventClick l) { this.listener = l; }
@@ -47,6 +49,12 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.VH> {
         notifyDataSetChanged();
     }
 
+    public void setSubjectIconKeys(java.util.Map<String, String> map) {
+        subjectIconKeys.clear();
+        if (map != null) subjectIconKeys.putAll(map);
+        notifyDataSetChanged();
+    }
+
     @NonNull @Override
     public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext())
@@ -59,9 +67,15 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.VH> {
     public void onBindViewHolder(@NonNull VH h, int pos) {
         EventEntity e = items.get(pos);
         String subjName = subjectNames.getOrDefault(e.subjectId, "—");
+        String iconKey = subjectIconKeys.getOrDefault(e.subjectId, null);
 
         h.tvTitle.setText(e.title);
         h.tvSubjectName.setText(subjName);
+
+        // Set subject icon
+        int iconRes = getIconResForSubject(iconKey);
+        h.ivSubjectIcon.setImageResource(iconRes);
+        h.ivSubjectIcon.setVisibility(View.VISIBLE);
 
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM HH:mm", Locale.getDefault());
         h.tvWhen.setText(sdf.format(new Date(e.dueAt)));
@@ -84,6 +98,10 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.VH> {
             if (listener != null) listener.onEdit(e);
         });
 
+        h.btnEdit.setOnClickListener(v -> {
+            if (listener != null) listener.onEdit(e);
+        });
+
         h.btnDelete.setOnClickListener(v -> {
             if (listener != null) listener.onDelete(e);
         });
@@ -91,16 +109,46 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.VH> {
 
     @Override public int getItemCount() { return items.size(); }
 
+    private int getIconResForSubject(String key) {
+        if (key == null) return R.drawable.ic_line_user;
+        switch (key) {
+            // Pets
+            case "cat":   return R.drawable.ic_line_cat;
+            case "dog":   return R.drawable.ic_line_dog;
+            // Family
+            case "man":   return R.drawable.ic_line_man;
+            case "woman": return R.drawable.ic_line_woman;
+            // House
+            case "apartment": return R.drawable.ic_line_apartment;
+            case "house": return R.drawable.ic_line_house;
+            case "office": return R.drawable.ic_line_office;
+            case "local": return R.drawable.ic_line_local;
+            case "store": return R.drawable.ic_line_store;
+            // Vehicles
+            case "car":   return R.drawable.ic_line_car;
+            case "bike":  return R.drawable.ic_line_bike;
+            case "motorbike": return R.drawable.ic_line_motorbike;
+            case "truck": return R.drawable.ic_line_truck;
+            case "pickup": return R.drawable.ic_line_pickup;
+            case "suv":   return R.drawable.ic_line_suv;
+            // Default
+            case "user":  return R.drawable.ic_line_user;
+            default:      return R.drawable.ic_line_user;
+        }
+    }
+
     static class VH extends RecyclerView.ViewHolder {
         TextView tvTitle, tvSubjectName, tvWhen, tvCost;
+        ImageView ivSubjectIcon;
         CheckBox cbDone;
-        ImageButton btnDelete, btnEdit;
+        MaterialButton btnDelete, btnEdit;
         VH(@NonNull View v) {
             super(v);
             tvTitle = v.findViewById(R.id.tvTitle);
             tvSubjectName = v.findViewById(R.id.tvSubject);
             tvWhen = v.findViewById(R.id.tvWhen);
             tvCost = v.findViewById(R.id.tvCost);
+            ivSubjectIcon = v.findViewById(R.id.ivSubjectIcon);
             cbDone = v.findViewById(R.id.cbDone);
             btnEdit   = v.findViewById(R.id.btnEdit);
             btnDelete = v.findViewById(R.id.btnDelete);

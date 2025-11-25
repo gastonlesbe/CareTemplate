@@ -21,17 +21,20 @@
         android:id="@+id/spSubject"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp" />
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="12dp"
+        android:gravity="center_vertical"/>
 
     <com.google.android.material.textfield.TextInputLayout
         style="@style/Widget.App.TextInputLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Título"
-        android:id="@+id/etCost">
+        android:hint="Costo">
     <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/etCost"
         style="@style/Widget.App.TextInputEditText"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:inputType="numberDecimal"/>
 </com.google.android.material.textfield.TextInputLayout>
 </LinearLayout>

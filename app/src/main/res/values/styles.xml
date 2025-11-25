@@ -117,7 +117,7 @@
         <item name="titleTextColor">@color/app_on_surface</item>
         <item name="subtitleTextColor">@color/app_on_surface</item>
         <item name="navigationIconTint">@color/app_primary</item>
-        <item name="titleCentered">true</item>
+        <item name="titleCentered">false</item>
     </style>
 
     <!-- Botones -->

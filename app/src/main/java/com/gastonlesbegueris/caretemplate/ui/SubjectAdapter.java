@@ -78,10 +78,26 @@ public class SubjectAdapter extends RecyclerView.Adapter<SubjectAdapter.VH> {
     private int getIconRes(String key) {
         if (key == null) return R.drawable.ic_line_user;
         switch (key) {
+            // Pets
             case "cat":   return R.drawable.ic_line_cat;
             case "dog":   return R.drawable.ic_line_dog;
-            case "car":   return R.drawable.ic_line_car;
+            // Family
+            case "man":   return R.drawable.ic_line_man;
+            case "woman": return R.drawable.ic_line_woman;
+            // House
+            case "apartment": return R.drawable.ic_line_apartment;
             case "house": return R.drawable.ic_line_house;
+            case "office": return R.drawable.ic_line_office;
+            case "local": return R.drawable.ic_line_local;
+            case "store": return R.drawable.ic_line_store;
+            // Vehicles
+            case "car":   return R.drawable.ic_line_car;
+            case "bike":  return R.drawable.ic_line_bike;
+            case "motorbike": return R.drawable.ic_line_motorbike;
+            case "truck": return R.drawable.ic_line_truck;
+            case "pickup": return R.drawable.ic_line_pickup;
+            case "suv":   return R.drawable.ic_line_suv;
+            // Default
             case "user":  return R.drawable.ic_line_user;
             default:      return R.drawable.ic_line_user;
         }

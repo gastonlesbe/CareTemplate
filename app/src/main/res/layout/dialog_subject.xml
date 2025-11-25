@@ -13,57 +13,65 @@
             style="@style/Widget.App.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:id="@+id/tilName"
             android:hint="Nombre">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etName"
                 style="@style/Widget.App.TextInputEditText"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content"
+                android:id="@+id/etName"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Icon selection grid -->
-        <include layout="@layout/icon_selection_grid" />
-
-        <!-- Fecha de nacimiento/instalación (solo se usa en pets/family) -->
+        <!-- Fecha de nacimiento (solo para pets) -->
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.App.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Fecha (dd/MM/aaaa)">
+            android:id="@+id/tilBirth"
+            android:hint="Fecha de nacimiento (dd/MM/aaaa)"
+            android:visibility="gone">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etBirth"
                 style="@style/Widget.App.TextInputEditText"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:clickable="true"/>
         </com.google.android.material.textfield.TextInputLayout>
-        <!-- Peso u Odómetro, según flavor -->
+
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.App.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:id="@+id/tilMeasure"
             android:hint="Medida"
             android:inputType="numberDecimal">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etMeasure"
                 style="@style/Widget.App.TextInputEditText"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content"
+                android:id="@+id/etMeasure"/>
         </com.google.android.material.textfield.TextInputLayout>
+
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.App.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:id="@+id/tilNotes"
             android:hint="Notas"
             android:inputType="textMultiLine"
             android:minLines="3">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etNotes"
                 style="@style/Widget.App.TextInputEditText"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content"
+                android:id="@+id/etNotes"/>
         </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
 </ScrollView>
+
+
+

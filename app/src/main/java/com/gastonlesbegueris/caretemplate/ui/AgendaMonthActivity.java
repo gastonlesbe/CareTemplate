@@ -1,6 +1,8 @@
 package com.gastonlesbegueris.caretemplate.ui;
 
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
@@ -134,5 +136,30 @@ public class AgendaMonthActivity extends AppCompatActivity {
         c.set(Calendar.SECOND, 0);
         c.set(Calendar.MILLISECOND, 0);
         return c.getTimeInMillis();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.action_agenda) {
+            // Already on agenda page
+            return true;
+        } else if (id == R.id.action_subjects) {
+            startActivity(new android.content.Intent(this, SubjectListActivity.class));
+            return true;
+        } else if (id == R.id.action_expenses) {
+            startActivity(new android.content.Intent(this, ExpensesActivity.class));
+            return true;
+        } else if (id == android.R.id.home) {
+            finish();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 }

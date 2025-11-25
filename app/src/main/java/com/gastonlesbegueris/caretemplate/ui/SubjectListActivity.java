@@ -2,6 +2,8 @@ package com.gastonlesbegueris.caretemplate.ui;
 
 import android.os.Bundle;
 import android.text.InputType;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -65,12 +67,10 @@ public class SubjectListActivity extends AppCompatActivity {
                     String info  = buildInfoLine(subj);
                     String extra = buildExtraLine(subj);
                     rows.add(new SubjectAdapter.SubjectRow(subj, info, extra));
-                }/*
+                }
                 runOnUiThread(() -> {
                     adapter.submitRows(rows);
-                    findViewById(R.id.tvEmptySubjects)
-                            .setVisibility(rows.isEmpty() ? android.view.View.VISIBLE : android.view.View.GONE);
-                });*/
+                });
             }).start();
         });
     }
@@ -87,6 +87,11 @@ public class SubjectListActivity extends AppCompatActivity {
         setupDialogUiByFlavor(etBirth, etMeasure);
         etBirth.setOnClickListener(v -> pickDateInto(etBirth));
 
+        // Setup icon selection
+        final android.widget.GridLayout gridIcons = view.findViewById(R.id.gridIcons);
+        final String[] selectedIconKey = {defaultIconForFlavor()};
+        populateIconGrid(gridIcons, selectedIconKey);
+
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Nuevo sujeto")
                 .setView(view)
@@ -99,7 +104,7 @@ public class SubjectListActivity extends AppCompatActivity {
                     Long birthMillis = parseDateOrNull(etBirth.getText().toString().trim());
                     Double measure = safeParseDouble(etMeasure.getText().toString().trim());
                     String notes = etNotes.getText().toString().trim();
-                    insertSubjectFull(name, birthMillis, measure, notes);
+                    insertSubjectFull(name, birthMillis, measure, notes, selectedIconKey[0]);
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
@@ -112,7 +117,86 @@ public class SubjectListActivity extends AppCompatActivity {
         return "user"; // family u otros
     }
 
-    private void insertSubjectFull(String name, Long birthMillis, Double measure, String notes) {
+    // Obtiene los iconos disponibles según el tipo de app
+    private java.util.List<IconOption> getAvailableIcons() {
+        java.util.List<IconOption> icons = new java.util.ArrayList<>();
+        if ("pets".equals(appType)) {
+            icons.add(new IconOption("cat", R.drawable.ic_line_cat));
+            icons.add(new IconOption("dog", R.drawable.ic_line_dog));
+        } else if ("family".equals(appType)) {
+            icons.add(new IconOption("man", R.drawable.ic_line_man));
+            icons.add(new IconOption("woman", R.drawable.ic_line_woman));
+        } else if ("house".equals(appType)) {
+            icons.add(new IconOption("apartment", R.drawable.ic_line_apartment));
+            icons.add(new IconOption("house", R.drawable.ic_line_house));
+            icons.add(new IconOption("office", R.drawable.ic_line_office));
+            icons.add(new IconOption("local", R.drawable.ic_line_local));
+            icons.add(new IconOption("store", R.drawable.ic_line_store));
+        } else if ("cars".equals(appType)) {
+            icons.add(new IconOption("car", R.drawable.ic_line_car));
+            icons.add(new IconOption("bike", R.drawable.ic_line_bike));
+            icons.add(new IconOption("motorbike", R.drawable.ic_line_motorbike));
+            icons.add(new IconOption("truck", R.drawable.ic_line_truck));
+            icons.add(new IconOption("pickup", R.drawable.ic_line_pickup));
+            icons.add(new IconOption("suv", R.drawable.ic_line_suv));
+        } else {
+            icons.add(new IconOption("user", R.drawable.ic_line_user));
+        }
+        return icons;
+    }
+
+    // Clase auxiliar para opciones de icono
+    private static class IconOption {
+        final String key;
+        final int drawableRes;
+        IconOption(String key, int drawableRes) {
+            this.key = key;
+            this.drawableRes = drawableRes;
+        }
+    }
+
+    // Popula el grid de iconos
+    private void populateIconGrid(android.widget.GridLayout grid, final String[] selectedKey) {
+        if (grid == null) return;
+        grid.removeAllViews();
+        
+        java.util.List<IconOption> icons = getAvailableIcons();
+        int size = (int) (48 * getResources().getDisplayMetrics().density);
+        int margin = (int) (8 * getResources().getDisplayMetrics().density);
+        
+        for (IconOption icon : icons) {
+            android.widget.ImageView iv = new android.widget.ImageView(this);
+            android.widget.GridLayout.LayoutParams params = new android.widget.GridLayout.LayoutParams();
+            params.width = size;
+            params.height = size;
+            params.setMargins(margin, margin, margin, margin);
+            iv.setLayoutParams(params);
+            iv.setImageResource(icon.drawableRes);
+            iv.setPadding(margin, margin, margin, margin);
+            iv.setBackgroundResource(android.R.drawable.dialog_holo_light_frame);
+            iv.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
+            
+            // Tint inicial
+            if (icon.key.equals(selectedKey[0])) {
+                iv.setBackgroundColor(0x3303DAC5);
+            }
+            
+            iv.setOnClickListener(v -> {
+                // Reset all backgrounds
+                for (int i = 0; i < grid.getChildCount(); i++) {
+                    View child = grid.getChildAt(i);
+                    child.setBackgroundResource(android.R.drawable.dialog_holo_light_frame);
+                }
+                // Set selected background
+                v.setBackgroundColor(0x3303DAC5);
+                selectedKey[0] = icon.key;
+            });
+            
+            grid.addView(iv);
+        }
+    }
+
+    private void insertSubjectFull(String name, Long birthMillis, Double measure, String notes, String iconKey) {
         new Thread(() -> {
             SubjectEntity subj = new SubjectEntity();
             subj.id = UUID.randomUUID().toString();
@@ -125,7 +209,7 @@ public class SubjectListActivity extends AppCompatActivity {
             subj.updatedAt = System.currentTimeMillis();
             subj.deleted = 0;
             subj.dirty = 1;
-            subj.iconKey = (subj.iconKey == null) ? defaultIconForFlavor() : subj.iconKey;
+            subj.iconKey = (iconKey == null || iconKey.isEmpty()) ? defaultIconForFlavor() : iconKey;
             subj.colorHex = (subj.colorHex == null || subj.colorHex.isEmpty()) ? "#03DAC5" : subj.colorHex;
 
             dao.insert(subj);
@@ -138,11 +222,26 @@ public class SubjectListActivity extends AppCompatActivity {
         TextInputLayout tilName  = view.findViewById(R.id.tilName);
         TextInputEditText etName = view.findViewById(R.id.etName);
 
+        TextInputLayout tilBirth  = view.findViewById(R.id.tilBirth);
+        TextInputEditText etBirth = view.findViewById(R.id.etBirth);
+
         TextInputLayout tilMeasure  = view.findViewById(R.id.tilMeasure);
         TextInputEditText etMeasure = view.findViewById(R.id.etMeasure);
 
         TextInputLayout tilNotes  = view.findViewById(R.id.tilNotes);
         TextInputEditText etNotes = view.findViewById(R.id.etNotes);
+
+        // Mostrar campo de fecha solo para pets
+        if ("pets".equals(appType)) {
+            tilBirth.setVisibility(View.VISIBLE);
+            if (subj.birthDate != null) {
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+                etBirth.setText(sdf.format(new java.util.Date(subj.birthDate)));
+            }
+            etBirth.setOnClickListener(v -> pickDateInto(etBirth));
+        } else {
+            tilBirth.setVisibility(View.GONE);
+        }
 
         // precargar datos del sujeto
         etName.setText(subj.name);
@@ -151,39 +250,69 @@ public class SubjectListActivity extends AppCompatActivity {
         }
         etNotes.setText(subj.notes == null ? "" : subj.notes);
 
-        new androidx.appcompat.app.AlertDialog.Builder(this)
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Editar sujeto")
                 .setView(view)
-                .setPositiveButton("Guardar", (d, w) -> {
-                    String name = etName.getText() == null ? "" : etName.getText().toString().trim();
-                    String m    = etMeasure.getText() == null ? "" : etMeasure.getText().toString().trim();
-                    String notes = etNotes.getText() == null ? "" : etNotes.getText().toString().trim();
-
-                    if (name.isEmpty()) {
-                        android.widget.Toast.makeText(this, "Nombre requerido", android.widget.Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    Double measure = null;
-                    try { if (!m.isEmpty()) measure = Double.parseDouble(m); } catch (Exception ignore) {}
-                    final Double finalMeasure = measure; // Make effectively final for lambda
-
-                    // actualizar en background
-                    new Thread(() -> {
-                        subj.name = name;
-                        subj.currentMeasure = finalMeasure;
-                        subj.notes = notes;
-                        subj.updatedAt = System.currentTimeMillis();
-                        subj.dirty = 1;
-                        AppDb.get(this).subjectDao().update(subj);
-
-                        runOnUiThread(() ->
-                                android.widget.Toast.makeText(this, "Sujeto actualizado ✅", android.widget.Toast.LENGTH_SHORT).show()
-                        );
-                    }).start();
-                })
+                .setPositiveButton("Guardar", null)
                 .setNegativeButton("Cancelar", null)
-                .show();
+                .create();
+
+        // Si es pets, agregar botón de eliminar
+        if ("pets".equals(appType)) {
+            dialog.setButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL, "Eliminar", (d, w) -> {
+                new androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle("Eliminar sujeto")
+                        .setMessage("¿Estás seguro de que querés eliminar a " + subj.name + "?")
+                        .setPositiveButton("Eliminar", (d2, w2) -> softDelete(subj.id))
+                        .setNegativeButton("Cancelar", null)
+                        .show();
+            });
+        }
+
+        dialog.setOnShowListener(d -> {
+            dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                String name = etName.getText() == null ? "" : etName.getText().toString().trim();
+                String m    = etMeasure.getText() == null ? "" : etMeasure.getText().toString().trim();
+                String notes = etNotes.getText() == null ? "" : etNotes.getText().toString().trim();
+                String birthStr = etBirth.getText() == null ? "" : etBirth.getText().toString().trim();
+
+                if (name.isEmpty()) {
+                    android.widget.Toast.makeText(this, "Nombre requerido", android.widget.Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                Double measure = null;
+                try { if (!m.isEmpty()) measure = Double.parseDouble(m); } catch (Exception ignore) {}
+                final Double finalMeasure = measure;
+
+                Long birthMillis = null;
+                if ("pets".equals(appType) && !birthStr.isEmpty()) {
+                    birthMillis = parseDateOrNull(birthStr);
+                }
+
+                final Long finalBirthMillis = birthMillis;
+
+                // actualizar en background
+                new Thread(() -> {
+                    subj.name = name;
+                    subj.currentMeasure = finalMeasure;
+                    subj.notes = notes;
+                    if ("pets".equals(appType)) {
+                        subj.birthDate = finalBirthMillis;
+                    }
+                    subj.updatedAt = System.currentTimeMillis();
+                    subj.dirty = 1;
+                    AppDb.get(this).subjectDao().update(subj);
+
+                    runOnUiThread(() -> {
+                        android.widget.Toast.makeText(this, "Sujeto actualizado ✅", android.widget.Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                    });
+                }).start();
+            });
+        });
+
+        dialog.show();
     }
 
     private void updateSubjectFull(SubjectEntity subj, String name, Long birthMillis, Double measure, String notes) {
@@ -274,6 +403,31 @@ public class SubjectListActivity extends AppCompatActivity {
         int months = now.get(java.util.Calendar.MONTH) - b.get(java.util.Calendar.MONTH);
         if (months < 0) { years--; months += 12; }
         return years > 0 ? years + "a " + months + "m" : months + "m";
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.action_agenda) {
+            startActivity(new android.content.Intent(this, com.gastonlesbegueris.caretemplate.ui.AgendaMonthActivity.class));
+            return true;
+        } else if (id == R.id.action_subjects) {
+            // Already on subjects page
+            return true;
+        } else if (id == R.id.action_expenses) {
+            startActivity(new android.content.Intent(this, com.gastonlesbegueris.caretemplate.ui.ExpensesActivity.class));
+            return true;
+        } else if (id == android.R.id.home) {
+            finish();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
 }

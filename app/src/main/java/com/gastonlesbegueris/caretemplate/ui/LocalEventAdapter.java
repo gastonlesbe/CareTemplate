@@ -4,6 +4,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import com.google.android.material.button.MaterialButton;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -90,10 +91,18 @@ public class LocalEventAdapter extends RecyclerView.Adapter<LocalEventAdapter.VH
         h.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onEdit(e);
         });
-        h.itemView.setOnLongClickListener(v -> {
-            if (listener != null) listener.onDelete(e);
-            return true;
-        });
+        
+        if (h.btnEdit != null) {
+            h.btnEdit.setOnClickListener(v -> {
+                if (listener != null) listener.onEdit(e);
+            });
+        }
+        
+        if (h.btnDelete != null) {
+            h.btnDelete.setOnClickListener(v -> {
+                if (listener != null) listener.onDelete(e);
+            });
+        }
     }
 
     @Override
@@ -105,12 +114,15 @@ public class LocalEventAdapter extends RecyclerView.Adapter<LocalEventAdapter.VH
         TextView tvTitle;
         TextView tvWhen;
         TextView tvNote; // opcional si tu layout lo tiene
+        MaterialButton btnEdit, btnDelete;
 
         VH(@NonNull View v) {
             super(v);
             tvTitle = v.findViewById(R.id.tvTitle);
             tvWhen  = v.findViewById(R.id.tvWhen);
             tvNote  = v.findViewById(R.id.tvNote); // puede ser null si no existe
+            btnEdit = v.findViewById(R.id.btnEdit);
+            btnDelete = v.findViewById(R.id.btnDelete);
         }
     }
 }
