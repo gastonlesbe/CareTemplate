@@ -22,6 +22,10 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.gastonlesbegueris.caretemplate.util.LimitGuard;
+import com.gastonlesbegueris.caretemplate.util.UserManager;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.MobileAds;
 
 
 import java.util.List;
@@ -59,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         
-        // Ensure ActionBar shows title
+        // Mostrar título y icono de navegación
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayShowTitleEnabled(true);
             getSupportActionBar().setDisplayHomeAsUpEnabled(false);
@@ -109,6 +113,55 @@ public class MainActivity extends AppCompatActivity {
 
         // 8) FAB speed-dial
         initFabSpeedDial();
+
+        // 9) AdMob Banner
+        initAdMob();
+        
+        // 10) Inicializar UserManager (ID único para suscripciones)
+        initializeUserManager();
+    }
+    
+    private void initializeUserManager() {
+        UserManager userManager = new UserManager(this);
+        userManager.initializeUser(new UserManager.UserIdCallback() {
+            @Override
+            public void onUserId(String userId) {
+                // ID único del usuario disponible
+                // Este ID se usará para suscripciones y sincronización
+                android.util.Log.d("MainActivity", "User ID initialized: " + userId);
+            }
+            
+            @Override
+            public void onError(Exception error) {
+                android.util.Log.e("MainActivity", "Error initializing user ID", error);
+            }
+        });
+    }
+
+    private void initAdMob() {
+        MobileAds.initialize(this, initializationStatus -> {});
+        AdView adView = findViewById(R.id.adView);
+        AdRequest adRequest = new AdRequest.Builder().build();
+        adView.loadAd(adRequest);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        AdView adView = findViewById(R.id.adView);
+        if (adView != null) {
+            adView.pause();
+        }
+    }
+
+
+    @Override
+    protected void onDestroy() {
+        AdView adView = findViewById(R.id.adView);
+        if (adView != null) {
+            adView.destroy();
+        }
+        super.onDestroy();
     }
 
     // ===== Toolbar / Menú =====
@@ -119,11 +172,67 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        // Asegurar que los iconos estén asignados
+        for (int i = 0; i < menu.size(); i++) {
+            MenuItem item = menu.getItem(i);
+            if (item.getIcon() == null) {
+                int itemId = item.getItemId();
+                if (itemId == R.id.action_home) {
+                    item.setIcon(R.drawable.ic_home);
+                } else if (itemId == R.id.action_agenda) {
+                    item.setIcon(R.drawable.ic_event);
+                } else if (itemId == R.id.action_sync) {
+                    item.setIcon(R.drawable.ic_sync);
+                } else if (itemId == R.id.action_subjects) {
+                    item.setIcon(R.drawable.ic_line_user);
+                } else if (itemId == R.id.action_expenses) {
+                    item.setIcon(R.drawable.ic_line_money);
+                }
+            }
+        }
+        return super.onPrepareOptionsMenu(menu);
+    }
+
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_agenda) {
+        if (id == R.id.action_home) {
+            // Ya estamos en MainActivity, solo hacer scroll al inicio y limpiar filtros
+            // Limpiar filtro de sujeto (si hay uno)
+            if (currentSubjectId != null) {
+                currentSubjectId = null;
+                getSharedPreferences("prefs", MODE_PRIVATE)
+                        .edit().remove("currentSubjectId_" + appType).apply();
+            }
+            
+            // Hacer scroll al inicio del RecyclerView
+            RecyclerView rv = findViewById(R.id.rvEvents);
+            if (rv != null) {
+                // Forzar scroll incluso si ya está en la posición 0
+                androidx.recyclerview.widget.LinearLayoutManager layoutManager = 
+                        (androidx.recyclerview.widget.LinearLayoutManager) rv.getLayoutManager();
+                if (layoutManager != null) {
+                    int firstVisible = layoutManager.findFirstVisibleItemPosition();
+                    if (firstVisible > 5) {
+                        // Si está lejos del inicio, hacer smooth scroll
+                        rv.smoothScrollToPosition(0);
+                    } else {
+                        // Si está cerca, hacer scroll inmediato para que se note
+                        rv.scrollToPosition(0);
+                    }
+                } else {
+                    rv.smoothScrollToPosition(0);
+                }
+            }
+            
+            // Refrescar header
+            refreshHeader();
+            
+            return true;
+        } else if (id == R.id.action_agenda) {
             startActivity(new android.content.Intent(this, AgendaMonthActivity.class));
             return true;
 
@@ -355,16 +464,21 @@ public class MainActivity extends AppCompatActivity {
         subjectDao.observeActive(appType).observe(this, subjects -> {
             java.util.Map<String, String> nameMap = new java.util.HashMap<>();
             java.util.Map<String, String> iconKeyMap = new java.util.HashMap<>();
+            java.util.Map<String, String> colorHexMap = new java.util.HashMap<>();
             if (subjects != null) {
                 for (com.gastonlesbegueris.caretemplate.data.local.SubjectEntity s : subjects) {
                     nameMap.put(s.id, s.name);
                     if (s.iconKey != null) {
                         iconKeyMap.put(s.id, s.iconKey);
                     }
+                    if (s.colorHex != null && !s.colorHex.isEmpty()) {
+                        colorHexMap.put(s.id, s.colorHex);
+                    }
                 }
             }
             adapter.setSubjectsMap(nameMap);
             adapter.setSubjectIconKeys(iconKeyMap);
+            adapter.setSubjectColorHex(colorHexMap);
         });
     }
     // ===== Header simple en el Home =====
@@ -745,6 +859,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        AdView adView = findViewById(R.id.adView);
+        if (adView != null) {
+            adView.resume();
+        }
         autoRealizePastEvents();
     }
 
@@ -774,6 +892,26 @@ public class MainActivity extends AppCompatActivity {
         final android.widget.EditText etMeasure = view.findViewById(R.id.etMeasure);
         final android.widget.EditText etNotes = view.findViewById(R.id.etNotes);
 
+        // Campos de marca y modelo (solo para cars)
+        final com.google.android.material.textfield.TextInputLayout tilBrand = view.findViewById(R.id.tilBrand);
+        final com.google.android.material.textfield.TextInputLayout tilModel = view.findViewById(R.id.tilModel);
+        final android.widget.EditText etBrand = view.findViewById(R.id.etBrand);
+        final android.widget.EditText etModel = view.findViewById(R.id.etModel);
+
+        // Configurar UI según flavor
+        if ("cars".equals(appType)) {
+            // Para cars: ocultar nombre, mostrar marca y modelo
+            if (view.findViewById(R.id.tilName) != null) {
+                view.findViewById(R.id.tilName).setVisibility(android.view.View.GONE);
+            }
+            if (tilBrand != null) tilBrand.setVisibility(android.view.View.VISIBLE);
+            if (tilModel != null) tilModel.setVisibility(android.view.View.VISIBLE);
+        } else {
+            // Para otros flavors: ocultar marca y modelo
+            if (tilBrand != null) tilBrand.setVisibility(android.view.View.GONE);
+            if (tilModel != null) tilModel.setVisibility(android.view.View.GONE);
+        }
+
         // Hide fields not needed for quick add
         if (etBirth != null) etBirth.setVisibility(android.view.View.GONE);
         if (etMeasure != null) etMeasure.setVisibility(android.view.View.GONE);
@@ -788,10 +926,29 @@ public class MainActivity extends AppCompatActivity {
                 .setTitle("Nuevo sujeto")
                 .setView(view)
                 .setPositiveButton("Guardar", (d, w) -> {
-                    String name = etName.getText().toString().trim();
-                    if (name.isEmpty()) {
-                        Toast.makeText(this, "Nombre requerido", Toast.LENGTH_SHORT).show();
-                        return;
+                    String name;
+                    if ("cars".equals(appType)) {
+                        // Para cars: concatenar marca + modelo
+                        String brand = etBrand != null ? etBrand.getText().toString().trim() : "";
+                        String model = etModel != null ? etModel.getText().toString().trim() : "";
+                        if (brand.isEmpty() && model.isEmpty()) {
+                            Toast.makeText(this, "Marca o Modelo requerido", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        if (brand.isEmpty()) {
+                            name = model;
+                        } else if (model.isEmpty()) {
+                            name = brand;
+                        } else {
+                            name = brand + " " + model;
+                        }
+                    } else {
+                        // Para otros flavors: usar nombre normal
+                        name = etName.getText().toString().trim();
+                        if (name.isEmpty()) {
+                            Toast.makeText(this, "Nombre requerido", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
                     }
                     insertSubjectMinimal(name, selectedIconKey[0]);
                 })

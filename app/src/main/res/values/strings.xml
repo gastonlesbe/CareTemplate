@@ -1,8 +1,7 @@
 <resources>
     <string name="app_name">CareTemplate</string>
     <!-- ... otros strings ... -->
-    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>
-    <string name="admob_banner_id">ca-app-pub-3940256099942544/6300978111</string>
+    <!-- AdMob codes are defined per flavor -->
     <string name="delete">Delete</string>
     <string name="edit">Edit</string>
 </resources>

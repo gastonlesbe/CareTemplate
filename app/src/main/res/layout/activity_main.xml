@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    android:background="#101010">
+    android:background="?android:attr/colorBackground">
 
 
 
@@ -33,8 +33,8 @@
         android:paddingStart="12dp"
         android:paddingEnd="12dp"
         android:paddingTop="12dp"
-        android:paddingBottom="96dp"
-        android:background="#101010"
+        android:paddingBottom="60dp"
+        android:background="?android:attr/colorBackground"
         app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
     <LinearLayout
@@ -72,7 +72,7 @@
         android:layout_height="56dp"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="24dp"
-        android:layout_marginBottom="104dp"
+        android:layout_marginBottom="172dp"
         style="@style/Widget.App.FAB"
         android:contentDescription="Nuevo sujeto"
         app:srcCompat="@drawable/ic_header_flavor"
@@ -87,7 +87,7 @@
         android:layout_height="56dp"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="24dp"
-        android:layout_marginBottom="176dp"
+        android:layout_marginBottom="244dp"
         android:contentDescription="Nuevo evento"
         app:srcCompat="@drawable/ic_event"
         android:visibility="gone"
@@ -102,8 +102,17 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="24dp"
-        android:layout_marginBottom="40dp"
+        android:layout_marginBottom="100dp"
         app:srcCompat="@drawable/ic_add" />
 
+    <!-- AdMob Banner -->
+    <com.google.android.gms.ads.AdView
+        android:id="@+id/adView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="0dp"
+        app:adSize="BANNER"
+        app:adUnitId="@string/admob_banner_id" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

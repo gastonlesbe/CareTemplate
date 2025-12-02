@@ -19,6 +19,9 @@ import com.gastonlesbegueris.caretemplate.data.local.EventEntity;
 import com.gastonlesbegueris.caretemplate.data.local.SubjectDao;
 import com.gastonlesbegueris.caretemplate.data.local.SubjectEntity;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.MobileAds;
 
 import java.util.List;
 import java.util.UUID;
@@ -39,6 +42,9 @@ public class SubjectListActivity extends AppCompatActivity {
 
         MaterialToolbar toolbar = findViewById(R.id.toolbarSubjects);
         setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
         toolbar.setNavigationIcon(R.drawable.ic_back);
         toolbar.setNavigationOnClickListener(v -> finish());
         toolbar.setTitle("Sujetos");
@@ -58,6 +64,9 @@ public class SubjectListActivity extends AppCompatActivity {
         rv.setAdapter(adapter);
 
         findViewById(R.id.btnAddSubject).setOnClickListener(v -> showAddDialog());
+
+        // AdMob Banner
+        initAdMob();
 
         // observar lista de sujetos
         dao.observeActive(appType).observe(this, (List<SubjectEntity> list) -> {
@@ -84,6 +93,26 @@ public class SubjectListActivity extends AppCompatActivity {
         final EditText etMeasure = view.findViewById(R.id.etMeasure);
         final EditText etNotes   = view.findViewById(R.id.etNotes);
 
+        // Campos de marca y modelo (solo para cars)
+        final com.google.android.material.textfield.TextInputLayout tilBrand = view.findViewById(R.id.tilBrand);
+        final com.google.android.material.textfield.TextInputLayout tilModel = view.findViewById(R.id.tilModel);
+        final EditText etBrand = view.findViewById(R.id.etBrand);
+        final EditText etModel = view.findViewById(R.id.etModel);
+
+        // Configurar UI según flavor
+        if ("cars".equals(appType)) {
+            // Para cars: ocultar nombre, mostrar marca y modelo
+            if (view.findViewById(R.id.tilName) != null) {
+                view.findViewById(R.id.tilName).setVisibility(View.GONE);
+            }
+            if (tilBrand != null) tilBrand.setVisibility(View.VISIBLE);
+            if (tilModel != null) tilModel.setVisibility(View.VISIBLE);
+        } else {
+            // Para otros flavors: ocultar marca y modelo
+            if (tilBrand != null) tilBrand.setVisibility(View.GONE);
+            if (tilModel != null) tilModel.setVisibility(View.GONE);
+        }
+
         setupDialogUiByFlavor(etBirth, etMeasure);
         etBirth.setOnClickListener(v -> pickDateInto(etBirth));
 
@@ -96,10 +125,29 @@ public class SubjectListActivity extends AppCompatActivity {
                 .setTitle("Nuevo sujeto")
                 .setView(view)
                 .setPositiveButton("Guardar", (d,w)-> {
-                    String name = etName.getText().toString().trim();
-                    if (name.isEmpty()) {
-                        Toast.makeText(this,"Nombre requerido",Toast.LENGTH_SHORT).show();
-                        return;
+                    String name;
+                    if ("cars".equals(appType)) {
+                        // Para cars: concatenar marca + modelo
+                        String brand = etBrand != null ? etBrand.getText().toString().trim() : "";
+                        String model = etModel != null ? etModel.getText().toString().trim() : "";
+                        if (brand.isEmpty() && model.isEmpty()) {
+                            Toast.makeText(this,"Marca o Modelo requerido",Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        if (brand.isEmpty()) {
+                            name = model;
+                        } else if (model.isEmpty()) {
+                            name = brand;
+                        } else {
+                            name = brand + " " + model;
+                        }
+                    } else {
+                        // Para otros flavors: usar nombre normal
+                        name = etName.getText().toString().trim();
+                        if (name.isEmpty()) {
+                            Toast.makeText(this,"Nombre requerido",Toast.LENGTH_SHORT).show();
+                            return;
+                        }
                     }
                     Long birthMillis = parseDateOrNull(etBirth.getText().toString().trim());
                     Double measure = safeParseDouble(etMeasure.getText().toString().trim());
@@ -231,6 +279,32 @@ public class SubjectListActivity extends AppCompatActivity {
         TextInputLayout tilNotes  = view.findViewById(R.id.tilNotes);
         TextInputEditText etNotes = view.findViewById(R.id.etNotes);
 
+        // Campos de marca y modelo (solo para cars)
+        TextInputLayout tilBrand = view.findViewById(R.id.tilBrand);
+        TextInputLayout tilModel = view.findViewById(R.id.tilModel);
+        TextInputEditText etBrand = view.findViewById(R.id.etBrand);
+        TextInputEditText etModel = view.findViewById(R.id.etModel);
+
+        // Configurar UI según flavor
+        if ("cars".equals(appType)) {
+            // Para cars: ocultar nombre, mostrar marca y modelo
+            if (tilName != null) tilName.setVisibility(View.GONE);
+            if (tilBrand != null) tilBrand.setVisibility(View.VISIBLE);
+            if (tilModel != null) tilModel.setVisibility(View.VISIBLE);
+            
+            // Separar nombre en marca y modelo (asumiendo formato "Marca Modelo")
+            if (subj.name != null && !subj.name.isEmpty()) {
+                String[] parts = subj.name.split(" ", 2);
+                if (etBrand != null) etBrand.setText(parts[0]);
+                if (etModel != null && parts.length > 1) etModel.setText(parts[1]);
+            }
+        } else {
+            // Para otros flavors: ocultar marca y modelo, mostrar nombre
+            if (tilBrand != null) tilBrand.setVisibility(View.GONE);
+            if (tilModel != null) tilModel.setVisibility(View.GONE);
+            if (etName != null) etName.setText(subj.name);
+        }
+
         // Mostrar campo de fecha solo para pets
         if ("pets".equals(appType)) {
             tilBirth.setVisibility(View.VISIBLE);
@@ -244,7 +318,6 @@ public class SubjectListActivity extends AppCompatActivity {
         }
 
         // precargar datos del sujeto
-        etName.setText(subj.name);
         if (subj.currentMeasure != null) {
             etMeasure.setText(String.valueOf(subj.currentMeasure));
         }
@@ -271,15 +344,34 @@ public class SubjectListActivity extends AppCompatActivity {
 
         dialog.setOnShowListener(d -> {
             dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-                String name = etName.getText() == null ? "" : etName.getText().toString().trim();
+                String name;
+                if ("cars".equals(appType)) {
+                    // Para cars: concatenar marca + modelo
+                    String brand = etBrand != null && etBrand.getText() != null ? etBrand.getText().toString().trim() : "";
+                    String model = etModel != null && etModel.getText() != null ? etModel.getText().toString().trim() : "";
+                    if (brand.isEmpty() && model.isEmpty()) {
+                        android.widget.Toast.makeText(this, "Marca o Modelo requerido", android.widget.Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (brand.isEmpty()) {
+                        name = model;
+                    } else if (model.isEmpty()) {
+                        name = brand;
+                    } else {
+                        name = brand + " " + model;
+                    }
+                } else {
+                    // Para otros flavors: usar nombre normal
+                    name = etName.getText() == null ? "" : etName.getText().toString().trim();
+                    if (name.isEmpty()) {
+                        android.widget.Toast.makeText(this, "Nombre requerido", android.widget.Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                }
+
                 String m    = etMeasure.getText() == null ? "" : etMeasure.getText().toString().trim();
                 String notes = etNotes.getText() == null ? "" : etNotes.getText().toString().trim();
                 String birthStr = etBirth.getText() == null ? "" : etBirth.getText().toString().trim();
-
-                if (name.isEmpty()) {
-                    android.widget.Toast.makeText(this, "Nombre requerido", android.widget.Toast.LENGTH_SHORT).show();
-                    return;
-                }
 
                 Double measure = null;
                 try { if (!m.isEmpty()) measure = Double.parseDouble(m); } catch (Exception ignore) {}
@@ -291,10 +383,11 @@ public class SubjectListActivity extends AppCompatActivity {
                 }
 
                 final Long finalBirthMillis = birthMillis;
+                final String finalName = name;
 
                 // actualizar en background
                 new Thread(() -> {
-                    subj.name = name;
+                    subj.name = finalName;
                     subj.currentMeasure = finalMeasure;
                     subj.notes = notes;
                     if ("pets".equals(appType)) {
@@ -414,7 +507,11 @@ public class SubjectListActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_agenda) {
+        if (id == R.id.action_home) {
+            startActivity(new android.content.Intent(this, com.gastonlesbegueris.caretemplate.ui.MainActivity.class));
+            finish();
+            return true;
+        } else if (id == R.id.action_agenda) {
             startActivity(new android.content.Intent(this, com.gastonlesbegueris.caretemplate.ui.AgendaMonthActivity.class));
             return true;
         } else if (id == R.id.action_subjects) {
@@ -428,6 +525,40 @@ public class SubjectListActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void initAdMob() {
+        MobileAds.initialize(this, initializationStatus -> {});
+        AdView adView = findViewById(R.id.adView);
+        AdRequest adRequest = new AdRequest.Builder().build();
+        adView.loadAd(adRequest);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        AdView adView = findViewById(R.id.adView);
+        if (adView != null) {
+            adView.pause();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        AdView adView = findViewById(R.id.adView);
+        if (adView != null) {
+            adView.resume();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        AdView adView = findViewById(R.id.adView);
+        if (adView != null) {
+            adView.destroy();
+        }
+        super.onDestroy();
     }
 
 }

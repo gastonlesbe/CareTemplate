@@ -23,6 +23,38 @@
                 android:id="@+id/etName"/>
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Marca (solo para cars) -->
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.App.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/tilBrand"
+            android:hint="Marca"
+            android:visibility="gone">
+
+            <com.google.android.material.textfield.TextInputEditText
+                style="@style/Widget.App.TextInputEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/etBrand"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Modelo (solo para cars) -->
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.App.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/tilModel"
+            android:hint="Modelo"
+            android:visibility="gone">
+
+            <com.google.android.material.textfield.TextInputEditText
+                style="@style/Widget.App.TextInputEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/etModel"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
         <!-- Fecha de nacimiento (solo para pets) -->
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.App.TextInputLayout"

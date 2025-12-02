@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">PetPal</string>
+    <string name="admob_app_id">ca-app-pub-9841764898906750~2089158049</string>
+    <string name="admob_banner_id">ca-app-pub-9841764898906750/6124498176</string>
 </resources>

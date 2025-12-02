@@ -147,7 +147,11 @@ public class AgendaMonthActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_agenda) {
+        if (id == R.id.action_home) {
+            startActivity(new android.content.Intent(this, com.gastonlesbegueris.caretemplate.ui.MainActivity.class));
+            finish();
+            return true;
+        } else if (id == R.id.action_agenda) {
             // Already on agenda page
             return true;
         } else if (id == R.id.action_subjects) {
