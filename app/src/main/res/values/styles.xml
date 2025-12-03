@@ -116,7 +116,7 @@
         <item name="android:background">@color/app_surface</item>
         <item name="titleTextColor">@color/app_on_surface</item>
         <item name="subtitleTextColor">@color/app_on_surface</item>
-        <item name="navigationIconTint">@color/app_primary</item>
+        <!-- No aplicar tint al icono de navegación, usa el color fijo del drawable -->
         <item name="titleCentered">false</item>
     </style>
 

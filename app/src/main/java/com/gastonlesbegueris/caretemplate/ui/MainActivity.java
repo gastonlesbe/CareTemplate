@@ -72,15 +72,8 @@ public class MainActivity extends AppCompatActivity {
         toolbar.setTitle(getString(R.string.app_name));
         toolbar.setSubtitle(null);
         // Set default icon immediately (will be updated by refreshHeader() if subject exists)
+        // No aplicar tint, el icono ya tiene el color fijo #03DAC5
         toolbar.setNavigationIcon(R.drawable.ic_header_flavor);
-        try {
-            android.graphics.drawable.Drawable icon = toolbar.getNavigationIcon();
-            if (icon != null) {
-                icon = icon.mutate();
-                icon.setTint(android.graphics.Color.parseColor("#03DAC5"));
-                toolbar.setNavigationIcon(icon);
-            }
-        } catch (Exception ignore) {}
         // Icon will be updated by refreshHeader() if a subject is selected
         refreshHeader();
 
@@ -494,22 +487,8 @@ public class MainActivity extends AppCompatActivity {
             toolbar.setSubtitle(null);
 
             // Icono siempre del flavor (perro / auto / casa / familia según flavor)
-            int iconRes = R.drawable.ic_header_flavor;
-            String tintHex = "#03DAC5";
-
-            // Set icon and ensure it's visible
-            toolbar.setNavigationIcon(iconRes);
-            try {
-                android.graphics.drawable.Drawable icon = toolbar.getNavigationIcon();
-                if (icon != null) {
-                    icon = icon.mutate(); // Make a mutable copy
-                    icon.setTint(android.graphics.Color.parseColor(tintHex));
-                    toolbar.setNavigationIcon(icon);
-                }
-            } catch (Exception e) {
-                // If tinting fails, at least ensure icon is set
-                toolbar.setNavigationIcon(iconRes);
-            }
+            // No aplicar tint, el icono ya tiene el color fijo #03DAC5
+            toolbar.setNavigationIcon(R.drawable.ic_header_flavor);
         });
     }
 
