@@ -769,31 +769,51 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showEditDialog(EventEntity e) {
-        final android.widget.EditText et = new android.widget.EditText(this);
-        et.setText(e.title);
-        et.setInputType(android.text.InputType.TYPE_CLASS_TEXT);
+        final android.view.View view = getLayoutInflater().inflate(R.layout.dialog_add_event, null);
+        final com.google.android.material.textfield.TextInputEditText etTitle = view.findViewById(R.id.etTitle);
+        final com.google.android.material.textfield.TextInputEditText etCost  = view.findViewById(R.id.etCost);
+        final android.widget.Spinner sp = view.findViewById(R.id.spSubject);
+
+        // Verificar que las vistas se encontraron
+        if (etTitle == null || etCost == null || sp == null) {
+            Toast.makeText(this, "Error al cargar el diálogo", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Pre-populate title and cost
+        etTitle.setText(e.title);
+        if (e.cost != null) {
+            etCost.setText(String.format(java.util.Locale.getDefault(), "%.2f", e.cost));
+        }
+
+        // Hide subject spinner for editing (subject shouldn't change)
+        sp.setVisibility(android.view.View.GONE);
 
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Editar evento")
-                .setView(et)
+                .setView(view)
                 .setPositiveButton("Elegir fecha/hora", (d, w) -> {
-                    String title = et.getText().toString().trim();
+                    String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
                     if (title.isEmpty()) {
                         Toast.makeText(this, "Título requerido", Toast.LENGTH_SHORT).show();
                         return;
                     }
                     if (!LimitGuard.canCreateEvent(this, db, appType)) return;
 
-                    pickDateTime(e.dueAt, dueAt -> updateLocal(e, title, dueAt));
+                    final String c = etCost.getText() != null ? etCost.getText().toString().trim() : "";
+                    final Double cost = c.isEmpty() ? null : safeParseDouble(c);
+
+                    pickDateTime(e.dueAt, dueAt -> updateLocal(e, title, cost, dueAt));
                 })
                 .setNeutralButton("Eliminar", (d, w) -> softDelete(e.id))
                 .setNegativeButton("Cancelar", null)
                 .show();
     }
 
-    private void updateLocal(EventEntity e, String title, long dueAt) {
+    private void updateLocal(EventEntity e, String title, Double cost, long dueAt) {
         new Thread(() -> {
             e.title = title;
+            e.cost = cost;
             e.dueAt = dueAt;
             e.updatedAt = System.currentTimeMillis();
             e.dirty = 1;
