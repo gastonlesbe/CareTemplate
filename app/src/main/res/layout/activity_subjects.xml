@@ -18,8 +18,7 @@
             android:id="@+id/toolbarSubjects"
             style="@style/Widget.App.Toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            app:title="Sujetos" />
+            android:layout_height="?attr/actionBarSize" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.recyclerview.widget.RecyclerView
@@ -34,18 +33,42 @@
         android:background="?android:attr/colorBackground"
         app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnAddSubject"
-        style="@style/Widget.App.Button.Primary"
+    <!-- Mini FAB: SUJETO (usa el icono del flavor) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAddSubject"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="172dp"
+        android:contentDescription="@string/add_subject"
+        app:srcCompat="@drawable/ic_header_flavor"
+        android:visibility="gone"
+        android:alpha="0" />
+
+    <!-- Mini FAB: EVENTO (calendario) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAddEvent"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="244dp"
+        android:contentDescription="@string/new_event"
+        app:srcCompat="@drawable/ic_event"
+        android:visibility="gone"
+        android:alpha="0" />
+
+    <!-- FAB principal -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAdd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="24dp"
-        android:layout_marginBottom="60dp"
-        android:text="Agregar sujeto"
-        app:icon="@drawable/ic_header_flavor"
-        app:iconGravity="textStart"
-        app:iconPadding="8dp" />
+        android:layout_marginBottom="80dp"
+        android:contentDescription="@string/add_subject"
+        app:srcCompat="@drawable/ic_add" />
 
     <!-- AdMob Banner -->
     <com.google.android.gms.ads.AdView

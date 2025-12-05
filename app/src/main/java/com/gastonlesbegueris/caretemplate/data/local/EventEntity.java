@@ -26,6 +26,8 @@ public class EventEntity {
 
     @ColumnInfo(name = "cost")       public Double cost;           // puede ser null
 
+    @ColumnInfo(name = "kilometersAtEvent") public Double kilometersAtEvent; // km del auto al momento del evento (solo para cars)
+
     @ColumnInfo(name = "updatedAt")  public long   updatedAt;
     @ColumnInfo(name = "deleted")    public int    deleted;        // 0/1
     @ColumnInfo(name = "dirty")      public int    dirty;          // 0/1

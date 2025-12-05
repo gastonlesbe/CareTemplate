@@ -38,8 +38,14 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.VH> {
     private final HashMap<String, String> subjectIconKeys = new HashMap<>();
     private final HashMap<String, String> subjectColorHex = new HashMap<>();
     private final OnEventClick listener;
+    private String appType; // Para saber si es "cars" y mostrar kilómetros
 
     public EventAdapter(OnEventClick l) { this.listener = l; }
+
+    public void setAppType(String appType) {
+        this.appType = appType;
+        notifyDataSetChanged();
+    }
 
     public void submit(List<EventEntity> data) {
         items.clear();
@@ -113,11 +119,24 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.VH> {
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM HH:mm", Locale.getDefault());
         h.tvWhen.setText(sdf.format(new Date(e.dueAt)));
 
+        // Mostrar costo si existe
         if (e.cost != null) {
             h.tvCost.setText("Costo: $" + String.format(Locale.getDefault(), "%.2f", e.cost));
             h.tvCost.setVisibility(View.VISIBLE);
         } else {
             h.tvCost.setVisibility(View.GONE);
+        }
+
+        // Mostrar kilómetros si es un auto y tiene kilómetros guardados
+        if ("cars".equals(appType) && e.kilometersAtEvent != null) {
+            if (h.tvKilometers != null) {
+                h.tvKilometers.setText("Kilómetros: " + Math.round(e.kilometersAtEvent) + " km");
+                h.tvKilometers.setVisibility(View.VISIBLE);
+            }
+        } else {
+            if (h.tvKilometers != null) {
+                h.tvKilometers.setVisibility(View.GONE);
+            }
         }
 
         h.cbDone.setOnCheckedChangeListener(null);
@@ -213,7 +232,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.VH> {
     }
 
     static class VH extends RecyclerView.ViewHolder {
-        TextView tvTitle, tvSubjectName, tvWhen, tvCost;
+        TextView tvTitle, tvSubjectName, tvWhen, tvCost, tvKilometers;
         ImageView ivSubjectIcon;
         CheckBox cbDone;
         MaterialButton btnDelete, btnEdit;
@@ -223,6 +242,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.VH> {
             tvSubjectName = v.findViewById(R.id.tvSubject);
             tvWhen = v.findViewById(R.id.tvWhen);
             tvCost = v.findViewById(R.id.tvCost);
+            tvKilometers = v.findViewById(R.id.tvKilometers);
             ivSubjectIcon = v.findViewById(R.id.ivSubjectIcon);
             cbDone = v.findViewById(R.id.cbDone);
             btnEdit   = v.findViewById(R.id.btnEdit);

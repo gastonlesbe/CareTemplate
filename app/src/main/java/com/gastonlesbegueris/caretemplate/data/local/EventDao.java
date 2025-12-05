@@ -13,7 +13,7 @@ import java.util.List;
 @Dao
 public interface EventDao {
 
-    @Insert
+    @Insert(onConflict = REPLACE)
     void insert(EventEntity e);
 
     @Update
@@ -22,8 +22,12 @@ public interface EventDao {
     @Query("UPDATE events SET deleted=1, updatedAt=:now, dirty=1 WHERE id=:id")
     void softDelete(String id, long now);
 
-    @Query("SELECT * FROM events WHERE appType=:appType AND deleted=0 ORDER BY dueAt ASC")
+    @Query("SELECT * FROM events WHERE appType=:appType AND deleted=0 AND realized=0 ORDER BY dueAt ASC")
     LiveData<List<EventEntity>> observeActive(String appType);
+    
+    // Historial de eventos de un sujeto (todos, realizados y no realizados)
+    @Query("SELECT * FROM events WHERE appType=:appType AND subjectId=:subjectId AND deleted=0 ORDER BY dueAt DESC")
+    LiveData<List<EventEntity>> observeSubjectHistory(String appType, String subjectId);
 
     // Para header (siguiente evento)
     @Query("SELECT * FROM events WHERE appType=:appType AND deleted=0 AND (:subjectId IS NULL OR subjectId=:subjectId) AND dueAt >= :from ORDER BY dueAt ASC LIMIT 1")

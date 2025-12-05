@@ -14,7 +14,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/tilName"
-            android:hint="Nombre">
+            android:hint="@string/field_name">
 
             <com.google.android.material.textfield.TextInputEditText
                 style="@style/Widget.App.TextInputEditText"
@@ -29,7 +29,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/tilBrand"
-            android:hint="Marca"
+            android:hint="@string/field_brand"
             android:visibility="gone">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -45,7 +45,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/tilModel"
-            android:hint="Modelo"
+            android:hint="@string/field_model"
             android:visibility="gone">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -61,7 +61,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/tilBirth"
-            android:hint="Fecha de nacimiento (dd/MM/aaaa)"
+            android:hint="@string/field_birth_date"
             android:visibility="gone">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etBirth"
@@ -77,7 +77,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/tilMeasure"
-            android:hint="Medida"
+            android:hint="@string/field_measure"
             android:inputType="numberDecimal">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -92,7 +92,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/tilNotes"
-            android:hint="Notas"
+            android:hint="@string/field_notes"
             android:inputType="textMultiLine"
             android:minLines="3">
 

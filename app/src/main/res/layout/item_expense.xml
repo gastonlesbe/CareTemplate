@@ -9,14 +9,14 @@
         android:id="@+id/tvLine1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Sujeto · Título"
+        android:text="@string/expenses_subject_title"
         style="@style/AppText.Subtitle"/>
 
     <TextView
         android:id="@+id/tvLine2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Fecha · $Costo"
+        android:text="@string/expenses_date_cost"
         style="@style/AppText.Small"
         android:layout_marginTop="2dp"/>
 </LinearLayout>

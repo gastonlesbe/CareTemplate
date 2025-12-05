@@ -20,7 +20,11 @@ import java.util.List;
 
 public class SubjectAdapter extends RecyclerView.Adapter<SubjectAdapter.VH> {
 
-    public interface OnClick { void onEdit(SubjectEntity s); void onDelete(SubjectEntity s); }
+    public interface OnClick { 
+        void onEdit(SubjectEntity s); 
+        void onDelete(SubjectEntity s);
+        default void onViewHistory(SubjectEntity s) {} // Nueva opción para ver historial
+    }
 
     /** Fila enriquecida: entidad + líneas de info */
     public static class SubjectRow {
@@ -84,8 +88,30 @@ public class SubjectAdapter extends RecyclerView.Adapter<SubjectAdapter.VH> {
         h.tvInfo.setText(row.info == null ? "" : row.info);
         h.tvExtra.setText(row.extra == null ? "" : row.extra);
 
-        h.itemView.setOnClickListener(v -> listener.onEdit(s));
-        h.itemView.setOnLongClickListener(v -> { listener.onDelete(s); return true; });
+        // Click simple en el item: ver historial
+        h.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onViewHistory(s);
+            }
+        });
+        
+        // Botón Editar
+        if (h.btnEdit != null) {
+            h.btnEdit.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onEdit(s);
+                }
+            });
+        }
+        
+        // Botón Borrar
+        if (h.btnDelete != null) {
+            h.btnDelete.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onDelete(s);
+                }
+            });
+        }
     }
 
     @Override public int getItemCount() { return rows.size(); }
@@ -163,12 +189,15 @@ public class SubjectAdapter extends RecyclerView.Adapter<SubjectAdapter.VH> {
     static class VH extends RecyclerView.ViewHolder {
         ImageView ivIcon;
         TextView tvName, tvInfo, tvExtra;
+        android.widget.ImageButton btnEdit, btnDelete;
         VH(@NonNull View v) {
             super(v);
             ivIcon = v.findViewById(R.id.ivIcon);
             tvName = v.findViewById(R.id.tvSubjectName);
             tvInfo = v.findViewById(R.id.tvSubjectInfo);
             tvExtra= v.findViewById(R.id.tvSubjectExtra);
+            btnEdit = v.findViewById(R.id.btnEdit);
+            btnDelete = v.findViewById(R.id.btnDelete);
         }
     }
 }

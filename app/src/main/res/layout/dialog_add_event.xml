@@ -9,7 +9,7 @@
         style="@style/Widget.App.TextInputLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Título">
+        android:hint="@string/event_title_hint">
     <com.google.android.material.textfield.TextInputEditText
         android:id="@+id/etTitle"
         style="@style/Widget.App.TextInputEditText"
@@ -29,9 +29,24 @@
         style="@style/Widget.App.TextInputLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Costo">
+        android:hint="@string/event_cost_hint">
     <com.google.android.material.textfield.TextInputEditText
         android:id="@+id/etCost"
+        style="@style/Widget.App.TextInputEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="numberDecimal"/>
+</com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilKilometers"
+        style="@style/Widget.App.TextInputLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/field_odometer"
+        android:visibility="gone">
+    <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/etKilometers"
         style="@style/Widget.App.TextInputEditText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

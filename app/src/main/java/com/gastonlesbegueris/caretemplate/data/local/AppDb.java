@@ -11,7 +11,7 @@ import com.gastonlesbegueris.caretemplate.data.local.EventEntity;
 import com.gastonlesbegueris.caretemplate.data.local.SubjectDao;
 import com.gastonlesbegueris.caretemplate.data.local.SubjectEntity;
 
-@Database(entities = { EventEntity.class, SubjectEntity.class }, version = 11, exportSchema = false)
+@Database(entities = { EventEntity.class, SubjectEntity.class }, version = 12, exportSchema = false)
 public abstract class AppDb extends RoomDatabase {
     private static volatile AppDb I;
     public abstract EventDao eventDao();

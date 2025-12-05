@@ -13,7 +13,7 @@
             style="@style/Widget.App.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Nombre"
+            android:hint="@string/field_name"
             android:id="@+id/tilName">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -28,7 +28,7 @@
             style="@style/Widget.App.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Marca"
+            android:hint="@string/field_brand"
             android:id="@+id/tilBrand"
             android:visibility="gone">
 
@@ -44,7 +44,7 @@
             style="@style/Widget.App.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Modelo"
+            android:hint="@string/field_model"
             android:id="@+id/tilModel"
             android:visibility="gone">
 
@@ -55,40 +55,48 @@
                 android:layout_height="wrap_content"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Icon selection grid -->
-        <include layout="@layout/icon_selection_grid" />
-
-        <!-- Fecha de nacimiento/instalación (solo se usa en pets/family) -->
+        <!-- Peso u Odómetro, según flavor (ANTES de los iconos para que sea más visible) -->
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilMeasure"
             style="@style/Widget.App.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Fecha (dd/MM/aaaa)">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etBirth"
-                style="@style/Widget.App.TextInputEditText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"/>
-        </com.google.android.material.textfield.TextInputLayout>
-        <!-- Peso u Odómetro, según flavor -->
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.App.TextInputLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Medida"
-            android:inputType="numberDecimal">
+            android:hint="@string/field_measure"
+            android:inputType="numberDecimal"
+            android:visibility="visible">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etMeasure"
                 style="@style/Widget.App.TextInputEditText"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Icon selection grid -->
+        <include layout="@layout/icon_selection_grid" />
+
+        <!-- Fecha de nacimiento/instalación (solo se usa en pets/family) -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilBirth"
+            style="@style/Widget.App.TextInputLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/field_date"
+            android:visibility="visible">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etBirth"
+                style="@style/Widget.App.TextInputEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:clickable="true"/>
         </com.google.android.material.textfield.TextInputLayout>
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.App.TextInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Notas"
+            android:hint="@string/field_notes"
             android:inputType="textMultiLine"
             android:minLines="3">
 

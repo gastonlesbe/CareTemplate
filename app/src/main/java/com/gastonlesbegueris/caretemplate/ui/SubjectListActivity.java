@@ -1,5 +1,6 @@
 package com.gastonlesbegueris.caretemplate.ui;
 
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.Menu;
@@ -9,6 +10,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -18,10 +20,21 @@ import com.gastonlesbegueris.caretemplate.data.local.EventDao;
 import com.gastonlesbegueris.caretemplate.data.local.EventEntity;
 import com.gastonlesbegueris.caretemplate.data.local.SubjectDao;
 import com.gastonlesbegueris.caretemplate.data.local.SubjectEntity;
+import com.gastonlesbegueris.caretemplate.data.sync.CloudSync;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.MobileAds;
+import com.google.android.gms.ads.rewarded.RewardedAd;
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
+import com.google.android.gms.ads.rewarded.RewardItem;
+import com.google.android.gms.ads.OnUserEarnedRewardListener;
+import com.google.android.gms.ads.FullScreenContentCallback;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.AdError;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
+import android.util.Log;
 
 import java.util.List;
 import java.util.UUID;
@@ -32,8 +45,22 @@ public class SubjectListActivity extends AppCompatActivity {
 
     private AppDb db;
     private SubjectDao dao;
+    private EventDao eventDao;
     private SubjectAdapter adapter;
     private String appType;
+    
+    // Rewarded Ad para código de recuperación
+    private RewardedAd rewardedAd;
+    private boolean isRewardedAdLoading = false;
+    
+    // Flag para indicar que estamos en modo de recuperación silenciosa
+    private boolean isSilentRecoveryMode = false;
+    
+    // Referencia al diálogo de recuperación
+    private androidx.appcompat.app.AlertDialog recoverDialog;
+    
+    // FAB Speed Dial
+    private boolean fabMenuOpen = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,28 +69,69 @@ public class SubjectListActivity extends AppCompatActivity {
 
         MaterialToolbar toolbar = findViewById(R.id.toolbarSubjects);
         setSupportActionBar(toolbar);
+        
+        // Configurar toolbar como pantalla principal (sin botón back, con menú hamburger)
         if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setDisplayHomeAsUpEnabled(false);
         }
-        toolbar.setNavigationIcon(R.drawable.ic_back);
-        toolbar.setNavigationOnClickListener(v -> finish());
-        toolbar.setTitle("Sujetos");
-
-
+        
+        // Configurar icono de la app
+        toolbar.setNavigationIcon(R.drawable.ic_header_flavor);
+        toolbar.setNavigationOnClickListener(v -> {
+            // Abrir menú drawer si está disponible, o no hacer nada
+        });
+        
+        // Configurar título con nombre de app y sección
         appType = getString(R.string.app_type); // viene del flavor
+        String appName = getString(R.string.app_name);
+        String sectionName = getString(R.string.subjects_title); // Mascotas, Autos, Casas, Sujetos según flavor
+        toolbar.setTitle(appName + " - " + sectionName);
+
+
         db  = AppDb.get(this);
         dao = db.subjectDao();
+        eventDao = db.eventDao();
+        
+        // Verificar si se debe abrir el diálogo de código de recuperación
+        if (getIntent() != null && getIntent().getBooleanExtra("show_recovery_code", false)) {
+            // Limpiar el flag para que no se abra cada vez que se rote la pantalla
+            getIntent().removeExtra("show_recovery_code");
+            // Abrir el diálogo después de que la UI esté lista
+            findViewById(R.id.fabAddSubject).post(() -> {
+                showRecoveryCodeDialog();
+            });
+        }
+        
+        // Verificar si se debe agregar un evento (desde otras actividades)
+        // Como estamos en la lista de sujetos, simplemente ignoramos este intent
+        // Los eventos se agregan desde el historial de un sujeto o desde la agenda
+        if (getIntent() != null && getIntent().getBooleanExtra("add_event", false)) {
+            getIntent().removeExtra("add_event");
+            // Mostrar mensaje indicando que se debe seleccionar un sujeto primero
+            Toast.makeText(this, getString(R.string.select_subject_first), Toast.LENGTH_SHORT).show();
+        }
+        
+        // Inicializar código de recuperación
+        initializeRecoveryCode();
 
         adapter = new SubjectAdapter(new SubjectAdapter.OnClick() {
             @Override public void onEdit(SubjectEntity subj) { showEditDialog(subj); }
             @Override public void onDelete(SubjectEntity subj) { softDelete(subj.id); }
+            @Override public void onViewHistory(SubjectEntity subj) { 
+                // Abrir actividad de historial
+                android.content.Intent intent = new android.content.Intent(SubjectListActivity.this, SubjectHistoryActivity.class);
+                intent.putExtra("subjectId", subj.id);
+                intent.putExtra("subjectName", subj.name);
+                startActivity(intent);
+            }
         });
 
         RecyclerView rv = findViewById(R.id.rvSubjects);
         rv.setLayoutManager(new LinearLayoutManager(this));
         rv.setAdapter(adapter);
 
-        findViewById(R.id.btnAddSubject).setOnClickListener(v -> showAddDialog());
+        // Inicializar FAB Speed Dial
+        initFabSpeedDial();
 
         // AdMob Banner
         initAdMob();
@@ -113,7 +181,42 @@ public class SubjectListActivity extends AppCompatActivity {
             if (tilModel != null) tilModel.setVisibility(View.GONE);
         }
 
-        setupDialogUiByFlavor(etBirth, etMeasure);
+        // Obtener los TextInputLayout directamente por ID
+        com.google.android.material.textfield.TextInputLayout tilMeasure = view.findViewById(R.id.tilMeasure);
+        
+        android.view.View parentBirth = etBirth != null ? (android.view.View) etBirth.getParent() : null;
+        while (parentBirth != null && !(parentBirth instanceof com.google.android.material.textfield.TextInputLayout)) {
+            parentBirth = (android.view.View) parentBirth.getParent();
+        }
+        com.google.android.material.textfield.TextInputLayout tilBirth = parentBirth instanceof com.google.android.material.textfield.TextInputLayout 
+                ? (com.google.android.material.textfield.TextInputLayout) parentBirth : null;
+
+        // Configurar UI según flavor
+        if ("cars".equals(appType) || "house".equals(appType)) {
+            // Para cars/house: ocultar fecha de nacimiento, mostrar odómetro
+            if (tilBirth != null) tilBirth.setVisibility(View.GONE);
+            if (tilMeasure != null) {
+                tilMeasure.setHint(getString(R.string.field_odometer));
+                tilMeasure.setVisibility(View.VISIBLE);
+            }
+            if (etMeasure != null) {
+                etMeasure.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            }
+        } else {
+            // Para pets/family: mostrar fecha de nacimiento y peso
+            if (tilBirth != null) {
+                tilBirth.setHint(getString(R.string.field_birth_date));
+                tilBirth.setVisibility(View.VISIBLE);
+            }
+            if (tilMeasure != null) {
+                tilMeasure.setHint(getString(R.string.field_weight));
+                tilMeasure.setVisibility(View.VISIBLE);
+            }
+            if (etMeasure != null) {
+                etMeasure.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            }
+        }
+        
         etBirth.setOnClickListener(v -> pickDateInto(etBirth));
 
         // Setup icon selection
@@ -122,16 +225,16 @@ public class SubjectListActivity extends AppCompatActivity {
         populateIconGrid(gridIcons, selectedIconKey);
 
         new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Nuevo sujeto")
+                .setTitle(getString(R.string.new_subject))
                 .setView(view)
-                .setPositiveButton("Guardar", (d,w)-> {
+                .setPositiveButton(getString(R.string.button_save), (d,w)-> {
                     String name;
                     if ("cars".equals(appType)) {
                         // Para cars: concatenar marca + modelo
                         String brand = etBrand != null ? etBrand.getText().toString().trim() : "";
                         String model = etModel != null ? etModel.getText().toString().trim() : "";
                         if (brand.isEmpty() && model.isEmpty()) {
-                            Toast.makeText(this,"Marca o Modelo requerido",Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this, getString(R.string.error_brand_or_model_required), Toast.LENGTH_SHORT).show();
                             return;
                         }
                         if (brand.isEmpty()) {
@@ -145,16 +248,27 @@ public class SubjectListActivity extends AppCompatActivity {
                         // Para otros flavors: usar nombre normal
                         name = etName.getText().toString().trim();
                         if (name.isEmpty()) {
-                            Toast.makeText(this,"Nombre requerido",Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this, getString(R.string.error_name_required), Toast.LENGTH_SHORT).show();
                             return;
                         }
                     }
-                    Long birthMillis = parseDateOrNull(etBirth.getText().toString().trim());
-                    Double measure = safeParseDouble(etMeasure.getText().toString().trim());
-                    String notes = etNotes.getText().toString().trim();
+                    // Obtener fecha de nacimiento (solo para pets/family)
+                    Long birthMillis = null;
+                    if (!"cars".equals(appType) && !"house".equals(appType)) {
+                        String birthStr = etBirth.getText() != null ? etBirth.getText().toString().trim() : "";
+                        if (!birthStr.isEmpty()) {
+                            birthMillis = parseDateOrNull(birthStr);
+                        }
+                    }
+                    
+                    // Obtener medida: kilómetros para cars/house, peso para pets/family
+                    String measureStr = etMeasure.getText() != null ? etMeasure.getText().toString().trim() : "";
+                    Double measure = measureStr.isEmpty() ? null : safeParseDouble(measureStr);
+                    
+                    String notes = etNotes.getText() != null ? etNotes.getText().toString().trim() : "";
                     insertSubjectFull(name, birthMillis, measure, notes, selectedIconKey[0]);
                 })
-                .setNegativeButton("Cancelar", null)
+                .setNegativeButton(getString(R.string.button_cancel), null)
                 .show();
     }
     // Devuelve un icono por defecto según el flavor activo
@@ -250,7 +364,10 @@ public class SubjectListActivity extends AppCompatActivity {
             subj.id = UUID.randomUUID().toString();
             subj.appType = appType;
             subj.name = name;
+            // Para cars/house: no hay fecha de nacimiento, solo kilómetros
+            // Para pets/family: guardar fecha de nacimiento si se proporcionó
             subj.birthDate = ("cars".equals(appType) || "house".equals(appType)) ? null : birthMillis;
+            // Guardar medida: kilómetros para cars/house, peso para pets/family
             subj.currentMeasure = measure;
 
             subj.notes = notes == null ? "" : notes;
@@ -261,7 +378,7 @@ public class SubjectListActivity extends AppCompatActivity {
             subj.colorHex = (subj.colorHex == null || subj.colorHex.isEmpty()) ? "#03DAC5" : subj.colorHex;
 
             dao.insert(subj);
-            runOnUiThread(() -> Toast.makeText(this, "Sujeto creado ✅", Toast.LENGTH_SHORT).show());
+            runOnUiThread(() -> Toast.makeText(this, getString(R.string.subject_created), Toast.LENGTH_SHORT).show());
         }).start();
     }
     private void showEditDialog(SubjectEntity subj) {
@@ -305,8 +422,8 @@ public class SubjectListActivity extends AppCompatActivity {
             if (etName != null) etName.setText(subj.name);
         }
 
-        // Mostrar campo de fecha solo para pets
-        if ("pets".equals(appType)) {
+        // Mostrar campo de fecha para pets y family (no para cars/house)
+        if ("pets".equals(appType) || "family".equals(appType)) {
             tilBirth.setVisibility(View.VISIBLE);
             if (subj.birthDate != null) {
                 java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
@@ -324,20 +441,20 @@ public class SubjectListActivity extends AppCompatActivity {
         etNotes.setText(subj.notes == null ? "" : subj.notes);
 
         androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Editar sujeto")
+                .setTitle(getString(R.string.edit_subject))
                 .setView(view)
-                .setPositiveButton("Guardar", null)
-                .setNegativeButton("Cancelar", null)
+                .setPositiveButton(getString(R.string.button_save), null)
+                .setNegativeButton(getString(R.string.button_cancel), null)
                 .create();
 
         // Si es pets, agregar botón de eliminar
         if ("pets".equals(appType)) {
             dialog.setButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL, "Eliminar", (d, w) -> {
                 new androidx.appcompat.app.AlertDialog.Builder(this)
-                        .setTitle("Eliminar sujeto")
-                        .setMessage("¿Estás seguro de que querés eliminar a " + subj.name + "?")
-                        .setPositiveButton("Eliminar", (d2, w2) -> softDelete(subj.id))
-                        .setNegativeButton("Cancelar", null)
+                        .setTitle(getString(R.string.delete_subject))
+                        .setMessage(getString(R.string.delete_subject_confirmation, subj.name))
+                        .setPositiveButton(getString(R.string.button_delete), (d2, w2) -> softDelete(subj.id))
+                        .setNegativeButton(getString(R.string.button_cancel), null)
                         .show();
             });
         }
@@ -350,7 +467,7 @@ public class SubjectListActivity extends AppCompatActivity {
                     String brand = etBrand != null && etBrand.getText() != null ? etBrand.getText().toString().trim() : "";
                     String model = etModel != null && etModel.getText() != null ? etModel.getText().toString().trim() : "";
                     if (brand.isEmpty() && model.isEmpty()) {
-                        android.widget.Toast.makeText(this, "Marca o Modelo requerido", android.widget.Toast.LENGTH_SHORT).show();
+                        android.widget.Toast.makeText(this, getString(R.string.error_brand_or_model_required), android.widget.Toast.LENGTH_SHORT).show();
                         return;
                     }
                     if (brand.isEmpty()) {
@@ -364,7 +481,7 @@ public class SubjectListActivity extends AppCompatActivity {
                     // Para otros flavors: usar nombre normal
                     name = etName.getText() == null ? "" : etName.getText().toString().trim();
                     if (name.isEmpty()) {
-                        android.widget.Toast.makeText(this, "Nombre requerido", android.widget.Toast.LENGTH_SHORT).show();
+                        android.widget.Toast.makeText(this, getString(R.string.error_name_required), android.widget.Toast.LENGTH_SHORT).show();
                         return;
                     }
                 }
@@ -378,7 +495,8 @@ public class SubjectListActivity extends AppCompatActivity {
                 final Double finalMeasure = measure;
 
                 Long birthMillis = null;
-                if ("pets".equals(appType) && !birthStr.isEmpty()) {
+                // Para pets y family: guardar fecha de nacimiento si se proporcionó
+                if (("pets".equals(appType) || "family".equals(appType)) && !birthStr.isEmpty()) {
                     birthMillis = parseDateOrNull(birthStr);
                 }
 
@@ -398,7 +516,7 @@ public class SubjectListActivity extends AppCompatActivity {
                     AppDb.get(this).subjectDao().update(subj);
 
                     runOnUiThread(() -> {
-                        android.widget.Toast.makeText(this, "Sujeto actualizado ✅", android.widget.Toast.LENGTH_SHORT).show();
+                        android.widget.Toast.makeText(this, getString(R.string.subject_updated), android.widget.Toast.LENGTH_SHORT).show();
                         dialog.dismiss();
                     });
                 }).start();
@@ -407,6 +525,7 @@ public class SubjectListActivity extends AppCompatActivity {
 
         dialog.show();
     }
+    
 
     private void updateSubjectFull(SubjectEntity subj, String name, Long birthMillis, Double measure, String notes) {
         new Thread(() -> {
@@ -417,28 +536,61 @@ public class SubjectListActivity extends AppCompatActivity {
             subj.updatedAt = System.currentTimeMillis();
             subj.dirty = 1;
             dao.update(subj);
-            runOnUiThread(() -> Toast.makeText(this, "Actualizado ✅", Toast.LENGTH_SHORT).show());
+            runOnUiThread(() -> Toast.makeText(this, getString(R.string.subject_updated_simple), Toast.LENGTH_SHORT).show());
         }).start();
     }
 
     private void softDelete(String id) {
+        // Obtener el nombre del sujeto para el mensaje de confirmación
         new Thread(() -> {
-            dao.softDelete(id, System.currentTimeMillis());
-            runOnUiThread(() -> Toast.makeText(this, "Eliminado ✅", Toast.LENGTH_SHORT).show());
+            SubjectEntity subject = dao.findOne(id);
+            String subjectName = subject != null && subject.name != null ? subject.name : "este sujeto";
+            
+            runOnUiThread(() -> {
+                // Mostrar diálogo de confirmación
+                new androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle(getString(R.string.delete_subject))
+                        .setMessage(getString(R.string.delete_subject_confirmation_full, subjectName))
+                        .setPositiveButton(getString(R.string.button_delete), (d, w) -> {
+                            // Confirmar eliminación
+                            new Thread(() -> {
+                                dao.softDelete(id, System.currentTimeMillis());
+                                runOnUiThread(() -> Toast.makeText(this, getString(R.string.subject_deleted), Toast.LENGTH_SHORT).show());
+                            }).start();
+                        })
+                        .setNegativeButton(getString(R.string.button_cancel), null)
+                        .show();
+            });
         }).start();
     }
 
     // ---------- Helpers visuales ----------
     private void setupDialogUiByFlavor(EditText etBirth, EditText etMeasure) {
+        // Obtener el TextInputLayout padre para poder mostrar/ocultar correctamente
+        android.view.View parentBirth = etBirth != null ? (android.view.View) etBirth.getParent() : null;
+        while (parentBirth != null && !(parentBirth instanceof com.google.android.material.textfield.TextInputLayout)) {
+            parentBirth = (android.view.View) parentBirth.getParent();
+        }
+        com.google.android.material.textfield.TextInputLayout tilBirth = parentBirth instanceof com.google.android.material.textfield.TextInputLayout 
+                ? (com.google.android.material.textfield.TextInputLayout) parentBirth : null;
+
         if ("cars".equals(appType) || "house".equals(appType)) {
-            etBirth.setVisibility(android.view.View.GONE);
-            etMeasure.setHint("Odómetro (km)");
-            etMeasure.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            // Para cars/house: ocultar fecha de nacimiento, mostrar odómetro
+            if (tilBirth != null) tilBirth.setVisibility(android.view.View.GONE);
+            if (etMeasure != null) {
+                etMeasure.setHint(getString(R.string.field_odometer));
+                etMeasure.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            }
         } else {
-            etBirth.setVisibility(android.view.View.VISIBLE);
-            etBirth.setHint("Fecha de nacimiento (dd/MM/aaaa)");
-            etMeasure.setHint("Peso (kg)");
-            etMeasure.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            // Para pets/family: mostrar fecha de nacimiento y peso
+            if (tilBirth != null) tilBirth.setVisibility(android.view.View.VISIBLE);
+            if (etBirth != null) {
+                etBirth.setHint(getString(R.string.field_birth_date));
+            }
+            if (etMeasure != null) {
+                etMeasure.setHint(getString(R.string.field_weight));
+                etMeasure.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            }
         }
     }
 
@@ -470,11 +622,11 @@ public class SubjectListActivity extends AppCompatActivity {
     private String buildInfoLine(SubjectEntity subj) {
         if ("cars".equals(appType) || "house".equals(appType)) {
             String km = (subj.currentMeasure == null) ? "-" : (Math.round(subj.currentMeasure) + " km");
-            return "Odómetro: " + km;
+            return getString(R.string.odometer_label, km);
         } else {
             String age = formatAge(subj.birthDate);
-            String weight = (subj.currentMeasure == null) ? "" : (" · Peso: " + subj.currentMeasure + " kg");
-            return "Edad: " + age + weight;
+            String weightStr = (subj.currentMeasure == null) ? "" : getString(R.string.weight_label, String.valueOf(subj.currentMeasure));
+            return getString(R.string.age_label, age) + weightStr;
         }
     }
 
@@ -482,9 +634,13 @@ public class SubjectListActivity extends AppCompatActivity {
         EventDao eventDao = db.eventDao();
         long now = System.currentTimeMillis();
         EventEntity next = eventDao.nextEvent(appType, subj.id, now);
-        if (next == null) return "Próximo: —";
-        String when = new java.text.SimpleDateFormat("dd/MM HH:mm").format(new java.util.Date(next.dueAt));
-        return "Próximo: " + when + (next.title == null || next.title.isEmpty() ? "" : " · " + next.title);
+        if (next == null) return getString(R.string.next_event_none);
+        String when = new java.text.SimpleDateFormat(getString(R.string.event_date_format)).format(new java.util.Date(next.dueAt));
+        if (next.title == null || next.title.isEmpty()) {
+            return getString(R.string.next_event_label, when);
+        } else {
+            return getString(R.string.next_event_with_title, when, next.title);
+        }
     }
 
     private String formatAge(Long birthDate) {
@@ -507,11 +663,7 @@ public class SubjectListActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_home) {
-            startActivity(new android.content.Intent(this, com.gastonlesbegueris.caretemplate.ui.MainActivity.class));
-            finish();
-            return true;
-        } else if (id == R.id.action_agenda) {
+        if (id == R.id.action_agenda) {
             startActivity(new android.content.Intent(this, com.gastonlesbegueris.caretemplate.ui.AgendaMonthActivity.class));
             return true;
         } else if (id == R.id.action_subjects) {
@@ -520,8 +672,13 @@ public class SubjectListActivity extends AppCompatActivity {
         } else if (id == R.id.action_expenses) {
             startActivity(new android.content.Intent(this, com.gastonlesbegueris.caretemplate.ui.ExpensesActivity.class));
             return true;
-        } else if (id == android.R.id.home) {
-            finish();
+        } else if (id == R.id.action_sync) {
+            // Iniciar sincronización
+            doSync();
+            return true;
+        } else if (id == R.id.action_recovery) {
+            // Mostrar el código de recuperación
+            showRecoveryCodeDialog();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -559,6 +716,836 @@ public class SubjectListActivity extends AppCompatActivity {
             adView.destroy();
         }
         super.onDestroy();
+    }
+    
+    // ===== Helper Methods =====
+    
+    private void refreshSubjectsList() {
+        dao.observeActive(appType).observe(this, (List<SubjectEntity> list) -> {
+            new Thread(() -> {
+                java.util.List<SubjectAdapter.SubjectRow> rows = new java.util.ArrayList<>();
+                for (SubjectEntity subj : list) {
+                    String info  = buildInfoLine(subj);
+                    String extra = buildExtraLine(subj);
+                    rows.add(new SubjectAdapter.SubjectRow(subj, info, extra));
+                }
+                runOnUiThread(() -> {
+                    adapter.submitRows(rows);
+                });
+            }).start();
+        });
+    }
+    
+    // ===== Recovery Code Functionality =====
+    
+    private void initializeRecoveryCode() {
+        com.gastonlesbegueris.caretemplate.util.UserRecoveryManager recoveryManager = 
+                new com.gastonlesbegueris.caretemplate.util.UserRecoveryManager(this);
+        
+        // Generar o recuperar código de recuperación y sincronizarlo
+        recoveryManager.getOrGenerateRecoveryCode(new com.gastonlesbegueris.caretemplate.util.UserRecoveryManager.RecoveryCodeCallback() {
+            @Override
+            public void onRecoveryCode(String recoveryCode) {
+                Log.d("SubjectListActivity", "Recovery code ready: " + recoveryCode);
+            }
+            
+            @Override
+            public void onError(Exception error) {
+                Log.e("SubjectListActivity", "Error initializing recovery code", error);
+            }
+        });
+    }
+    
+    private void showRecoveryCodeDialog() {
+        // Mostrar diálogo informativo antes de cargar el video
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(getString(R.string.recovery_code_title))
+                .setMessage(getString(R.string.recovery_code_message))
+                .setPositiveButton(getString(R.string.button_watch_video), (d, w) -> {
+                    // Usuario acepta, cargar y mostrar rewarded ad
+                    loadAndShowRewardedAd();
+                })
+                .setNegativeButton(getString(R.string.button_cancel), null)
+                .setIcon(android.R.drawable.ic_dialog_info)
+                .show();
+    }
+    
+    private void loadAndShowRewardedAd() {
+        // Si ya hay un ad cargado, mostrarlo directamente
+        if (rewardedAd != null) {
+            showRewardedAd();
+            return;
+        }
+        
+        // Si ya se está cargando, mostrar mensaje
+        if (isRewardedAdLoading) {
+            Toast.makeText(this, getString(R.string.loading_video), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Mostrar mensaje de carga
+        Toast.makeText(this, "Cargando video publicitario...", Toast.LENGTH_SHORT).show();
+        
+        // Cargar nuevo rewarded ad
+        isRewardedAdLoading = true;
+        String rewardedAdId = getString(R.string.admob_rewarded_id);
+        
+        com.google.android.gms.ads.AdRequest adRequest = new com.google.android.gms.ads.AdRequest.Builder().build();
+        
+        RewardedAd.load(this, rewardedAdId, adRequest,
+                new RewardedAdLoadCallback() {
+                    @Override
+                    public void onAdFailedToLoad(LoadAdError loadAdError) {
+                        isRewardedAdLoading = false;
+                        rewardedAd = null;
+                        Log.e("SubjectListActivity", "Rewarded ad failed to load: " + loadAdError.getMessage());
+                        // Si falla cargar el ad, mostrar el código directamente
+                        runOnUiThread(() -> {
+                            Toast.makeText(SubjectListActivity.this, getString(R.string.video_load_error), Toast.LENGTH_SHORT).show();
+                            showRecoveryCodeAfterAd();
+                        });
+                    }
+                    
+                    @Override
+                    public void onAdLoaded(RewardedAd ad) {
+                        isRewardedAdLoading = false;
+                        rewardedAd = ad;
+                        Log.d("SubjectListActivity", "Rewarded ad loaded");
+                        // Mostrar el ad
+                        runOnUiThread(() -> showRewardedAd());
+                    }
+                });
+    }
+    
+    private void showRewardedAd() {
+        if (rewardedAd == null) {
+            // Si no hay ad, mostrar código directamente
+            showRecoveryCodeAfterAd();
+            return;
+        }
+        
+        // Configurar callback para cuando el usuario gana la recompensa
+        rewardedAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+            @Override
+            public void onAdShowedFullScreenContent() {
+                Log.d("SubjectListActivity", "Rewarded ad showed full screen content");
+            }
+            
+            @Override
+            public void onAdDismissedFullScreenContent() {
+                // Ad cerrado, recargar para próxima vez
+                rewardedAd = null;
+                Log.d("SubjectListActivity", "Rewarded ad dismissed");
+            }
+            
+            @Override
+            public void onAdFailedToShowFullScreenContent(AdError adError) {
+                Log.e("SubjectListActivity", "Rewarded ad failed to show: " + adError.getMessage());
+                rewardedAd = null;
+                // Si falla mostrar, mostrar código directamente
+                showRecoveryCodeAfterAd();
+            }
+        });
+        
+        // Mostrar el ad con el listener de recompensa
+        rewardedAd.show(this, new OnUserEarnedRewardListener() {
+            @Override
+            public void onUserEarnedReward(RewardItem rewardItem) {
+                // Usuario completó el video, mostrar el código
+                Log.d("SubjectListActivity", "User earned reward: " + rewardItem.getAmount() + " " + rewardItem.getType());
+                showRecoveryCodeAfterAd();
+            }
+        });
+    }
+    
+    private void showRecoveryCodeAfterAd() {
+        Log.d("SubjectListActivity", "showRecoveryCodeAfterAd called");
+        
+        com.gastonlesbegueris.caretemplate.util.UserRecoveryManager recoveryManager = 
+                new com.gastonlesbegueris.caretemplate.util.UserRecoveryManager(this);
+        
+        // Primero intentar obtener el código local (sin sincronizar)
+        String localCode = recoveryManager.getRecoveryCodeSync();
+        Log.d("SubjectListActivity", "Local recovery code: " + (localCode != null ? localCode : "null"));
+        
+        if (localCode != null && !localCode.isEmpty()) {
+            // Si hay código local, mostrarlo directamente
+            Log.d("SubjectListActivity", "Showing local recovery code");
+            runOnUiThread(() -> showRecoveryCodeDialog(localCode));
+            // Intentar sincronizar en background (sin bloquear)
+            recoveryManager.getOrGenerateRecoveryCode(new com.gastonlesbegueris.caretemplate.util.UserRecoveryManager.RecoveryCodeCallback() {
+                @Override
+                public void onRecoveryCode(String recoveryCode) {
+                    Log.d("SubjectListActivity", "Recovery code synced successfully");
+                }
+                
+                @Override
+                public void onError(Exception error) {
+                    Log.w("SubjectListActivity", "Recovery code sync failed (non-critical): " + error.getMessage());
+                }
+            });
+        } else {
+            // Si no hay código local, generar uno nuevo
+            Log.d("SubjectListActivity", "No local code found, generating new one");
+            recoveryManager.getOrGenerateRecoveryCode(new com.gastonlesbegueris.caretemplate.util.UserRecoveryManager.RecoveryCodeCallback() {
+                @Override
+                public void onRecoveryCode(String recoveryCode) {
+                    Log.d("SubjectListActivity", "Generated recovery code: " + recoveryCode);
+                    runOnUiThread(() -> showRecoveryCodeDialog(recoveryCode));
+                }
+                
+                @Override
+                public void onError(Exception error) {
+                    Log.e("SubjectListActivity", "Error generating recovery code: " + error.getMessage());
+                    // Si falla, intentar generar código local sin sincronizar
+                    String fallbackCode = generateLocalRecoveryCode();
+                    if (fallbackCode != null) {
+                        Log.d("SubjectListActivity", "Using fallback code: " + fallbackCode);
+                        runOnUiThread(() -> showRecoveryCodeDialog(fallbackCode));
+                    } else {
+                        runOnUiThread(() -> Toast.makeText(SubjectListActivity.this, getString(R.string.recovery_code_error), Toast.LENGTH_LONG).show());
+                    }
+                }
+            });
+        }
+    }
+    
+    private void showRecoveryCodeDialog(String recoveryCode) {
+        Log.d("SubjectListActivity", "showRecoveryCodeDialog called with code: " + recoveryCode);
+        
+        if (recoveryCode == null || recoveryCode.isEmpty()) {
+            Log.e("SubjectListActivity", "Recovery code is null or empty!");
+            Toast.makeText(this, getString(R.string.recovery_code_generate_error), Toast.LENGTH_LONG).show();
+            return;
+        }
+        
+        try {
+            // Mostrar diálogo con el código
+            android.view.View view = getLayoutInflater().inflate(R.layout.dialog_recovery_code, null);
+            android.widget.TextView tvCode = view.findViewById(R.id.tvRecoveryCode);
+            android.widget.Button btnCopy = view.findViewById(R.id.btnCopyCode);
+            android.widget.Button btnRecover = view.findViewById(R.id.btnRecoverFromCode);
+            
+            if (tvCode != null) {
+                tvCode.setText(recoveryCode);
+                Log.d("SubjectListActivity", "Code set in TextView");
+            } else {
+                Log.e("SubjectListActivity", "tvCode is null!");
+            }
+            
+            if (btnCopy != null) {
+                btnCopy.setOnClickListener(v -> {
+                    android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                    android.content.ClipData clip = android.content.ClipData.newPlainText(getString(R.string.recovery_code_title), recoveryCode);
+                    clipboard.setPrimaryClip(clip);
+                    Toast.makeText(SubjectListActivity.this, getString(R.string.recovery_code_copied), Toast.LENGTH_SHORT).show();
+                });
+            }
+            
+            if (btnRecover != null) {
+                btnRecover.setOnClickListener(v -> {
+                    // Mostrar diálogo para ingresar código de recuperación
+                    showRecoverFromCodeDialog();
+                });
+            }
+            
+            androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(SubjectListActivity.this)
+                    .setTitle(getString(R.string.recovery_code_title))
+                    .setMessage(getString(R.string.recovery_code_save_message))
+                    .setView(view)
+                    .setPositiveButton(getString(R.string.button_close), null)
+                    .create();
+            
+            dialog.show();
+            Log.d("SubjectListActivity", "Dialog shown");
+        } catch (Exception e) {
+            Log.e("SubjectListActivity", "Error showing recovery code dialog", e);
+            Toast.makeText(this, getString(R.string.recovery_code_show_error, e.getMessage()), Toast.LENGTH_LONG).show();
+        }
+    }
+    
+    private String generateLocalRecoveryCode() {
+        // Generar código local como fallback
+        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        StringBuilder code = new StringBuilder();
+        java.util.Random random = new java.util.Random();
+        
+        for (int i = 0; i < 12; i++) {
+            if (i > 0 && i % 4 == 0) {
+                code.append("-");
+            }
+            code.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        
+        return code.toString();
+    }
+    
+    private void showRecoverFromCodeDialog() {
+        android.view.View view = getLayoutInflater().inflate(R.layout.dialog_recover_code, null);
+        com.google.android.material.textfield.TextInputEditText etCode = view.findViewById(R.id.etRecoveryCode);
+        
+        recoverDialog = new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(getString(R.string.recovery_code_recover_title))
+                .setMessage(getString(R.string.recovery_code_recover_message))
+                .setView(view)
+                .setPositiveButton(getString(R.string.button_recover), (d, w) -> {
+                    String code = etCode != null && etCode.getText() != null ? etCode.getText().toString().trim() : "";
+                    if (code.isEmpty()) {
+                        Toast.makeText(this, getString(R.string.recovery_code_invalid), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    
+                    // Cerrar el diálogo inmediatamente al presionar el botón
+                    if (recoverDialog != null) {
+                        try {
+                            recoverDialog.dismiss();
+                        } catch (Exception ex) {
+                            Log.w("SubjectListActivity", "Error al cerrar diálogo al presionar recuperar: " + ex.getMessage());
+                        }
+                    }
+                    
+                    // Activar modo silencioso ANTES de iniciar la recuperación
+                    isSilentRecoveryMode = true;
+                    Log.d("SubjectListActivity", "Modo de recuperación silenciosa activado");
+                    
+                    recoverUserFromCode(code);
+                })
+                .setNegativeButton(getString(R.string.button_cancel), null)
+                .setCancelable(true)
+                .create();
+        
+        recoverDialog.show();
+    }
+    
+    private void recoverUserFromCode(String recoveryCode) {
+        // El modo silencioso ya debería estar activado desde el botón, pero asegurarse
+        isSilentRecoveryMode = true;
+        Log.d("SubjectListActivity", "Iniciando recuperación con código, isSilentRecoveryMode=" + isSilentRecoveryMode);
+        
+        com.gastonlesbegueris.caretemplate.util.UserRecoveryManager recoveryManager = 
+                new com.gastonlesbegueris.caretemplate.util.UserRecoveryManager(this);
+        
+        Toast.makeText(this, getString(R.string.recovering_data), Toast.LENGTH_SHORT).show();
+        
+        recoveryManager.recoverUserIdFromCode(recoveryCode, new com.gastonlesbegueris.caretemplate.util.UserRecoveryManager.RecoverUserIdCallback() {
+            @Override
+            public void onUserIdRecovered(String userId) {
+                runOnUiThread(() -> {
+                    // CERRAR EL DIÁLOGO PRIMERO, antes de hacer cualquier otra cosa
+                    if (recoverDialog != null) {
+                        try {
+                            if (recoverDialog.isShowing()) {
+                                recoverDialog.dismiss();
+                            }
+                        } catch (Exception ex) {
+                            Log.w("SubjectListActivity", "Error al cerrar diálogo: " + ex.getMessage());
+                        }
+                        recoverDialog = null;
+                    }
+                    
+                    // Guardar el userId recuperado
+                    getSharedPreferences("user_prefs", MODE_PRIVATE)
+                            .edit()
+                            .putString("user_id", userId)
+                            .putString("firebase_uid", userId)
+                            .apply();
+                    
+                    Toast.makeText(SubjectListActivity.this, getString(R.string.user_recovered), Toast.LENGTH_SHORT).show();
+                    
+                    // Sincronizar datos del usuario recuperado (sin mostrar errores)
+                    performSyncWithUserId(userId, true);
+                });
+            }
+            
+            @Override
+            public void onError(Exception error) {
+                runOnUiThread(() -> {
+                    // Desactivar modo silencioso
+                    isSilentRecoveryMode = false;
+                    // Cerrar el diálogo de forma segura
+                    closeRecoverDialog();
+                    Toast.makeText(SubjectListActivity.this, getString(R.string.recovery_error, error.getMessage()), Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+    
+    private void performSyncWithUserId(String userId, boolean silentErrors) {
+        // Guardar el userId recuperado para uso futuro
+        getSharedPreferences("user_prefs", MODE_PRIVATE)
+                .edit()
+                .putString("user_id", userId)
+                .putString("firebase_uid", userId)
+                .apply();
+        
+        // Intentar autenticarse con Firebase
+        com.google.firebase.auth.FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        
+        if (currentUser == null || !currentUser.getUid().equals(userId)) {
+            FirebaseAuth.getInstance().signInAnonymously()
+                    .addOnSuccessListener(authResult -> {
+                        if (authResult != null && authResult.getUser() != null) {
+                            String firebaseUid = authResult.getUser().getUid();
+                            String syncUid = firebaseUid.equals(userId) ? firebaseUid : userId;
+                            performSyncSilent(syncUid, silentErrors);
+                        } else {
+                            performSyncSilent(userId, silentErrors);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        performSyncSilent(userId, silentErrors);
+                    });
+        } else {
+            performSyncSilent(userId, silentErrors);
+        }
+    }
+    
+    private void performSyncSilent(String uid, boolean silentErrors) {
+        try {
+            CloudSync sync = new CloudSync(
+                    eventDao,
+                    dao,
+                    FirebaseFirestore.getInstance(),
+                    uid,
+                    "CareTemplate",
+                    appType
+            );
+
+            sync.pushSubjects(() -> {
+                sync.push(() -> {
+                    sync.pullSubjects(() -> {
+                        sync.pull(
+                                () -> runOnUiThread(() -> {
+                                    // Desactivar modo silencioso y cerrar diálogo
+                                    isSilentRecoveryMode = false;
+                                    closeRecoverDialog();
+                                    Toast.makeText(this, getString(R.string.data_recovered), Toast.LENGTH_SHORT).show();
+                                    // Refrescar la UI
+                                    refreshSubjectsList();
+                                }),
+                                e -> runOnUiThread(() -> {
+                                    if (silentErrors) {
+                                        isSilentRecoveryMode = false;
+                                        closeRecoverDialog();
+                                        String errorMsg = e != null ? e.getMessage() : "null";
+                                        if (errorMsg != null && (
+                                            errorMsg.contains("failed_precondition") || 
+                                            errorMsg.contains("FAILED_PRECONDITION") ||
+                                            errorMsg.contains("PERMISSION_DENIED") ||
+                                            errorMsg.contains("permission_denied"))) {
+                                            Log.d("SubjectListActivity", "Error normal durante recuperación (sin datos): " + errorMsg);
+                                        } else {
+                                            Log.w("SubjectListActivity", "Error durante recuperación (silenciado): " + errorMsg);
+                                        }
+                                        Toast.makeText(this, getString(R.string.data_recovered), Toast.LENGTH_SHORT).show();
+                                        refreshSubjectsList();
+                                    }
+                                })
+                        );
+                    }, e -> runOnUiThread(() -> {
+                        if (silentErrors) {
+                            isSilentRecoveryMode = false;
+                            closeRecoverDialog();
+                            String errorMsg = e != null ? e.getMessage() : "null";
+                            if (errorMsg != null && (
+                                errorMsg.contains("failed_precondition") || 
+                                errorMsg.contains("FAILED_PRECONDITION") ||
+                                errorMsg.contains("PERMISSION_DENIED") ||
+                                errorMsg.contains("permission_denied"))) {
+                                Log.d("SubjectListActivity", "Error normal durante recuperación de sujetos (sin datos): " + errorMsg);
+                            } else {
+                                Log.w("SubjectListActivity", "Error al recuperar sujetos durante recuperación (silenciado): " + errorMsg);
+                            }
+                            Toast.makeText(this, getString(R.string.data_recovered), Toast.LENGTH_SHORT).show();
+                            refreshSubjectsList();
+                        }
+                    }));
+                }, e -> runOnUiThread(() -> {
+                    if (silentErrors) {
+                        isSilentRecoveryMode = false;
+                        closeRecoverDialog();
+                        Log.w("SubjectListActivity", "Error al subir eventos durante recuperación (silenciado): " + e.getMessage());
+                        Toast.makeText(this, getString(R.string.data_recovered), Toast.LENGTH_SHORT).show();
+                        refreshSubjectsList();
+                    }
+                }));
+                    }, e -> runOnUiThread(() -> {
+                        if (silentErrors) {
+                            isSilentRecoveryMode = false;
+                            closeRecoverDialog();
+                            Log.w("SubjectListActivity", "Error al subir sujetos durante recuperación (silenciado): " + e.getMessage());
+                            Toast.makeText(this, getString(R.string.data_recovered), Toast.LENGTH_SHORT).show();
+                            refreshSubjectsList();
+                        }
+                    }));
+        } catch (SecurityException e) {
+            runOnUiThread(() -> {
+                if (silentErrors) {
+                    isSilentRecoveryMode = false;
+                    closeRecoverDialog();
+                    Toast.makeText(this, getString(R.string.data_recovered), Toast.LENGTH_SHORT).show();
+                    refreshSubjectsList();
+                }
+            });
+        } catch (Exception e) {
+            runOnUiThread(() -> {
+                if (silentErrors) {
+                    isSilentRecoveryMode = false;
+                    closeRecoverDialog();
+                    Toast.makeText(this, getString(R.string.data_recovered), Toast.LENGTH_SHORT).show();
+                    refreshSubjectsList();
+                }
+            });
+        }
+    }
+    
+    private void closeRecoverDialog() {
+        runOnUiThread(() -> {
+            if (recoverDialog != null) {
+                try {
+                    if (recoverDialog.isShowing()) {
+                        recoverDialog.dismiss();
+                    }
+                } catch (Exception e) {
+                    Log.w("SubjectListActivity", "Error al cerrar diálogo de recuperación: " + e.getMessage());
+                } finally {
+                    recoverDialog = null;
+                }
+            }
+        });
+    }
+    
+    private void doSync() {
+        try {
+            com.google.firebase.auth.FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+            if (user == null) {
+                FirebaseAuth.getInstance().signInAnonymously()
+                        .addOnSuccessListener(authResult -> {
+                            if (authResult != null && authResult.getUser() != null) {
+                                performSync(authResult.getUser().getUid());
+                            } else {
+                                runOnUiThread(() -> {
+                                    Toast.makeText(this, "Error: No se pudo autenticar", Toast.LENGTH_LONG).show();
+                                });
+                            }
+                        })
+                        .addOnFailureListener(e -> {
+                            runOnUiThread(() -> {
+                                Toast.makeText(this, getString(R.string.sync_error_auth), Toast.LENGTH_LONG).show();
+                            });
+                        });
+                return;
+            }
+            
+            performSync(user.getUid());
+        } catch (Exception e) {
+            runOnUiThread(() -> {
+                Toast.makeText(this, getString(R.string.sync_error, e.getMessage()), Toast.LENGTH_LONG).show();
+            });
+        }
+    }
+    
+    private void performSync(String uid) {
+        try {
+            CloudSync sync = new CloudSync(
+                    eventDao,
+                    dao,
+                    FirebaseFirestore.getInstance(),
+                    uid,
+                    "CareTemplate",
+                    appType
+            );
+
+            sync.pushSubjects(() -> {
+                sync.push(() -> {
+                    sync.pullSubjects(() -> {
+                        sync.pull(
+                                () -> runOnUiThread(() -> {
+                                    Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                                    refreshSubjectsList();
+                                }),
+                                e -> runOnUiThread(() -> {
+                                    showSyncError("Error al recuperar datos", e);
+                                })
+                        );
+                    }, e -> runOnUiThread(() -> {
+                        showSyncError("Error al recuperar sujetos", e);
+                    }));
+                }, e -> runOnUiThread(() -> {
+                    showSyncError("Error al subir eventos", e);
+                }));
+                    }, e -> runOnUiThread(() -> {
+                        showSyncError("Error al subir sujetos", e);
+                    }));
+        } catch (SecurityException e) {
+            runOnUiThread(() -> {
+                Toast.makeText(this, getString(R.string.sync_error_security), Toast.LENGTH_LONG).show();
+            });
+        } catch (Exception e) {
+            runOnUiThread(() -> {
+                showSyncError("Error al iniciar sync", e);
+            });
+        }
+    }
+    
+    private void showSyncError(String context, Exception e) {
+        String errorMsg = e != null ? e.getMessage() : "null";
+        
+        // PERMISSION_DENIED y failed_precondition son normales cuando no hay datos
+        // No mostrar estos errores al usuario
+        // Verificar también variaciones del mensaje (case-insensitive, con espacios, etc.)
+        if (errorMsg != null) {
+            String errorMsgLower = errorMsg.toLowerCase();
+            if (errorMsgLower.contains("permission") && errorMsgLower.contains("denied") ||
+                errorMsgLower.contains("failed_precondition") ||
+                errorMsgLower.contains("failed precondition") ||
+                errorMsg.contains("PERMISSION_DENIED") || 
+                errorMsg.contains("permission_denied") || 
+                errorMsg.contains("failed_precondition") ||
+                errorMsg.contains("FAILED_PRECONDITION")) {
+                // Estos errores son normales cuando no hay datos - solo loguear
+                Log.d("SubjectListActivity", "Error normal durante sincronización (sin datos): " + context + " - " + errorMsg);
+                // Mostrar mensaje de éxito en su lugar
+                Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                refreshSubjectsList();
+                return;
+            }
+        }
+        
+        // Para otros errores, mostrar mensaje apropiado
+        String userMessage;
+        if (errorMsg == null) {
+            userMessage = context + ": Error desconocido";
+        } else if (errorMsg.contains("Failed to get service") || 
+                   errorMsg.contains("reconnection") || 
+                   errorMsg.contains("UNAVAILABLE") ||
+                   errorMsg.contains("DEADLINE_EXCEEDED") ||
+                   errorMsg.contains("network")) {
+            userMessage = getString(R.string.sync_error_connection);
+        } else if (errorMsg.contains("UNAUTHENTICATED") || errorMsg.contains("auth")) {
+            userMessage = getString(R.string.sync_error_auth);
+        } else if (errorMsg.contains("SecurityException")) {
+            userMessage = getString(R.string.error_security_sha1);
+        } else {
+            userMessage = context + ": " + errorMsg;
+        }
+        
+        Toast.makeText(this, userMessage, Toast.LENGTH_LONG).show();
+    }
+    
+    // ===== FAB Speed Dial =====
+    private void initFabSpeedDial() {
+        View fab = findViewById(R.id.fabAdd);
+        View fabSubject = findViewById(R.id.fabAddSubject);
+        View fabEvent = findViewById(R.id.fabAddEvent);
+
+        // Iconos fijos: flavor y calendario
+        ((com.google.android.material.floatingactionbutton.FloatingActionButton) fabSubject)
+                .setImageResource(R.drawable.ic_header_flavor);
+        ((com.google.android.material.floatingactionbutton.FloatingActionButton) fabEvent)
+                .setImageResource(R.drawable.ic_event);
+
+        fab.setOnClickListener(v -> toggleFabMenu());
+
+        fabSubject.setOnClickListener(v -> {
+            closeFabMenu();
+            showAddDialog();
+        });
+        fabEvent.setOnClickListener(v -> {
+            closeFabMenu();
+            showAddEventDialog();
+        });
+
+        RecyclerView rv = findViewById(R.id.rvSubjects);
+        rv.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                if (fabMenuOpen && Math.abs(dy) > 6) closeFabMenu();
+            }
+        });
+    }
+
+    private void toggleFabMenu() { if (fabMenuOpen) closeFabMenu(); else openFabMenu(); }
+
+    private void openFabMenu() {
+        fabMenuOpen = true;
+        showFabWithAnim(findViewById(R.id.fabAddSubject));
+        showFabWithAnim(findViewById(R.id.fabAddEvent));
+        rotateFab(true);
+    }
+
+    private void closeFabMenu() {
+        fabMenuOpen = false;
+        hideFabWithAnim(findViewById(R.id.fabAddSubject));
+        hideFabWithAnim(findViewById(R.id.fabAddEvent));
+        rotateFab(false);
+    }
+
+    private void showFabWithAnim(View fab) {
+        fab.setVisibility(View.VISIBLE);
+        fab.setScaleX(0.9f); fab.setScaleY(0.9f); fab.setAlpha(0f);
+        fab.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(150).start();
+    }
+
+    private void hideFabWithAnim(View fab) {
+        fab.animate().alpha(0f).scaleX(0.9f).scaleY(0.9f).setDuration(120)
+                .withEndAction(() -> fab.setVisibility(View.GONE)).start();
+    }
+
+    private void rotateFab(boolean open) {
+        View main = findViewById(R.id.fabAdd);
+        main.animate().rotation(open ? 45f : 0f).setDuration(150).start();
+    }
+    
+    // ===== Crear / Editar / Borrar eventos =====
+    private void showAddEventDialog() {
+        final android.view.View view = getLayoutInflater().inflate(R.layout.dialog_add_event, null);
+        final com.google.android.material.textfield.TextInputEditText etTitle = view.findViewById(R.id.etTitle);
+        final com.google.android.material.textfield.TextInputEditText etCost  = view.findViewById(R.id.etCost);
+        final android.widget.Spinner sp       = view.findViewById(R.id.spSubject);
+        final com.google.android.material.textfield.TextInputLayout tilKilometers = view.findViewById(R.id.tilKilometers);
+        final com.google.android.material.textfield.TextInputEditText etKilometers = view.findViewById(R.id.etKilometers);
+
+        // Verificar que las vistas se encontraron
+        if (etTitle == null || etCost == null || sp == null) {
+            Toast.makeText(this, getString(R.string.error_load_dialog), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Mostrar campo de kilómetros solo para "cars"
+        if ("cars".equals(appType) && tilKilometers != null && etKilometers != null) {
+            tilKilometers.setVisibility(View.VISIBLE);
+        }
+
+        // cargar sujetos en background
+        new Thread(() -> {
+            final java.util.List<SubjectEntity> loaded = dao.listActiveNow(appType);
+            runOnUiThread(() -> {
+                final java.util.List<SubjectEntity> subjects =
+                        (loaded == null) ? java.util.Collections.emptyList() : new java.util.ArrayList<>(loaded);
+
+                java.util.List<String> names = new java.util.ArrayList<>();
+                for (SubjectEntity s : subjects) names.add(s.name);
+                android.widget.ArrayAdapter<String> ad =
+                        new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, names);
+                sp.setAdapter(ad);
+
+                if (subjects.isEmpty()) {
+                    Toast.makeText(this, getString(R.string.error_create_subject_first), Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                new androidx.appcompat.app.AlertDialog.Builder(this)
+                        .setTitle(getString(R.string.new_event))
+                        .setView(view)
+                        .setPositiveButton(getString(R.string.button_choose_date_time), (d, w) -> {
+                            final String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
+                            if (title.isEmpty()) {
+                                Toast.makeText(this, getString(R.string.event_title_required), Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+                            final int pos = sp.getSelectedItemPosition();
+                            if (pos < 0 || pos >= subjects.size()) {
+                                Toast.makeText(this, getString(R.string.error_select_subject), Toast.LENGTH_SHORT).show();
+                                return;
+                            }
+                            final String subjectId = subjects.get(pos).id;
+
+                            final String c = etCost.getText() != null ? etCost.getText().toString().trim() : "";
+                            final Double cost = c.isEmpty() ? null : safeParseDouble(c);
+
+                            // Para "cars", capturar kilómetros
+                            Double kilometersAtEvent = null;
+                            if ("cars".equals(appType) && etKilometers != null) {
+                                String kmStr = etKilometers.getText() != null ? etKilometers.getText().toString().trim() : "";
+                                if (!kmStr.isEmpty()) {
+                                    kilometersAtEvent = safeParseDouble(kmStr);
+                                }
+                            }
+
+                            final String fTitle = title;
+                            final String fSubjectId = subjectId;
+                            final Double fCost = cost;
+                            final Double fKilometers = kilometersAtEvent;
+
+                            pickDateTime(0, dueAt -> insertLocal(fTitle, fSubjectId, fCost, dueAt, fKilometers));
+                        })
+                        .setNegativeButton(getString(R.string.button_cancel), null)
+                        .show();
+            });
+        }).start();
+    }
+
+    private void insertLocal(String title, String subjectId, Double cost, long dueAt, Double kilometersAtEvent) {
+        new Thread(() -> {
+            // Obtener UID del usuario actual
+            String uid = getCurrentUserId();
+            
+            EventEntity e = new EventEntity();
+            e.id = UUID.randomUUID().toString();
+            e.uid = uid; // Usar UID del usuario actual
+            e.appType = appType;
+            e.subjectId = subjectId;     // sujeto elegido
+            e.title = title;
+            e.note = "";
+            e.cost = cost;               // costo opcional
+            e.kilometersAtEvent = kilometersAtEvent; // km del auto al momento del evento (solo para cars)
+            e.realized = 0;              // aún no realizado
+            e.dueAt = dueAt;
+            e.updatedAt = System.currentTimeMillis();
+            e.deleted = 0;
+            e.dirty = 1;
+            eventDao.insert(e);
+            com.gastonlesbegueris.caretemplate.util.LimitGuard.onEventCreated(this, appType);
+
+            runOnUiThread(() -> Toast.makeText(this, getString(R.string.event_saved), Toast.LENGTH_SHORT).show());
+        }).start();
+    }
+    
+    // ===== Picker de fecha/hora =====
+    private interface DateTimeCallback { void onPicked(long dueAtMillis); }
+    private void pickDateTime(long initialMillis, DateTimeCallback cb) {
+        final java.util.Calendar cal = java.util.Calendar.getInstance();
+        if (initialMillis > 0) cal.setTimeInMillis(initialMillis);
+        int y = cal.get(java.util.Calendar.YEAR);
+        int m = cal.get(java.util.Calendar.MONTH);
+        int d = cal.get(java.util.Calendar.DAY_OF_MONTH);
+        int hh = cal.get(java.util.Calendar.HOUR_OF_DAY);
+        int mm = cal.get(java.util.Calendar.MINUTE);
+
+        new android.app.DatePickerDialog(this, (v, year, month, day) -> {
+            cal.set(java.util.Calendar.YEAR, year);
+            cal.set(java.util.Calendar.MONTH, month);
+            cal.set(java.util.Calendar.DAY_OF_MONTH, day);
+            new android.app.TimePickerDialog(this, (tp, hour, minute) -> {
+                cal.set(java.util.Calendar.HOUR_OF_DAY, hour);
+                cal.set(java.util.Calendar.MINUTE, minute);
+                cal.set(java.util.Calendar.SECOND, 0);
+                cal.set(java.util.Calendar.MILLISECOND, 0);
+                cb.onPicked(cal.getTimeInMillis());
+            }, hh, mm, true).show();
+        }, y, m, d).show();
+    }
+    
+    /**
+     * Obtiene el UID del usuario actual (Firebase UID o UUID local)
+     */
+    private String getCurrentUserId() {
+        // Intentar obtener Firebase UID primero
+        com.google.firebase.auth.FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            return user.getUid();
+        }
+        
+        // Si no hay Firebase Auth, usar UserManager para obtener o generar un ID local
+        com.gastonlesbegueris.caretemplate.util.UserManager userManager = 
+                new com.gastonlesbegueris.caretemplate.util.UserManager(this);
+        String userId = userManager.getUserIdSync();
+        if (userId != null) {
+            return userId;
+        }
+        
+        // Fallback: generar UUID temporal (se actualizará en la próxima sincronización)
+        return java.util.UUID.randomUUID().toString();
     }
 
 }

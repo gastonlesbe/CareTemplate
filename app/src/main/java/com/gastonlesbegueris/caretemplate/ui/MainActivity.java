@@ -1,10 +1,14 @@
 package com.gastonlesbegueris.caretemplate.ui;
 
+import android.content.res.Configuration;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatDelegate;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.Observer;
@@ -26,6 +30,13 @@ import com.gastonlesbegueris.caretemplate.util.UserManager;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.MobileAds;
+import com.google.android.gms.ads.rewarded.RewardedAd;
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
+import com.google.android.gms.ads.rewarded.RewardItem;
+import com.google.android.gms.ads.OnUserEarnedRewardListener;
+import com.google.android.gms.ads.FullScreenContentCallback;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.AdError;
 
 
 import java.util.List;
@@ -45,6 +56,13 @@ public class MainActivity extends AppCompatActivity {
 
     private MenuItem menuItemSync;
     private boolean fabMenuOpen = false;
+    
+    // Rewarded Ad para código de recuperación
+    private RewardedAd rewardedAd;
+    private boolean isRewardedAdLoading = false;
+    
+    // Flag para indicar que estamos en modo de recuperación silenciosa
+    private boolean isSilentRecoveryMode = false;
 
     @Override
     protected void onCreate(Bundle s) {
@@ -69,7 +87,9 @@ public class MainActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(false);
         }
         
-        toolbar.setTitle(getString(R.string.app_name));
+        String appName = getString(R.string.app_name);
+        String sectionName = getString(R.string.menu_home);
+        toolbar.setTitle(appName + " - " + sectionName);
         toolbar.setSubtitle(null);
         // Set default icon immediately (will be updated by refreshHeader() if subject exists)
         // No aplicar tint, el icono ya tiene el color fijo #03DAC5
@@ -99,7 +119,7 @@ public class MainActivity extends AppCompatActivity {
                     getSharedPreferences("prefs", MODE_PRIVATE)
                             .edit().putBoolean("first_run_done_" + appType, true).apply();
                     startActivity(new android.content.Intent(this, SubjectListActivity.class));
-                    Toast.makeText(this, "Primero creá un sujeto 🐶🚗👨‍👩‍👧🏠", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, getString(R.string.error_no_subjects), Toast.LENGTH_LONG).show();
                 });
             }
         }).start();
@@ -107,28 +127,99 @@ public class MainActivity extends AppCompatActivity {
         // 8) FAB speed-dial
         initFabSpeedDial();
 
+        // 9) Verificar si se debe abrir el diálogo de agregar evento
+        if (getIntent() != null && getIntent().getBooleanExtra("add_event", false)) {
+            // Limpiar el flag para que no se abra cada vez que se rote la pantalla
+            getIntent().removeExtra("add_event");
+            // Abrir el diálogo después de que la UI esté lista
+            findViewById(R.id.fabAdd).post(() -> {
+                showAddEventDialog();
+            });
+        }
+        
+        // 10) Verificar si se debe abrir el diálogo de código de recuperación
+        if (getIntent() != null && getIntent().getBooleanExtra("show_recovery_code", false)) {
+            // Limpiar el flag para que no se abra cada vez que se rote la pantalla
+            getIntent().removeExtra("show_recovery_code");
+            // Abrir el diálogo después de que la UI esté lista
+            findViewById(R.id.fabAdd).post(() -> {
+                showRecoveryCodeDialog();
+            });
+        }
+
         // 9) AdMob Banner
         initAdMob();
         
-        // 10) Inicializar UserManager (ID único para suscripciones)
+        // 10) Inicializar UserManager y autenticación (ID único para suscripciones y sincronización)
         initializeUserManager();
+        
+        // 11) Inicializar y sincronizar código de recuperación
+        initializeRecoveryCode();
     }
     
-    private void initializeUserManager() {
-        UserManager userManager = new UserManager(this);
-        userManager.initializeUser(new UserManager.UserIdCallback() {
+    private void initializeRecoveryCode() {
+        com.gastonlesbegueris.caretemplate.util.UserRecoveryManager recoveryManager = 
+                new com.gastonlesbegueris.caretemplate.util.UserRecoveryManager(this);
+        
+        // Generar o recuperar código de recuperación y sincronizarlo
+        recoveryManager.getOrGenerateRecoveryCode(new com.gastonlesbegueris.caretemplate.util.UserRecoveryManager.RecoveryCodeCallback() {
             @Override
-            public void onUserId(String userId) {
-                // ID único del usuario disponible
-                // Este ID se usará para suscripciones y sincronización
-                android.util.Log.d("MainActivity", "User ID initialized: " + userId);
+            public void onRecoveryCode(String recoveryCode) {
+                android.util.Log.d("MainActivity", "Recovery code ready: " + recoveryCode);
             }
             
             @Override
             public void onError(Exception error) {
-                android.util.Log.e("MainActivity", "Error initializing user ID", error);
+                android.util.Log.e("MainActivity", "Error initializing recovery code", error);
             }
         });
+    }
+    
+    private void initializeUserManager() {
+        // Asegurar autenticación anónima para tener un UID consistente
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            FirebaseAuth.getInstance().signInAnonymously()
+                    .addOnSuccessListener(authResult -> {
+                        if (authResult != null && authResult.getUser() != null) {
+                            String uid = authResult.getUser().getUid();
+                            android.util.Log.d("MainActivity", "Firebase Auth initialized with UID: " + uid);
+                            
+                            // Inicializar UserManager con el UID de Firebase
+                            UserManager userManager = new UserManager(this);
+                            userManager.initializeUser(new UserManager.UserIdCallback() {
+                                @Override
+                                public void onUserId(String userId) {
+                                    android.util.Log.d("MainActivity", "User ID initialized: " + userId);
+                                }
+                                
+                                @Override
+                                public void onError(Exception error) {
+                                    android.util.Log.e("MainActivity", "Error initializing user ID", error);
+                                }
+                            });
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        android.util.Log.e("MainActivity", "Error signing in anonymously", e);
+                        // Fallback: usar UserManager sin Firebase Auth
+                        UserManager userManager = new UserManager(this);
+                        userManager.initializeUser(null);
+                    });
+        } else {
+            // Ya está autenticado, solo inicializar UserManager
+            UserManager userManager = new UserManager(this);
+            userManager.initializeUser(new UserManager.UserIdCallback() {
+                @Override
+                public void onUserId(String userId) {
+                    android.util.Log.d("MainActivity", "User ID initialized: " + userId);
+                }
+                
+                @Override
+                public void onError(Exception error) {
+                    android.util.Log.e("MainActivity", "Error initializing user ID", error);
+                }
+            });
+        }
     }
 
     private void initAdMob() {
@@ -157,6 +248,7 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
     }
 
+
     // ===== Toolbar / Menú =====
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -172,9 +264,7 @@ public class MainActivity extends AppCompatActivity {
             MenuItem item = menu.getItem(i);
             if (item.getIcon() == null) {
                 int itemId = item.getItemId();
-                if (itemId == R.id.action_home) {
-                    item.setIcon(R.drawable.ic_home);
-                } else if (itemId == R.id.action_agenda) {
+                if (itemId == R.id.action_agenda) {
                     item.setIcon(R.drawable.ic_event);
                 } else if (itemId == R.id.action_sync) {
                     item.setIcon(R.drawable.ic_sync);
@@ -192,40 +282,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_home) {
-            // Ya estamos en MainActivity, solo hacer scroll al inicio y limpiar filtros
-            // Limpiar filtro de sujeto (si hay uno)
-            if (currentSubjectId != null) {
-                currentSubjectId = null;
-                getSharedPreferences("prefs", MODE_PRIVATE)
-                        .edit().remove("currentSubjectId_" + appType).apply();
-            }
-            
-            // Hacer scroll al inicio del RecyclerView
-            RecyclerView rv = findViewById(R.id.rvEvents);
-            if (rv != null) {
-                // Forzar scroll incluso si ya está en la posición 0
-                androidx.recyclerview.widget.LinearLayoutManager layoutManager = 
-                        (androidx.recyclerview.widget.LinearLayoutManager) rv.getLayoutManager();
-                if (layoutManager != null) {
-                    int firstVisible = layoutManager.findFirstVisibleItemPosition();
-                    if (firstVisible > 5) {
-                        // Si está lejos del inicio, hacer smooth scroll
-                        rv.smoothScrollToPosition(0);
-                    } else {
-                        // Si está cerca, hacer scroll inmediato para que se note
-                        rv.scrollToPosition(0);
-                    }
-                } else {
-                    rv.smoothScrollToPosition(0);
-                }
-            }
-            
-            // Refrescar header
-            refreshHeader();
-            
-            return true;
-        } else if (id == R.id.action_agenda) {
+        if (id == R.id.action_agenda) {
             startActivity(new android.content.Intent(this, AgendaMonthActivity.class));
             return true;
 
@@ -246,9 +303,9 @@ public class MainActivity extends AppCompatActivity {
                                 stopSyncIconAnimation();
                                 String errorMsg = e.getMessage();
                                 if (errorMsg != null && errorMsg.contains("SecurityException")) {
-                                    Toast.makeText(this, "Error de configuración. Verifica Firebase Console y SHA-1", Toast.LENGTH_LONG).show();
+                                    Toast.makeText(this, getString(R.string.sync_config_error), Toast.LENGTH_LONG).show();
                                 } else {
-                                    Toast.makeText(this, "Auth error: " + errorMsg, Toast.LENGTH_LONG).show();
+                                    Toast.makeText(this, getString(R.string.auth_error_message, errorMsg), Toast.LENGTH_LONG).show();
                                 }
                             });
                 } else {
@@ -256,7 +313,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             } catch (Exception e) {
                 stopSyncIconAnimation();
-                Toast.makeText(this, "Error al iniciar sync: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                Toast.makeText(this, getString(R.string.sync_start_error, e.getMessage()), Toast.LENGTH_LONG).show();
             }
             return true;
         } else if (id == R.id.action_subjects) {
@@ -266,11 +323,539 @@ public class MainActivity extends AppCompatActivity {
         else if (id == R.id.action_expenses) {
             startActivity(new android.content.Intent(this, ExpensesActivity.class));
             return true;
+        } else if (id == R.id.action_recovery) {
+            showRecoveryCodeDialog();
+            return true;
         }
 
-
-
         return super.onOptionsItemSelected(item);
+    }
+    
+    private void showRecoveryCodeDialog() {
+        // Mostrar diálogo informativo antes de cargar el video
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(getString(R.string.recovery_code_title))
+                .setMessage(getString(R.string.recovery_code_message))
+                .setPositiveButton(getString(R.string.button_watch_video), (d, w) -> {
+                    // Usuario acepta, cargar y mostrar rewarded ad
+                    loadAndShowRewardedAd();
+                })
+                .setNegativeButton(getString(R.string.button_cancel), null)
+                .setIcon(android.R.drawable.ic_dialog_info)
+                .show();
+    }
+    
+    private void loadAndShowRewardedAd() {
+        // Si ya hay un ad cargado, mostrarlo directamente
+        if (rewardedAd != null) {
+            showRewardedAd();
+            return;
+        }
+        
+        // Si ya se está cargando, mostrar mensaje
+        if (isRewardedAdLoading) {
+            Toast.makeText(this, getString(R.string.loading_video), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Mostrar mensaje de carga
+        Toast.makeText(this, "Cargando video publicitario...", Toast.LENGTH_SHORT).show();
+        
+        // Cargar nuevo rewarded ad
+        isRewardedAdLoading = true;
+        String rewardedAdId = getString(R.string.admob_rewarded_id);
+        
+        com.google.android.gms.ads.AdRequest adRequest = new com.google.android.gms.ads.AdRequest.Builder().build();
+        
+        RewardedAd.load(this, rewardedAdId, adRequest,
+                new RewardedAdLoadCallback() {
+                    @Override
+                    public void onAdFailedToLoad(LoadAdError loadAdError) {
+                        isRewardedAdLoading = false;
+                        rewardedAd = null;
+                        android.util.Log.e("MainActivity", "Rewarded ad failed to load: " + loadAdError.getMessage());
+                        // Si falla cargar el ad, mostrar el código directamente
+                        runOnUiThread(() -> {
+                            Toast.makeText(MainActivity.this, getString(R.string.video_load_error), Toast.LENGTH_SHORT).show();
+                            showRecoveryCodeAfterAd();
+                        });
+                    }
+                    
+                    @Override
+                    public void onAdLoaded(RewardedAd ad) {
+                        isRewardedAdLoading = false;
+                        rewardedAd = ad;
+                        android.util.Log.d("MainActivity", "Rewarded ad loaded");
+                        // Mostrar el ad
+                        runOnUiThread(() -> showRewardedAd());
+                    }
+                });
+    }
+    
+    private void showRewardedAd() {
+        if (rewardedAd == null) {
+            // Si no hay ad, mostrar código directamente
+            showRecoveryCodeAfterAd();
+            return;
+        }
+        
+        // Configurar callback para cuando el usuario gana la recompensa
+        rewardedAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+            @Override
+            public void onAdShowedFullScreenContent() {
+                android.util.Log.d("MainActivity", "Rewarded ad showed full screen content");
+            }
+            
+            @Override
+            public void onAdDismissedFullScreenContent() {
+                // Ad cerrado, recargar para próxima vez
+                rewardedAd = null;
+                android.util.Log.d("MainActivity", "Rewarded ad dismissed");
+                // Si el usuario cerró sin completar, no mostrar el código
+                // (opcional: puedes mostrar el código de todas formas si quieres)
+            }
+            
+            @Override
+            public void onAdFailedToShowFullScreenContent(AdError adError) {
+                android.util.Log.e("MainActivity", "Rewarded ad failed to show: " + adError.getMessage());
+                rewardedAd = null;
+                // Si falla mostrar, mostrar código directamente
+                showRecoveryCodeAfterAd();
+            }
+        });
+        
+        // Mostrar el ad con el listener de recompensa
+        rewardedAd.show(this, new OnUserEarnedRewardListener() {
+            @Override
+            public void onUserEarnedReward(RewardItem rewardItem) {
+                // Usuario completó el video, mostrar el código
+                android.util.Log.d("MainActivity", "User earned reward: " + rewardItem.getAmount() + " " + rewardItem.getType());
+                showRecoveryCodeAfterAd();
+            }
+        });
+    }
+    
+    private void showRecoveryCodeAfterAd() {
+        android.util.Log.d("MainActivity", "showRecoveryCodeAfterAd called");
+        
+        com.gastonlesbegueris.caretemplate.util.UserRecoveryManager recoveryManager = 
+                new com.gastonlesbegueris.caretemplate.util.UserRecoveryManager(this);
+        
+        // Primero intentar obtener el código local (sin sincronizar)
+        String localCode = recoveryManager.getRecoveryCodeSync();
+        android.util.Log.d("MainActivity", "Local recovery code: " + (localCode != null ? localCode : "null"));
+        
+        if (localCode != null && !localCode.isEmpty()) {
+            // Si hay código local, mostrarlo directamente
+            android.util.Log.d("MainActivity", "Showing local recovery code");
+            runOnUiThread(() -> showRecoveryCodeDialog(localCode));
+            // Intentar sincronizar en background (sin bloquear)
+            recoveryManager.getOrGenerateRecoveryCode(new com.gastonlesbegueris.caretemplate.util.UserRecoveryManager.RecoveryCodeCallback() {
+                @Override
+                public void onRecoveryCode(String recoveryCode) {
+                    // Sincronización exitosa en background, no hacer nada
+                    android.util.Log.d("MainActivity", "Recovery code synced successfully");
+                }
+                
+                @Override
+                public void onError(Exception error) {
+                    // Error de sincronización, pero no importa porque ya mostramos el código local
+                    android.util.Log.w("MainActivity", "Recovery code sync failed (non-critical): " + error.getMessage());
+                }
+            });
+        } else {
+            // Si no hay código local, generar uno nuevo
+            android.util.Log.d("MainActivity", "No local code found, generating new one");
+            recoveryManager.getOrGenerateRecoveryCode(new com.gastonlesbegueris.caretemplate.util.UserRecoveryManager.RecoveryCodeCallback() {
+                @Override
+                public void onRecoveryCode(String recoveryCode) {
+                    android.util.Log.d("MainActivity", "Generated recovery code: " + recoveryCode);
+                    runOnUiThread(() -> showRecoveryCodeDialog(recoveryCode));
+                }
+                
+                @Override
+                public void onError(Exception error) {
+                    android.util.Log.e("MainActivity", "Error generating recovery code: " + error.getMessage());
+                    // Si falla, intentar generar código local sin sincronizar
+                    String fallbackCode = generateLocalRecoveryCode();
+                    if (fallbackCode != null) {
+                        android.util.Log.d("MainActivity", "Using fallback code: " + fallbackCode);
+                        runOnUiThread(() -> showRecoveryCodeDialog(fallbackCode));
+                    } else {
+                        runOnUiThread(() -> Toast.makeText(MainActivity.this, getString(R.string.recovery_code_error), Toast.LENGTH_LONG).show());
+                    }
+                }
+            });
+        }
+    }
+    
+    private void showRecoveryCodeDialog(String recoveryCode) {
+        android.util.Log.d("MainActivity", "showRecoveryCodeDialog called with code: " + recoveryCode);
+        
+        if (recoveryCode == null || recoveryCode.isEmpty()) {
+            android.util.Log.e("MainActivity", "Recovery code is null or empty!");
+            Toast.makeText(this, getString(R.string.recovery_code_generate_error), Toast.LENGTH_LONG).show();
+            return;
+        }
+        
+        try {
+            // Mostrar diálogo con el código
+            android.view.View view = getLayoutInflater().inflate(R.layout.dialog_recovery_code, null);
+            android.widget.TextView tvCode = view.findViewById(R.id.tvRecoveryCode);
+            android.widget.Button btnCopy = view.findViewById(R.id.btnCopyCode);
+            android.widget.Button btnRecover = view.findViewById(R.id.btnRecoverFromCode);
+            
+            if (tvCode != null) {
+                tvCode.setText(recoveryCode);
+                android.util.Log.d("MainActivity", "Code set in TextView");
+            } else {
+                android.util.Log.e("MainActivity", "tvCode is null!");
+            }
+            
+            if (btnCopy != null) {
+                btnCopy.setOnClickListener(v -> {
+                    android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                    android.content.ClipData clip = android.content.ClipData.newPlainText(getString(R.string.recovery_code_title), recoveryCode);
+                    clipboard.setPrimaryClip(clip);
+                    Toast.makeText(MainActivity.this, getString(R.string.recovery_code_copied), Toast.LENGTH_SHORT).show();
+                });
+            }
+            
+            if (btnRecover != null) {
+                btnRecover.setOnClickListener(v -> {
+                    // Mostrar diálogo para ingresar código de recuperación
+                    showRecoverFromCodeDialog();
+                });
+            }
+            
+            androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(MainActivity.this)
+                    .setTitle(getString(R.string.recovery_code_title))
+                    .setMessage(getString(R.string.recovery_code_save_message))
+                    .setView(view)
+                    .setPositiveButton(getString(R.string.button_close), null)
+                    .create();
+            
+            dialog.show();
+            android.util.Log.d("MainActivity", "Dialog shown");
+        } catch (Exception e) {
+            android.util.Log.e("MainActivity", "Error showing recovery code dialog", e);
+            Toast.makeText(this, getString(R.string.recovery_code_show_error, e.getMessage()), Toast.LENGTH_LONG).show();
+        }
+    }
+    
+    private String generateLocalRecoveryCode() {
+        // Generar código local como fallback
+        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        StringBuilder code = new StringBuilder();
+        java.util.Random random = new java.util.Random();
+        
+        for (int i = 0; i < 12; i++) {
+            if (i > 0 && i % 4 == 0) {
+                code.append("-");
+            }
+            code.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        
+        return code.toString();
+    }
+    
+    private androidx.appcompat.app.AlertDialog recoverDialog; // Referencia al diálogo de recuperación
+    
+    private void showRecoverFromCodeDialog() {
+        android.view.View view = getLayoutInflater().inflate(R.layout.dialog_recover_code, null);
+        com.google.android.material.textfield.TextInputEditText etCode = view.findViewById(R.id.etRecoveryCode);
+        
+        recoverDialog = new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(getString(R.string.recovery_code_recover_title))
+                .setMessage(getString(R.string.recovery_code_recover_message))
+                .setView(view)
+                .setPositiveButton(getString(R.string.button_recover), (d, w) -> {
+                    String code = etCode != null && etCode.getText() != null ? etCode.getText().toString().trim() : "";
+                    if (code.isEmpty()) {
+                        Toast.makeText(this, getString(R.string.recovery_code_invalid), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    
+                    // Cerrar el diálogo inmediatamente al presionar el botón
+                    if (recoverDialog != null) {
+                        try {
+                            recoverDialog.dismiss();
+                        } catch (Exception ex) {
+                            Log.w("MainActivity", "Error al cerrar diálogo al presionar recuperar: " + ex.getMessage());
+                        }
+                    }
+                    
+                    // Activar modo silencioso ANTES de iniciar la recuperación
+                    isSilentRecoveryMode = true;
+                    Log.d("MainActivity", "Modo de recuperación silenciosa activado");
+                    
+                    recoverUserFromCode(code);
+                })
+                .setNegativeButton(getString(R.string.button_cancel), null)
+                .setCancelable(true)
+                .create();
+        
+        recoverDialog.show();
+    }
+    
+    private void recoverUserFromCode(String recoveryCode) {
+        // El modo silencioso ya debería estar activado desde el botón, pero asegurarse
+        isSilentRecoveryMode = true;
+        Log.d("MainActivity", "Iniciando recuperación con código, isSilentRecoveryMode=" + isSilentRecoveryMode);
+        
+        com.gastonlesbegueris.caretemplate.util.UserRecoveryManager recoveryManager = 
+                new com.gastonlesbegueris.caretemplate.util.UserRecoveryManager(this);
+        
+        Toast.makeText(this, getString(R.string.recovering_data), Toast.LENGTH_SHORT).show();
+        
+        recoveryManager.recoverUserIdFromCode(recoveryCode, new com.gastonlesbegueris.caretemplate.util.UserRecoveryManager.RecoverUserIdCallback() {
+            @Override
+            public void onUserIdRecovered(String userId) {
+                runOnUiThread(() -> {
+                    // CERRAR EL DIÁLOGO PRIMERO, antes de hacer cualquier otra cosa
+                    // Cerrar directamente aquí para asegurar que se cierre inmediatamente
+                    if (recoverDialog != null) {
+                        try {
+                            if (recoverDialog.isShowing()) {
+                                recoverDialog.dismiss();
+                            }
+                        } catch (Exception ex) {
+                            Log.w("MainActivity", "Error al cerrar diálogo: " + ex.getMessage());
+                        }
+                        recoverDialog = null;
+                    }
+                    
+                    // Guardar el userId recuperado
+                    getSharedPreferences("user_prefs", MODE_PRIVATE)
+                            .edit()
+                            .putString("user_id", userId)
+                            .putString("firebase_uid", userId)
+                            .apply();
+                    
+                    Toast.makeText(MainActivity.this, getString(R.string.user_recovered), Toast.LENGTH_SHORT).show();
+                    
+                    // Sincronizar datos del usuario recuperado (sin mostrar errores)
+                    // El flag isSilentRecoveryMode evitará que se muestren errores
+                    performSyncWithUserId(userId, true); // true = silenciar errores de sincronización
+                });
+            }
+            
+            @Override
+            public void onError(Exception error) {
+                runOnUiThread(() -> {
+                    // Desactivar modo silencioso
+                    isSilentRecoveryMode = false;
+                    // Cerrar el diálogo de forma segura
+                    closeRecoverDialog();
+                    Toast.makeText(MainActivity.this, getString(R.string.recovery_error, error.getMessage()), Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+    
+    private void performSyncWithUserId(String userId, boolean silentErrors) {
+        // Guardar el userId recuperado para uso futuro
+        getSharedPreferences("user_prefs", MODE_PRIVATE)
+                .edit()
+                .putString("user_id", userId)
+                .putString("firebase_uid", userId)
+                .apply();
+        
+        // Intentar autenticarse con Firebase si el userId parece ser un Firebase UID
+        // Si no, usar el userId directamente para sincronización
+        com.google.firebase.auth.FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        
+        if (currentUser == null || !currentUser.getUid().equals(userId)) {
+            // Intentar autenticación anónima (Firebase puede mantener el mismo UID anónimo en algunos casos)
+            // Si no funciona, usaremos el userId directamente
+            FirebaseAuth.getInstance().signInAnonymously()
+                    .addOnSuccessListener(authResult -> {
+                        if (authResult != null && authResult.getUser() != null) {
+                            String firebaseUid = authResult.getUser().getUid();
+                            // Si el Firebase UID coincide con el userId recuperado, perfecto
+                            // Si no, usaremos el userId recuperado para la sincronización
+                            String syncUid = firebaseUid.equals(userId) ? firebaseUid : userId;
+                            performSyncSilent(syncUid, silentErrors);
+                        } else {
+                            // Usar el userId recuperado directamente
+                            performSyncSilent(userId, silentErrors);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        // Usar el userId recuperado directamente (puede no ser un Firebase UID)
+                        performSyncSilent(userId, silentErrors);
+                    });
+        } else {
+            // Ya está autenticado con el mismo UID, sincronizar normalmente
+            performSyncSilent(userId, silentErrors);
+        }
+    }
+    
+    private void performSyncSilent(String uid, boolean silentErrors) {
+        try {
+            CloudSync sync = new CloudSync(
+                    eventDao,
+                    subjectDao,
+                    FirebaseFirestore.getInstance(),
+                    uid,
+                    "CareTemplate",
+                    appType
+            );
+
+            sync.pushSubjects(() -> {
+                sync.push(() -> {
+                    sync.pullSubjects(() -> {
+                        sync.pull(
+                                () -> runOnUiThread(() -> {
+                                    // Desactivar modo silencioso y cerrar diálogo
+                                    isSilentRecoveryMode = false;
+                                    closeRecoverDialog();
+                                    Toast.makeText(this, getString(R.string.data_recovered), Toast.LENGTH_SHORT).show();
+                                    // Refrescar la UI
+                                    observeLocal();
+                                    observeSubjectsForAdapter();
+                                    refreshHeader();
+                                }),
+                                e -> runOnUiThread(() -> {
+                                    // Cerrar el diálogo siempre cuando silentErrors es true
+                                    if (silentErrors) {
+                                        isSilentRecoveryMode = false;
+                                        closeRecoverDialog();
+                                        // En modo silencioso, NO mostrar errores al usuario
+                                        // PERMISSION_DENIED y failed_precondition durante recuperación son normales (puede ser que no haya datos)
+                                        String errorMsg = e != null ? e.getMessage() : "null";
+                                        if (errorMsg != null && (
+                                            errorMsg.contains("failed_precondition") || 
+                                            errorMsg.contains("FAILED_PRECONDITION") ||
+                                            errorMsg.contains("PERMISSION_DENIED") ||
+                                            errorMsg.contains("permission_denied"))) {
+                                            // Estos errores son normales cuando no hay datos - continuar sin mostrar error
+                                            Log.d("MainActivity", "Error normal durante recuperación (sin datos): " + errorMsg);
+                                        } else {
+                                            Log.w("MainActivity", "Error durante recuperación (silenciado): " + errorMsg);
+                                        }
+                                        // Siempre refrescar la UI y mostrar mensaje de éxito (incluso si no hay datos)
+                                        Toast.makeText(this, getString(R.string.data_recovered), Toast.LENGTH_SHORT).show();
+                                        observeLocal();
+                                        observeSubjectsForAdapter();
+                                        refreshHeader();
+                                    } else {
+                                        // Solo mostrar error si NO estamos en modo silencioso
+                                        showSyncError("Error al recuperar datos", e);
+                                    }
+                                })
+                        );
+                    }, e -> runOnUiThread(() -> {
+                        // Cerrar el diálogo siempre cuando silentErrors es true
+                        if (silentErrors) {
+                            isSilentRecoveryMode = false;
+                            closeRecoverDialog();
+                            // En modo silencioso, NO mostrar errores al usuario
+                            // PERMISSION_DENIED y failed_precondition son normales cuando no hay datos
+                            String errorMsg = e != null ? e.getMessage() : "null";
+                            if (errorMsg != null && (
+                                errorMsg.contains("failed_precondition") || 
+                                errorMsg.contains("FAILED_PRECONDITION") ||
+                                errorMsg.contains("PERMISSION_DENIED") ||
+                                errorMsg.contains("permission_denied"))) {
+                                Log.d("MainActivity", "Error normal durante recuperación de sujetos (sin datos): " + errorMsg);
+                            } else {
+                                Log.w("MainActivity", "Error al recuperar sujetos durante recuperación (silenciado): " + errorMsg);
+                            }
+                            // En modo silencioso, refrescar la UI y mostrar mensaje de éxito
+                            Toast.makeText(this, getString(R.string.data_recovered), Toast.LENGTH_SHORT).show();
+                            observeLocal();
+                            observeSubjectsForAdapter();
+                            refreshHeader();
+                        } else {
+                            // Solo mostrar error si NO estamos en modo silencioso
+                            showSyncError("Error al recuperar sujetos", e);
+                        }
+                    }));
+                }, e -> runOnUiThread(() -> {
+                    // Cerrar el diálogo siempre cuando silentErrors es true
+                    if (silentErrors) {
+                        isSilentRecoveryMode = false;
+                        closeRecoverDialog();
+                        // En modo silencioso, NO mostrar errores al usuario, solo loguear
+                        Log.w("MainActivity", "Error al subir eventos durante recuperación (silenciado): " + e.getMessage());
+                        // Continuar con la recuperación aunque falle el push
+                        // Refrescar la UI y mostrar mensaje de éxito
+                        Toast.makeText(this, getString(R.string.data_recovered), Toast.LENGTH_SHORT).show();
+                        observeLocal();
+                        observeSubjectsForAdapter();
+                        refreshHeader();
+                    } else {
+                        // Solo mostrar error si NO estamos en modo silencioso
+                        showSyncError("Error al subir eventos", e);
+                    }
+                }));
+                    }, e -> runOnUiThread(() -> {
+                        // Cerrar el diálogo siempre cuando silentErrors es true
+                        if (silentErrors) {
+                            isSilentRecoveryMode = false;
+                            closeRecoverDialog();
+                            // En modo silencioso, NO mostrar errores al usuario, solo loguear
+                            Log.w("MainActivity", "Error al subir sujetos durante recuperación (silenciado): " + e.getMessage());
+                            // Continuar con la recuperación aunque falle el push
+                            // Refrescar la UI y mostrar mensaje de éxito
+                            Toast.makeText(this, getString(R.string.data_recovered), Toast.LENGTH_SHORT).show();
+                            observeLocal();
+                            observeSubjectsForAdapter();
+                            refreshHeader();
+                        } else {
+                            // Solo mostrar error si NO estamos en modo silencioso
+                            showSyncError("Error al subir sujetos", e);
+                        }
+                    }));
+        } catch (SecurityException e) {
+            runOnUiThread(() -> {
+                // Cerrar el diálogo siempre cuando silentErrors es true
+                if (silentErrors) {
+                    isSilentRecoveryMode = false;
+                    closeRecoverDialog();
+                    Toast.makeText(this, getString(R.string.data_recovered), Toast.LENGTH_SHORT).show();
+                    observeLocal();
+                    observeSubjectsForAdapter();
+                    refreshHeader();
+                } else if (!silentErrors) {
+                    Toast.makeText(this, getString(R.string.sync_error_security), Toast.LENGTH_LONG).show();
+                }
+            });
+        } catch (Exception e) {
+            runOnUiThread(() -> {
+                // Cerrar el diálogo siempre cuando silentErrors es true
+                if (silentErrors) {
+                    isSilentRecoveryMode = false;
+                    closeRecoverDialog();
+                    Toast.makeText(this, getString(R.string.data_recovered), Toast.LENGTH_SHORT).show();
+                    observeLocal();
+                    observeSubjectsForAdapter();
+                    refreshHeader();
+                } else if (!silentErrors) {
+                    Toast.makeText(this, getString(R.string.sync_error, e.getMessage()), Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+    }
+    
+    /**
+     * Método helper para cerrar el diálogo de recuperación de forma segura
+     */
+    private void closeRecoverDialog() {
+        runOnUiThread(() -> {
+            if (recoverDialog != null) {
+                try {
+                    if (recoverDialog.isShowing()) {
+                        recoverDialog.dismiss();
+                    }
+                } catch (Exception e) {
+                    Log.w("MainActivity", "Error al cerrar diálogo de recuperación: " + e.getMessage());
+                } finally {
+                    recoverDialog = null;
+                }
+            }
+        });
     }
 
     private void startSyncIconAnimation() {
@@ -295,6 +880,48 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showSyncError(String context, Exception e) {
+        // Verificar si estamos en modo de recuperación silenciosa
+        // Si estamos en modo silencioso, NO mostrar errores (especialmente PERMISSION_DENIED)
+        boolean isRecovering = isSilentRecoveryMode;
+        if (recoverDialog != null) {
+            try {
+                isRecovering = isRecovering || recoverDialog.isShowing();
+            } catch (Exception ex) {
+                // Si hay error al verificar, asumir que estamos recuperando si el flag está activo
+                isRecovering = isRecovering || isSilentRecoveryMode;
+            }
+        }
+        
+        if (isRecovering) {
+            String errorMsg = e != null ? e.getMessage() : "null";
+            // PERMISSION_DENIED y failed_precondition durante la recuperación son normales cuando no hay datos
+            // Esto puede pasar cuando el usuario recuperado no tiene datos aún o las reglas de Firestore no permiten leer colecciones vacías
+            if (errorMsg != null && (
+                errorMsg.contains("PERMISSION_DENIED") || 
+                errorMsg.contains("permission_denied") || 
+                errorMsg.contains("failed_precondition") ||
+                errorMsg.contains("FAILED_PRECONDITION") ||
+                errorMsg.toLowerCase().contains("permission"))) {
+                Log.d("MainActivity", "Error normal durante recuperación (sin datos o sin permisos): " + context + ", error: " + errorMsg);
+            } else {
+                Log.w("MainActivity", "Error durante recuperación (silenciado): " + context + " - " + errorMsg);
+            }
+            // Asegurarse de que el diálogo esté cerrado
+            if (recoverDialog != null) {
+                try {
+                    if (recoverDialog.isShowing()) {
+                        Log.d("MainActivity", "Cerrando diálogo desde showSyncError");
+                        recoverDialog.dismiss();
+                    }
+                } catch (Exception ex) {
+                    Log.w("MainActivity", "Error al cerrar diálogo en showSyncError: " + ex.getMessage());
+                }
+                recoverDialog = null;
+            }
+            // NO mostrar el Toast del error - estos errores son normales cuando no hay datos
+            return; // No mostrar error si estamos recuperando datos
+        }
+        
         String errorMsg = e.getMessage();
         String userMessage;
         
@@ -305,13 +932,18 @@ public class MainActivity extends AppCompatActivity {
                    errorMsg.contains("UNAVAILABLE") ||
                    errorMsg.contains("DEADLINE_EXCEEDED") ||
                    errorMsg.contains("network")) {
-            userMessage = "Error de conexión. Verifica tu internet e intenta de nuevo";
+            userMessage = getString(R.string.sync_error_connection);
         } else if (errorMsg.contains("PERMISSION_DENIED") || errorMsg.contains("permission")) {
-            userMessage = "Error de permisos. Verifica la configuración de Firestore";
+            userMessage = getString(R.string.error_permission_denied);
         } else if (errorMsg.contains("UNAUTHENTICATED") || errorMsg.contains("auth")) {
-            userMessage = "Error de autenticación. Intenta sincronizar de nuevo";
+            userMessage = getString(R.string.sync_error_auth);
         } else if (errorMsg.contains("SecurityException")) {
-            userMessage = "Error de seguridad. Verifica SHA-1 en Firebase Console";
+            userMessage = getString(R.string.error_security_sha1);
+        } else if (errorMsg.contains("failed_precondition") || errorMsg.contains("FAILED_PRECONDITION")) {
+            // No mostrar error para failed_precondition - el código maneja esto automáticamente con fallbacks
+            // Solo loguear para debugging
+            Log.d("MainActivity", "failed_precondition manejado automáticamente, no mostrar error al usuario");
+            return; // No mostrar Toast
         } else {
             userMessage = context + ": " + errorMsg;
         }
@@ -322,16 +954,43 @@ public class MainActivity extends AppCompatActivity {
     // ===== Sync Cloud <-> Local =====
     private void doSync() {
         try {
+            // Asegurar autenticación antes de sincronizar
             com.google.firebase.auth.FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
             if (user == null) {
-                runOnUiThread(() -> {
-                    stopSyncIconAnimation();
-                    Toast.makeText(this, "Error: Usuario no autenticado", Toast.LENGTH_LONG).show();
-                });
+                // Intentar autenticación anónima si no está autenticado
+                FirebaseAuth.getInstance().signInAnonymously()
+                        .addOnSuccessListener(authResult -> {
+                            if (authResult != null && authResult.getUser() != null) {
+                                // Usuario autenticado, proceder con sincronización
+                                performSync(authResult.getUser().getUid());
+                            } else {
+                                runOnUiThread(() -> {
+                                    stopSyncIconAnimation();
+                                    Toast.makeText(this, "Error: No se pudo autenticar", Toast.LENGTH_LONG).show();
+                                });
+                            }
+                        })
+                        .addOnFailureListener(e -> {
+                            runOnUiThread(() -> {
+                                stopSyncIconAnimation();
+                                showSyncError(getString(R.string.sync_error_auth_title), e);
+                            });
+                        });
                 return;
             }
             
-            String uid = user.getUid();
+            // Usuario ya autenticado, proceder con sincronización
+            performSync(user.getUid());
+        } catch (Exception e) {
+            runOnUiThread(() -> {
+                stopSyncIconAnimation();
+                showSyncError("Error al iniciar sync", e);
+            });
+        }
+    }
+    
+    private void performSync(String uid) {
+        try {
             CloudSync sync = new CloudSync(
                     eventDao,
                     subjectDao,
@@ -343,11 +1002,11 @@ public class MainActivity extends AppCompatActivity {
 
             sync.pushSubjects(() -> {
                 sync.push(() -> {
-                    runOnUiThread(() -> Toast.makeText(this, "Push OK ✅", Toast.LENGTH_SHORT).show());
+                    runOnUiThread(() -> Toast.makeText(this, getString(R.string.sync_push_success), Toast.LENGTH_SHORT).show());
                     sync.pullSubjects(() -> {
                         sync.pull(
                                 () -> runOnUiThread(() -> {
-                                    Toast.makeText(this, "Pull OK ✅", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(this, getString(R.string.sync_pull_success), Toast.LENGTH_SHORT).show();
                                     stopSyncIconAnimation();
                                     refreshHeader();
                                 }),
@@ -400,6 +1059,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+        adapter.setAppType(appType); // Pasar el appType para mostrar kilómetros si es un auto
         RecyclerView rv = findViewById(R.id.rvEvents);
         rv.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
         rv.setAdapter(adapter);
@@ -407,21 +1067,21 @@ public class MainActivity extends AppCompatActivity {
 
     private void askCostThenRealize(com.gastonlesbegueris.caretemplate.data.local.EventEntity e) {
         final android.widget.EditText et = new android.widget.EditText(this);
-        et.setHint("Costo (opcional)");
+        et.setHint(getString(R.string.cost_optional));
         et.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
 
         new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Marcar como realizado")
-                .setMessage("Podés guardar el costo ahora.")
+                .setTitle(getString(R.string.event_mark_realized))
+                .setMessage(getString(R.string.event_mark_realized_message))
                 .setView(et)
-                .setPositiveButton("Guardar", (d,w) -> {
+                .setPositiveButton(getString(R.string.button_save), (d,w) -> {
                     Double cost = null;
                     String t = et.getText().toString().trim();
                     try { if (!t.isEmpty()) cost = Double.parseDouble(t); } catch (Exception ignore) {}
                     setRealized(e.id, true, cost);
                 })
-                .setNegativeButton("Solo marcar", (d,w) -> setRealized(e.id, true, null))
-                .setNeutralButton("Cancelar", null)
+                .setNegativeButton(getString(R.string.button_mark_only), (d,w) -> setRealized(e.id, true, null))
+                .setNeutralButton(getString(R.string.button_cancel), null)
                 .show();
     }
 
@@ -435,7 +1095,7 @@ public class MainActivity extends AppCompatActivity {
                 eventDao.markUnrealizedOne(id, now);
             }
             runOnUiThread(() -> {
-                String msg = realized ? "Marcado como realizado" : "Marcado como pendiente";
+                String msg = realized ? getString(R.string.marked_as_realized) : getString(R.string.marked_as_pending);
                 android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_SHORT).show();
             });
         }).start();
@@ -480,8 +1140,10 @@ public class MainActivity extends AppCompatActivity {
             MaterialToolbar toolbar = findViewById(R.id.toolbar);
             if (toolbar == null) return;
 
-            // Siempre: nombre de la app
-            toolbar.setTitle(getString(R.string.app_name));
+            // Siempre: nombre de la app - sección
+            String appName = getString(R.string.app_name);
+            String sectionName = getString(R.string.menu_home);
+            toolbar.setTitle(appName + " - " + sectionName);
 
             // Nunca mostramos subtítulo acá
             toolbar.setSubtitle(null);
@@ -682,7 +1344,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Verificar que las vistas se encontraron
         if (etTitle == null || etCost == null || sp == null) {
-            Toast.makeText(this, "Error al cargar el diálogo", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.error_load_dialog), Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -708,21 +1370,21 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 new androidx.appcompat.app.AlertDialog.Builder(this)
-                        .setTitle("Nuevo evento")
+                        .setTitle(getString(R.string.new_event))
                         .setView(view)
-                        .setPositiveButton("Elegir fecha/hora", (d, w) -> {
+                        .setPositiveButton(getString(R.string.button_choose_date_time), (d, w) -> {
                             final String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
                             if (title.isEmpty()) {
-                                Toast.makeText(this, "Título requerido", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(this, getString(R.string.event_title_required), Toast.LENGTH_SHORT).show();
                                 return;
                             }
                             if (subjects.isEmpty()) {
-                                Toast.makeText(this, "Primero creá un sujeto", Toast.LENGTH_LONG).show();
+                                Toast.makeText(this, getString(R.string.error_create_subject_first), Toast.LENGTH_LONG).show();
                                 return;
                             }
                             final int pos = sp.getSelectedItemPosition();
                             if (pos < 0 || pos >= subjects.size()) {
-                                Toast.makeText(this, "Seleccioná un sujeto", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(this, getString(R.string.error_select_subject), Toast.LENGTH_SHORT).show();
                                 return;
                             }
                             final String subjectId = subjects.get(pos).id;
@@ -736,7 +1398,7 @@ public class MainActivity extends AppCompatActivity {
 
                             pickDateTime(0, dueAt -> insertLocal(fTitle, fSubjectId, fCost, dueAt));
                         })
-                        .setNegativeButton("Cancelar", null)
+                        .setNegativeButton(getString(R.string.button_cancel), null)
                         .show();
             });
         }).start();
@@ -747,15 +1409,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void insertLocal(String title, String subjectId, Double cost, long dueAt) {
+        insertLocal(title, subjectId, cost, dueAt, null);
+    }
+
+    private void insertLocal(String title, String subjectId, Double cost, long dueAt, Double kilometersAtEvent) {
         new Thread(() -> {
+            // Obtener UID del usuario actual
+            String uid = getCurrentUserId();
+            
             EventEntity e = new EventEntity();
             e.id = UUID.randomUUID().toString();
-            e.uid = "";
+            e.uid = uid; // Usar UID del usuario actual
             e.appType = appType;
             e.subjectId = subjectId;     // sujeto elegido
             e.title = title;
             e.note = "";
             e.cost = cost;               // costo opcional
+            e.kilometersAtEvent = kilometersAtEvent; // km del auto al momento del evento (solo para cars)
             e.realized = 0;              // aún no realizado
             e.dueAt = dueAt;
             e.updatedAt = System.currentTimeMillis();
@@ -764,8 +1434,30 @@ public class MainActivity extends AppCompatActivity {
             eventDao.insert(e);
             com.gastonlesbegueris.caretemplate.util.LimitGuard.onEventCreated(this, appType);
 
-            runOnUiThread(() -> Toast.makeText(this, "Guardado local ✅", Toast.LENGTH_SHORT).show());
+            runOnUiThread(() -> Toast.makeText(this, getString(R.string.event_saved), Toast.LENGTH_SHORT).show());
         }).start();
+    }
+    
+    /**
+     * Obtiene el UID del usuario actual (Firebase UID o UUID local)
+     */
+    private String getCurrentUserId() {
+        // Intentar obtener Firebase UID primero
+        com.google.firebase.auth.FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            return user.getUid();
+        }
+        
+        // Si no hay Firebase Auth, usar UserManager para obtener o generar un ID local
+        com.gastonlesbegueris.caretemplate.util.UserManager userManager = 
+                new com.gastonlesbegueris.caretemplate.util.UserManager(this);
+        String userId = userManager.getUserIdSync();
+        if (userId != null) {
+            return userId;
+        }
+        
+        // Fallback: generar UUID temporal (se actualizará en la próxima sincronización)
+        return java.util.UUID.randomUUID().toString();
     }
 
     private void showEditDialog(EventEntity e) {
@@ -776,7 +1468,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Verificar que las vistas se encontraron
         if (etTitle == null || etCost == null || sp == null) {
-            Toast.makeText(this, "Error al cargar el diálogo", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.error_load_dialog), Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -790,12 +1482,12 @@ public class MainActivity extends AppCompatActivity {
         sp.setVisibility(android.view.View.GONE);
 
         new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Editar evento")
+                .setTitle(getString(R.string.edit_event))
                 .setView(view)
-                .setPositiveButton("Elegir fecha/hora", (d, w) -> {
+                .setPositiveButton(getString(R.string.button_choose_date_time), (d, w) -> {
                     String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
                     if (title.isEmpty()) {
-                        Toast.makeText(this, "Título requerido", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, getString(R.string.event_title_required), Toast.LENGTH_SHORT).show();
                         return;
                     }
                     if (!LimitGuard.canCreateEvent(this, db, appType)) return;
@@ -805,8 +1497,8 @@ public class MainActivity extends AppCompatActivity {
 
                     pickDateTime(e.dueAt, dueAt -> updateLocal(e, title, cost, dueAt));
                 })
-                .setNeutralButton("Eliminar", (d, w) -> softDelete(e.id))
-                .setNegativeButton("Cancelar", null)
+                .setNeutralButton(getString(R.string.button_delete), (d, w) -> softDelete(e.id))
+                .setNegativeButton(getString(R.string.button_cancel), null)
                 .show();
     }
 
@@ -818,14 +1510,14 @@ public class MainActivity extends AppCompatActivity {
             e.updatedAt = System.currentTimeMillis();
             e.dirty = 1;
             eventDao.update(e);
-            runOnUiThread(() -> Toast.makeText(this, "Actualizado local ✅", Toast.LENGTH_SHORT).show());
+            runOnUiThread(() -> Toast.makeText(this, getString(R.string.event_updated), Toast.LENGTH_SHORT).show());
         }).start();
     }
 
     private void softDelete(String id) {
         new Thread(() -> {
             eventDao.softDelete(id, System.currentTimeMillis());
-            runOnUiThread(() -> Toast.makeText(this, "Eliminado ✅", Toast.LENGTH_SHORT).show());
+            runOnUiThread(() -> Toast.makeText(this, getString(R.string.event_deleted), Toast.LENGTH_SHORT).show());
         }).start();
     }
 
@@ -911,10 +1603,42 @@ public class MainActivity extends AppCompatActivity {
             if (tilModel != null) tilModel.setVisibility(android.view.View.GONE);
         }
 
-        // Hide fields not needed for quick add
-        if (etBirth != null) etBirth.setVisibility(android.view.View.GONE);
-        if (etMeasure != null) etMeasure.setVisibility(android.view.View.GONE);
-        if (etNotes != null) etNotes.setVisibility(android.view.View.GONE);
+        // Obtener los TextInputLayout para configurarlos correctamente
+        com.google.android.material.textfield.TextInputLayout tilMeasure = view.findViewById(R.id.tilMeasure);
+        com.google.android.material.textfield.TextInputLayout tilBirth = view.findViewById(R.id.tilBirth);
+        
+        // Configurar campos según flavor
+        if ("cars".equals(appType) || "house".equals(appType)) {
+            // Para cars/house: ocultar fecha de nacimiento, mostrar odómetro
+            if (tilBirth != null) tilBirth.setVisibility(android.view.View.GONE);
+            if (tilMeasure != null) {
+                tilMeasure.setHint("Odómetro (km)");
+                tilMeasure.setVisibility(android.view.View.VISIBLE);
+            }
+            if (etMeasure != null) {
+                etMeasure.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            }
+        } else {
+            // Para pets/family: mostrar fecha de nacimiento y peso
+            if (tilBirth != null) {
+                tilBirth.setHint("Fecha de nacimiento (dd/MM/aaaa)");
+                tilBirth.setVisibility(android.view.View.VISIBLE);
+            }
+            if (tilMeasure != null) {
+                tilMeasure.setHint("Peso (kg)");
+                tilMeasure.setVisibility(android.view.View.VISIBLE);
+            }
+            if (etMeasure != null) {
+                etMeasure.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            }
+            if (etBirth != null) {
+                etBirth.setOnClickListener(v -> pickDateInto(etBirth));
+            }
+        }
+        
+        // Ocultar notas para quick add
+        android.view.View tilNotes = view.findViewById(R.id.tilNotes);
+        if (tilNotes != null) tilNotes.setVisibility(android.view.View.GONE);
 
         // Setup icon selection
         final android.widget.GridLayout gridIcons = view.findViewById(R.id.gridIcons);
@@ -949,20 +1673,61 @@ public class MainActivity extends AppCompatActivity {
                             return;
                         }
                     }
-                    insertSubjectMinimal(name, selectedIconKey[0]);
+                    // Obtener fecha de nacimiento (solo para pets/family)
+                    Long birthMillis = null;
+                    if (!"cars".equals(appType) && !"house".equals(appType)) {
+                        String birthStr = etBirth.getText() != null ? etBirth.getText().toString().trim() : "";
+                        if (!birthStr.isEmpty()) {
+                            birthMillis = parseDateOrNull(birthStr);
+                        }
+                    }
+                    
+                    // Obtener medida: kilómetros para cars/house, peso para pets/family
+                    String measureStr = etMeasure.getText() != null ? etMeasure.getText().toString().trim() : "";
+                    Double measure = measureStr.isEmpty() ? null : safeParseDouble(measureStr);
+                    
+                    insertSubjectMinimal(name, selectedIconKey[0], birthMillis, measure);
                 })
-                .setNegativeButton("Cancelar", null)
+                .setNegativeButton(getString(R.string.button_cancel), null)
                 .show();
     }
 
-    private void insertSubjectMinimal(String name, String iconKey) {
+    private void insertSubjectMinimal(String name, String iconKey, Long birthDate, Double currentMeasure) {
+        new Thread(() -> {
+            // Asegurar que el usuario esté identificado antes de crear el sujeto
+            String userId = getCurrentUserId();
+            
+            // Si no hay Firebase Auth, intentar autenticarse anónimamente
+            if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+                FirebaseAuth.getInstance().signInAnonymously()
+                        .addOnSuccessListener(authResult -> {
+                            if (authResult != null && authResult.getUser() != null) {
+                                // Usuario autenticado, crear sujeto con el UID correcto
+                                createSubjectWithUserId(name, iconKey, birthDate, currentMeasure, authResult.getUser().getUid());
+                            } else {
+                                // Fallback: crear con ID local
+                                createSubjectWithUserId(name, iconKey, birthDate, currentMeasure, userId);
+                            }
+                        })
+                        .addOnFailureListener(e -> {
+                            // Fallback: crear con ID local si falla la autenticación
+                            createSubjectWithUserId(name, iconKey, birthDate, currentMeasure, userId);
+                        });
+            } else {
+                // Ya está autenticado, crear directamente
+                createSubjectWithUserId(name, iconKey, birthDate, currentMeasure, userId);
+            }
+        }).start();
+    }
+    
+    private void createSubjectWithUserId(String name, String iconKey, Long birthDate, Double currentMeasure, String userId) {
         new Thread(() -> {
             SubjectEntity s = new SubjectEntity();
             s.id = UUID.randomUUID().toString();
             s.appType = appType;
             s.name = name;
-            s.birthDate = null;
-            s.currentMeasure = null;
+            s.birthDate = birthDate; // Fecha de nacimiento para pets/family
+            s.currentMeasure = currentMeasure; // Kilómetros para cars/house, peso para pets/family
             s.notes = "";
             s.iconKey = (iconKey == null || iconKey.isEmpty()) ? defaultIconForFlavor() : iconKey;
             s.colorHex = "#03DAC5";
@@ -981,6 +1746,31 @@ public class MainActivity extends AppCompatActivity {
                 refreshHeader();
             });
         }).start();
+    }
+    
+    private Long parseDateOrNull(String dateStr) {
+        try {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+            java.util.Date d = sdf.parse(dateStr);
+            return d != null ? d.getTime() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+    
+    private void pickDateInto(final android.widget.EditText target) {
+        final java.util.Calendar cal = java.util.Calendar.getInstance();
+        int y = cal.get(java.util.Calendar.YEAR);
+        int m = cal.get(java.util.Calendar.MONTH);
+        int d = cal.get(java.util.Calendar.DAY_OF_MONTH);
+
+        new android.app.DatePickerDialog(this, (v, year, month, day) -> {
+            cal.set(java.util.Calendar.YEAR, year);
+            cal.set(java.util.Calendar.MONTH, month);
+            cal.set(java.util.Calendar.DAY_OF_MONTH, day);
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+            target.setText(sdf.format(cal.getTime()));
+        }, y, m, d).show();
     }
 
     private String defaultIconForFlavor() {

@@ -1,7 +1,176 @@
 <resources>
     <string name="app_name">CareTemplate</string>
-    <!-- ... otros strings ... -->
-    <!-- AdMob codes are defined per flavor -->
+    
+    <!-- Menu items -->
+    <string name="menu_home">Inicio</string>
+    <string name="menu_agenda">Agenda</string>
+    <string name="menu_sync">Sincronizar</string>
+    <string name="menu_expenses">Gastos</string>
+    <string name="menu_recovery">Código de recuperación</string>
+    
+    <!-- Subjects -->
+    <string name="subjects_title">Sujetos</string>
+    <string name="history_title">Historial</string>
+    <string name="add_subject">Agregar sujeto</string>
+    <string name="new_subject">Nuevo sujeto</string>
+    <string name="edit_subject">Editar sujeto</string>
+    <string name="delete_subject">Eliminar sujeto</string>
+    <string name="subject_created">Sujeto creado ✅</string>
+    <string name="subject_updated">Sujeto actualizado ✅</string>
+    <string name="subject_deleted">Eliminado ✅</string>
+    <string name="subject_updated_simple">Actualizado ✅</string>
+    
+    <!-- Subject fields -->
+    <string name="field_name">Nombre</string>
+    <string name="field_brand">Marca</string>
+    <string name="field_model">Modelo</string>
+    <string name="field_birth_date">Fecha de nacimiento (dd/MM/aaaa)</string>
+    <string name="field_odometer">Odómetro (km)</string>
+    <string name="field_weight">Peso (kg)</string>
+    <string name="field_measure">Medida</string>
+    <string name="field_notes">Notas</string>
+    <string name="field_date">Fecha (dd/MM/aaaa)</string>
+    
+    <!-- Subject validation -->
+    <string name="error_brand_or_model_required">Marca o Modelo requerido</string>
+    <string name="error_name_required">Nombre requerido</string>
+    <string name="select_subject_first">Selecciona un sujeto primero para agregar eventos</string>
+    <string name="delete_subject_confirmation">¿Estás seguro de que querés eliminar a %1$s?</string>
+    <string name="delete_subject_confirmation_full">¿Estás seguro de que deseas eliminar %1$s? Esta acción no se puede deshacer.</string>
+    
+    <!-- Subject info -->
+    <string name="odometer_label">Odómetro: %1$s</string>
+    <string name="age_label">Edad: %1$s</string>
+    <string name="weight_label"> · Peso: %1$s kg</string>
+    <string name="next_event_label">Próximo: %1$s</string>
+    <string name="next_event_with_title">Próximo: %1$s · %2$s</string>
+    <string name="next_event_none">Próximo: —</string>
+    
+    <!-- Buttons -->
+    <string name="button_save">Guardar</string>
+    <string name="button_cancel">Cancelar</string>
+    <string name="button_delete">Eliminar</string>
+    <string name="button_close">Cerrar</string>
+    <string name="button_recover">Recuperar</string>
+    <string name="button_watch_video">Ver video</string>
+    <string name="button_copy_code">Copiar código</string>
+    <string name="button_recover_with_code">Recuperar datos con código</string>
+    <string name="button_choose_date_time">Elegir fecha/hora</string>
+    <string name="button_mark_only">Solo marcar</string>
+    
+    <!-- Recovery code -->
+    <string name="recovery_code_title">Código de recuperación</string>
+    <string name="recovery_code_message">Para ver tu código de recuperación, necesitas ver un video publicitario. ¿Deseas continuar?</string>
+    <string name="recovery_code_your_code">Tu código de recuperación:</string>
+    <string name="recovery_code_save_message">Guarda este código en un lugar seguro. Lo necesitarás si reinstalas la app o cambias de dispositivo.</string>
+    <string name="recovery_code_format">XXXX-XXXX-XXXX</string>
+    <string name="recovery_code_hint">Código de recuperación</string>
+    <string name="recovery_code_enter_hint">Ingresa tu código de recuperación (formato: XXXX-XXXX-XXXX)</string>
+    <string name="recovery_code_copied">Código copiado al portapapeles</string>
+    <string name="recovery_code_recover_title">Recuperar datos</string>
+    <string name="recovery_code_recover_message">Ingresa tu código de recuperación para restaurar tus datos</string>
+    <string name="recovery_code_invalid">Ingresa un código válido</string>
+    <string name="recovery_code_not_found">Código de recuperación no encontrado</string>
+    <string name="recovery_code_error">Error al obtener código. Intenta más tarde.</string>
+    <string name="recovery_code_generate_error">Error: No se pudo generar el código</string>
+    <string name="recovery_code_show_error">Error al mostrar el código: %1$s</string>
+    <string name="error_permission_denied">Error de permisos. Verifica las reglas de Firestore en Firebase Console</string>
+    <string name="error_security_sha1">Error de seguridad. Verifica SHA-1 en Firebase Console</string>
+    
+    <!-- Recovery process -->
+    <string name="recovering_data">Recuperando datos…</string>
+    <string name="user_recovered">Usuario recuperado. Sincronizando datos…</string>
+    <string name="data_recovered">Datos recuperados ✅</string>
+    <string name="recovery_error">Error: %1$s</string>
+    
+    <!-- Sync -->
+    <string name="sync_success">Datos sincronizados ✅</string>
+    <string name="sync_push_success">Push OK ✅</string>
+    <string name="sync_pull_success">Pull OK ✅</string>
+    <string name="sync_error">Error en sync: %1$s</string>
+    <string name="sync_error_connection">Error de conexión. Verifica tu internet e intenta de nuevo</string>
+    <string name="sync_error_auth">Error de autenticación. Intenta sincronizar de nuevo</string>
+    <string name="sync_error_auth_title">Error de autenticación</string>
+    <string name="sync_error_security">Error de seguridad. Verifica la configuración de Firebase (SHA-1)</string>
+    <string name="sync_start_error">Error al iniciar sync: %1$s</string>
+    <string name="sync_auth_error">Error: No se pudo autenticar</string>
+    <string name="sync_config_error">Error de configuración. Verifica Firebase Console y SHA-1</string>
+    
+    <!-- Events -->
+    <string name="new_event">Nuevo evento</string>
+    <string name="edit_event">Editar evento</string>
+    <string name="event_title">Título del evento</string>
+    <string name="event_title_hint">Título</string>
+    <string name="event_cost_hint">Costo</string>
+    <string name="event_saved">Guardado local ✅</string>
+    <string name="event_updated">Actualizado local ✅</string>
+    <string name="event_deleted">Eliminado ✅</string>
+    <string name="event_title_required">Título requerido</string>
+    <string name="event_mark_realized">Marcar como realizado</string>
+    <string name="event_mark_realized_message">Podés guardar el costo ahora.</string>
+    <string name="event_realized">Realizado</string>
+    <string name="event_subject_placeholder">(Sujeto)</string>
+    <string name="event_date_format">dd/MM HH:mm</string>
+    <string name="event_cost_format">$%1$.2f</string>
+    <string name="event_kilometers">Kilómetros: %1$s km</string>
+    <string name="event_cost_zero">$0.00</string>
+    
+    <!-- Event validation -->
+    <string name="error_create_subject_first">Primero creá un sujeto</string>
+    <string name="error_select_subject">Seleccioná un sujeto</string>
+    <string name="error_no_subjects">Primero creá un sujeto 🐶🚗👨‍👩‍👧🏠</string>
+    
+    <!-- General -->
+    <string name="no_data_yet">No hay datos ingresados aún</string>
+    <string name="no_events_history">No hay eventos en el historial</string>
+    <string name="loading_video">Cargando video publicitario…</string>
+    <string name="video_load_error">No se pudo cargar el video. Mostrando código…</string>
+    <string name="dialog_load_error">Error al cargar el diálogo</string>
+    
+    <!-- Date/Time -->
+    <string name="choose_day">Elegir día</string>
+    <string name="select_icon_type">Seleccionar tipo</string>
+    
+    <!-- Expenses -->
+    <string name="expenses_total">Total gastado: $%1$.2f</string>
+    <string name="expenses_plan">Plan: $%1$.2f</string>
+    <string name="expenses_real">Real: $%1$.2f</string>
+    <string name="expenses_plan_label">Planificado: $%1$.2f</string>
+    <string name="expenses_real_label">Realizado: $%1$.2f</string>
+    <string name="expenses_events">Eventos: %1$d</string>
+    <string name="expenses_subject_title">Sujeto · Título</string>
+    <string name="expenses_date_cost">Fecha · $Costo</string>
+    <string name="expenses_plan_real">Plan: $%1$.2f · Real: $%2$.2f</string>
+    <string name="month_summary">%1$s · Planificado: $%2$.2f · Realizado: $%3$.2f</string>
+    
+    <!-- Common -->
     <string name="delete">Delete</string>
     <string name="edit">Edit</string>
+    
+    <!-- Additional strings -->
+    <string name="cost_optional">Costo (opcional)</string>
+    <string name="marked_as_realized">Marcado como realizado</string>
+    <string name="marked_as_pending">Marcado como pendiente</string>
+    <string name="error_load_dialog">Error al cargar el diálogo</string>
+    <string name="error_get_code">Error al obtener código. Intenta más tarde.</string>
+    <string name="error_generate_code">Error: No se pudo generar el código</string>
+    <string name="error_show_code">Error al mostrar el código: %1$s</string>
+    <string name="error_upload_events_recovery">Error al subir eventos durante recuperación: %1$s</string>
+    <string name="error_upload_subjects_recovery">Error al subir sujetos durante recuperación: %1$s</string>
+    <string name="auth_error_message">Auth error: %1$s</string>
+    
+    <!-- Layout placeholders (these are just placeholders, actual values come from code) -->
+    <string name="placeholder_name">Nombre</string>
+    <string name="placeholder_age_weight">Edad: 3a 2m · Peso: 7.2 kg   |   152.000 km</string>
+    <string name="placeholder_next_event">Próximo: 21/10 10:00 · Vacuna</string>
+    <string name="placeholder_subject">(Sujeto)</string>
+    <string name="placeholder_event_title">Título del evento</string>
+    <string name="placeholder_kilometers">Kilómetros: 0 km</string>
+    <string name="placeholder_cost">$0.00</string>
+    <string name="placeholder_empty">""</string>
+    <string name="placeholder_month">Junio 2025</string>
+    <string name="placeholder_subject_name">Kefu</string>
+    <string name="placeholder_space"> </string>
+    
+    <!-- AdMob codes are defined per flavor -->
 </resources>

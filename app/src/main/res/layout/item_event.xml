@@ -32,14 +32,14 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="(Sujeto)"
+                android:text="@string/placeholder_subject"
                 style="@style/AppText.Subtitle"/>
 
             <TextView
                 android:id="@+id/tvWhen"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="dd/MM HH:mm"
+                android:text="@string/event_date_format"
                 style="@style/AppText.Small"/>
         </LinearLayout>
 
@@ -50,19 +50,34 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="Título del evento"
+            android:text="@string/placeholder_event_title"
             android:textStyle="bold" />
 
 
-        <TextView
-            android:id="@+id/tvCost"
-            style="@style/AppText.Small"
+        <LinearLayout
+            android:orientation="horizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:gravity="end"
-            android:text="$0.00"
-            android:textStyle="bold" />
+            android:gravity="end">
+
+            <TextView
+                android:id="@+id/tvKilometers"
+                style="@style/AppText.Small"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:text="@string/placeholder_kilometers"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvCost"
+                style="@style/AppText.Small"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/placeholder_cost"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <!-- Nota opcional (si no la usás, queda GONE y no molesta al adapter) -->
         <TextView
@@ -114,7 +129,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:text="Realizado"
+                android:text="@string/event_realized"
                 android:textColor="#FFFFFF" />
         </LinearLayout>
     </LinearLayout>

@@ -1,7 +1,10 @@
 <resources>
     <string name="app_name">CarPal</string>
+    <string name="subjects_title">Autos</string>
     <!-- AdMob IDs para CarPal -->
     <string name="admob_app_id">ca-app-pub-9841764898906750~1020196913</string>
     <string name="admob_banner_id">ca-app-pub-9841764898906750/2106866114</string>
+    <!-- Rewarded Ad ID para código de recuperación -->
+    <string name="admob_rewarded_id">ca-app-pub-9841764898906750/9935354864</string>
 </resources>
 

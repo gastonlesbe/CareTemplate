@@ -29,14 +29,14 @@
             android:id="@+id/tvSubjectName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Nombre"
+            android:text="@string/placeholder_name"
             style="@style/AppText.Subtitle" />
 
         <TextView
             android:id="@+id/tvSubjectInfo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Edad: 3a 2m · Peso: 7.2 kg   |   152.000 km"
+            android:text="@string/placeholder_age_weight"
             style="@style/AppText.Small"
             android:ellipsize="end"
             android:maxLines="1"
@@ -46,10 +46,40 @@
             android:id="@+id/tvSubjectExtra"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Próximo: 21/10 10:00 · Vacuna"
+            android:text="@string/placeholder_next_event"
             style="@style/AppText.Small"
             android:ellipsize="end"
             android:maxLines="1"
             android:layout_marginTop="2dp"/>
+    </LinearLayout>
+
+    <!-- Botones de acción: Editar y Borrar -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_gravity="center_vertical"
+        android:layout_marginStart="8dp">
+
+        <ImageButton
+            android:id="@+id/btnEdit"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_edit"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Editar"
+            android:padding="8dp"
+            android:tint="?attr/colorPrimary" />
+
+        <ImageButton
+            android:id="@+id/btnDelete"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_delete"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Borrar"
+            android:padding="8dp"
+            android:tint="?attr/colorError"
+            android:layout_marginStart="4dp" />
     </LinearLayout>
 </LinearLayout>

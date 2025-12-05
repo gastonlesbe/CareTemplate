@@ -3,33 +3,33 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
-        android:id="@+id/action_home"
-        android:title="Inicio"
-        android:icon="@drawable/ic_home"
-        app:showAsAction="never" />
-
-    <item
         android:id="@+id/action_agenda"
-        android:title="Agenda"
+        android:title="@string/menu_agenda"
         android:icon="@drawable/ic_event"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/action_sync"
-        android:title="Sincronizar"
+        android:title="@string/menu_sync"
         android:icon="@drawable/ic_sync"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/action_subjects"
-        android:title="Sujetos"
+        android:title="@string/subjects_title"
         android:icon="@drawable/ic_line_user"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/action_expenses"
-        android:title="Gastos"
+        android:title="@string/menu_expenses"
         android:icon="@drawable/ic_line_money"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_recovery"
+        android:title="@string/menu_recovery"
+        android:icon="@drawable/ic_sync"
         app:showAsAction="never" />
 
 

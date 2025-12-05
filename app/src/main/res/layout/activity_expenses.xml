@@ -19,7 +19,7 @@
             style="@style/Widget.App.Toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:title="Gastos" />
+            app:title="@string/menu_expenses" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.recyclerview.widget.RecyclerView
@@ -41,12 +41,49 @@
         android:layout_gravity="top|end"
         android:layout_marginTop="72dp"
         android:layout_marginEnd="24dp"
-        android:text="Total gastado: $0.00"
+        android:text="@string/expenses_total"
         style="@style/AppText.Subtitle"
         android:textStyle="bold"
         android:background="?attr/colorSurface"
         android:padding="12dp"
         android:elevation="4dp" />
+
+    <!-- Mini FAB: SUJETO (usa el icono del flavor) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAddSubject"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="172dp"
+        android:contentDescription="@string/add_subject"
+        app:srcCompat="@drawable/ic_header_flavor"
+        android:visibility="gone"
+        android:alpha="0" />
+
+    <!-- Mini FAB: EVENTO (calendario) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAddEvent"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="244dp"
+        android:contentDescription="@string/new_event"
+        app:srcCompat="@drawable/ic_event"
+        android:visibility="gone"
+        android:alpha="0" />
+
+    <!-- FAB principal -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAdd"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="100dp"
+        android:contentDescription="@string/add_subject"
+        app:srcCompat="@drawable/ic_add" />
 
     <!-- AdMob Banner -->
     <com.google.android.gms.ads.AdView

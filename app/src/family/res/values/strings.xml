@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">FamilyPal</string>
+    <string name="subjects_title">Sujetos</string>
+    <!-- AdMob IDs para FamilyPal -->
+    <!-- TODO: Agregar App ID y Banner ID cuando estén disponibles -->
+    <!-- Rewarded Ad ID - Reemplazar con el ID real cuando esté disponible -->
+    <string name="admob_rewarded_id">ca-app-pub-3940256099942544/5224354917</string>
 </resources>

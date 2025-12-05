@@ -19,7 +19,7 @@
             android:id="@+id/tvSubjectName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Kefu"
+            android:text="@string/placeholder_subject_name"
             style="@style/AppText.Subtitle"/>
 
         <LinearLayout
@@ -34,7 +34,7 @@
                 android:layout_height="wrap_content"
                 style="@style/AppText.Small"
                 android:layout_weight="1"
-                android:text="Eventos: 0" />
+                android:text="@string/expenses_events" />
 
             <TextView
                 android:id="@+id/tvPlanned"
@@ -43,7 +43,7 @@
                 android:layout_weight="1"
                 style="@style/AppText.Small"
                 android:gravity="end"
-                android:text="Plan: $0.00" />
+                android:text="@string/expenses_plan" />
         </LinearLayout>
 
         <TextView
@@ -53,6 +53,6 @@
             android:layout_height="wrap_content"
             android:gravity="end"
             style="@style/AppText.Small"
-            android:text="Real: $0.00" />
+            android:text="@string/expenses_real" />
     </LinearLayout>
 </androidx.cardview.widget.CardView>
