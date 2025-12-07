@@ -178,6 +178,21 @@ public class AgendaActivity extends AppCompatActivity {
     }
 
     @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        // Establecer la versión dinámicamente
+        MenuItem versionItem = menu.findItem(R.id.action_version);
+        if (versionItem != null) {
+            try {
+                String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+                versionItem.setTitle("v" + versionName);
+            } catch (android.content.pm.PackageManager.NameNotFoundException e) {
+                versionItem.setTitle("v1.2");
+            }
+        }
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_agenda) {
@@ -388,23 +403,35 @@ public class AgendaActivity extends AppCompatActivity {
                 });
             });
             
-            // Configurar click en hora
+            // Configurar click en hora - abrir TimePickerDialog con formato 24 horas
             etEventTime.setOnClickListener(v -> {
                 long currentTime = etEventTime.getTag() != null ? (Long) etEventTime.getTag() : finalEvent.dueAt;
-                java.util.Calendar timeCal = java.util.Calendar.getInstance();
+                Calendar timeCal = Calendar.getInstance();
                 timeCal.setTimeInMillis(currentTime);
-                int hh = timeCal.get(java.util.Calendar.HOUR_OF_DAY);
-                int mm = timeCal.get(java.util.Calendar.MINUTE);
+                int hour = timeCal.get(Calendar.HOUR_OF_DAY);
+                int minute = timeCal.get(Calendar.MINUTE);
                 
-                new android.app.TimePickerDialog(this, (tp, hour, minute) -> {
-                    timeCal.set(java.util.Calendar.HOUR_OF_DAY, hour);
-                    timeCal.set(java.util.Calendar.MINUTE, minute);
-                    timeCal.set(java.util.Calendar.SECOND, 0);
-                    timeCal.set(java.util.Calendar.MILLISECOND, 0);
-                    java.text.SimpleDateFormat timeFmt = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
-                    etEventTime.setText(timeFmt.format(timeCal.getTime()));
-                    etEventTime.setTag(timeCal.getTimeInMillis());
-                }, hh, mm, true).show();
+                // Crear TimePickerDialog con formato 24 horas
+                android.app.TimePickerDialog timePickerDialog = new android.app.TimePickerDialog(
+                    AgendaActivity.this,
+                    (timeView, selectedHour, selectedMinute) -> {
+                        // Actualizar el tiempo en el Calendar
+                        timeCal.set(Calendar.HOUR_OF_DAY, selectedHour);
+                        timeCal.set(Calendar.MINUTE, selectedMinute);
+                        timeCal.set(Calendar.SECOND, 0);
+                        timeCal.set(Calendar.MILLISECOND, 0);
+                        
+                        // Formatear y mostrar la hora seleccionada
+                        java.text.SimpleDateFormat timeFormat2 = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+                        etEventTime.setText(timeFormat2.format(timeCal.getTime()));
+                        etEventTime.setTag(timeCal.getTimeInMillis());
+                    },
+                    hour,
+                    minute,
+                    true // true = formato 24 horas
+                );
+                timePickerDialog.setTitle(getString(R.string.event_time_hint));
+                timePickerDialog.show();
             });
         }
 

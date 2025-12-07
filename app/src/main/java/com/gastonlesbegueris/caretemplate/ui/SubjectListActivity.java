@@ -243,52 +243,77 @@ public class SubjectListActivity extends AppCompatActivity {
         final String[] selectedIconKey = {defaultIconForFlavor()};
         populateIconGrid(gridIcons, selectedIconKey);
 
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle(getString(R.string.new_subject))
+        // Configurar barra de título personalizada
+        final android.view.View llDialogTitleBar = view.findViewById(R.id.llDialogTitleBar);
+        final android.widget.TextView tvDialogTitle = view.findViewById(R.id.tvDialogTitle);
+        final android.widget.ImageButton ibSave = view.findViewById(R.id.ibSave);
+        final android.widget.ImageButton ibClose = view.findViewById(R.id.ibClose);
+        
+        if (tvDialogTitle != null) {
+            tvDialogTitle.setText(getString(R.string.new_subject));
+        }
+        
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setView(view)
-                .setPositiveButton(getString(R.string.button_save), (d,w)-> {
-                    String name;
-                    if ("cars".equals(appType)) {
-                        // Para cars: concatenar marca + modelo
-                        String brand = etBrand != null ? etBrand.getText().toString().trim() : "";
-                        String model = etModel != null ? etModel.getText().toString().trim() : "";
-                        if (brand.isEmpty() && model.isEmpty()) {
-                            Toast.makeText(this, getString(R.string.error_brand_or_model_required), Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-                        if (brand.isEmpty()) {
-                            name = model;
-                        } else if (model.isEmpty()) {
-                            name = brand;
-                        } else {
-                            name = brand + " " + model;
-                        }
+                .create();
+        
+        // Mostrar barra de título personalizada
+        if (llDialogTitleBar != null) {
+            llDialogTitleBar.setVisibility(android.view.View.VISIBLE);
+        }
+        
+        // Configurar listener del icono Guardar
+        if (ibSave != null) {
+            ibSave.setOnClickListener(v -> {
+                String name;
+                if ("cars".equals(appType)) {
+                    // Para cars: concatenar marca + modelo
+                    String brand = etBrand != null ? etBrand.getText().toString().trim() : "";
+                    String model = etModel != null ? etModel.getText().toString().trim() : "";
+                    if (brand.isEmpty() && model.isEmpty()) {
+                        Toast.makeText(this, getString(R.string.error_brand_or_model_required), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (brand.isEmpty()) {
+                        name = model;
+                    } else if (model.isEmpty()) {
+                        name = brand;
                     } else {
-                        // Para otros flavors: usar nombre normal
-                        name = etName.getText().toString().trim();
-                        if (name.isEmpty()) {
-                            Toast.makeText(this, getString(R.string.error_name_required), Toast.LENGTH_SHORT).show();
-                            return;
-                        }
+                        name = brand + " " + model;
                     }
-                    // Obtener fecha de nacimiento (solo para pets/family)
-                    Long birthMillis = null;
-                    if (!"cars".equals(appType) && !"house".equals(appType)) {
-                        String birthStr = etBirth.getText() != null ? etBirth.getText().toString().trim() : "";
-                        if (!birthStr.isEmpty()) {
-                            birthMillis = parseDateOrNull(birthStr);
-                        }
+                } else {
+                    // Para otros flavors: usar nombre normal
+                    name = etName.getText().toString().trim();
+                    if (name.isEmpty()) {
+                        Toast.makeText(this, getString(R.string.error_name_required), Toast.LENGTH_SHORT).show();
+                        return;
                     }
-                    
-                    // Obtener medida: kilómetros para cars/house, peso para pets/family
-                    String measureStr = etMeasure.getText() != null ? etMeasure.getText().toString().trim() : "";
-                    Double measure = measureStr.isEmpty() ? null : safeParseDouble(measureStr);
-                    
-                    String notes = etNotes.getText() != null ? etNotes.getText().toString().trim() : "";
-                    insertSubjectFull(name, birthMillis, measure, notes, selectedIconKey[0]);
-                })
-                .setNegativeButton(getString(R.string.button_cancel), null)
-                .show();
+                }
+                // Obtener fecha de nacimiento (solo para pets/family)
+                Long birthMillis = null;
+                if (!"cars".equals(appType) && !"house".equals(appType)) {
+                    String birthStr = etBirth.getText() != null ? etBirth.getText().toString().trim() : "";
+                    if (!birthStr.isEmpty()) {
+                        birthMillis = parseDateOrNull(birthStr);
+                    }
+                }
+                
+                // Obtener medida: kilómetros para cars/house, peso para pets/family
+                String measureStr = etMeasure.getText() != null ? etMeasure.getText().toString().trim() : "";
+                Double measure = measureStr.isEmpty() ? null : safeParseDouble(measureStr);
+                
+                String notes = etNotes.getText() != null ? etNotes.getText().toString().trim() : "";
+                dialog.dismiss();
+                insertSubjectFull(name, birthMillis, measure, notes, selectedIconKey[0]);
+            });
+        }
+        
+        // Configurar listener del icono Cerrar (Cancelar)
+        if (ibClose != null) {
+            ibClose.setOnClickListener(v -> dialog.dismiss());
+        }
+        
+        dialog.show();
     }
     // Devuelve un icono por defecto según el flavor activo
     private String defaultIconForFlavor() {
@@ -459,16 +484,31 @@ public class SubjectListActivity extends AppCompatActivity {
         }
         etNotes.setText(subj.notes == null ? "" : subj.notes);
 
-        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle(getString(R.string.edit_subject))
-                .setView(view)
-                .setPositiveButton(getString(R.string.button_save), null)
-                .setNegativeButton(getString(R.string.button_cancel), null)
-                .create();
+        // Configurar barra de título personalizada
+        final android.view.View llDialogTitleBar = view.findViewById(R.id.llDialogTitleBar);
+        final android.widget.TextView tvDialogTitle = view.findViewById(R.id.tvDialogTitle);
+        final android.widget.ImageButton ibDelete = view.findViewById(R.id.ibDelete);
+        final android.widget.ImageButton ibSave = view.findViewById(R.id.ibSave);
+        final android.widget.ImageButton ibClose = view.findViewById(R.id.ibClose);
+        
+        if (tvDialogTitle != null) {
+            tvDialogTitle.setText(getString(R.string.edit_subject));
+        }
 
-        // Si es pets, agregar botón de eliminar
-        if ("pets".equals(appType)) {
-            dialog.setButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL, "Eliminar", (d, w) -> {
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setView(view)
+                .create();
+        
+        // Mostrar barra de título personalizada
+        if (llDialogTitleBar != null) {
+            llDialogTitleBar.setVisibility(android.view.View.VISIBLE);
+        }
+        
+        // Si es pets, mostrar botón de eliminar
+        if ("pets".equals(appType) && ibDelete != null) {
+            ibDelete.setVisibility(android.view.View.VISIBLE);
+            ibDelete.setOnClickListener(v -> {
+                dialog.dismiss();
                 new androidx.appcompat.app.AlertDialog.Builder(this)
                         .setTitle(getString(R.string.delete_subject))
                         .setMessage(getString(R.string.delete_subject_confirmation, subj.name))
@@ -476,10 +516,13 @@ public class SubjectListActivity extends AppCompatActivity {
                         .setNegativeButton(getString(R.string.button_cancel), null)
                         .show();
             });
+        } else if (ibDelete != null) {
+            ibDelete.setVisibility(android.view.View.GONE);
         }
 
-        dialog.setOnShowListener(d -> {
-            dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+        // Configurar listener del icono Guardar
+        if (ibSave != null) {
+            ibSave.setOnClickListener(v -> {
                 String name;
                 if ("cars".equals(appType)) {
                     // Para cars: concatenar marca + modelo
@@ -521,7 +564,8 @@ public class SubjectListActivity extends AppCompatActivity {
 
                 final Long finalBirthMillis = birthMillis;
                 final String finalName = name;
-
+                dialog.dismiss();
+                
                 // actualizar en background
                 new Thread(() -> {
                     subj.name = finalName;
@@ -540,7 +584,12 @@ public class SubjectListActivity extends AppCompatActivity {
                     });
                 }).start();
             });
-        });
+        }
+        
+        // Configurar listener del icono Cerrar (Cancelar)
+        if (ibClose != null) {
+            ibClose.setOnClickListener(v -> dialog.dismiss());
+        }
 
         dialog.show();
     }
@@ -685,6 +734,16 @@ public class SubjectListActivity extends AppCompatActivity {
         MenuItem shareItem = menu.findItem(R.id.action_share_subject);
         if (shareItem != null) {
             shareItem.setTitle(getString(R.string.menu_import_subject));
+        }
+        // Establecer la versión dinámicamente
+        MenuItem versionItem = menu.findItem(R.id.action_version);
+        if (versionItem != null) {
+            try {
+                String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+                versionItem.setTitle("v" + versionName);
+            } catch (android.content.pm.PackageManager.NameNotFoundException e) {
+                versionItem.setTitle("v1.2");
+            }
         }
         return super.onPrepareOptionsMenu(menu);
     }
@@ -1134,6 +1193,11 @@ public class SubjectListActivity extends AppCompatActivity {
         android.view.View view = getLayoutInflater().inflate(R.layout.dialog_recover_code, null);
         com.google.android.material.textfield.TextInputEditText etCode = view.findViewById(R.id.etRecoveryCode);
         
+        // Agregar formateo automático del código mientras se escribe
+        if (etCode != null) {
+            etCode.addTextChangedListener(new RecoveryCodeFormatter(etCode));
+        }
+        
         recoverDialog = new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle(getString(R.string.recovery_code_recover_title))
                 .setMessage(getString(R.string.recovery_code_recover_message))
@@ -1154,17 +1218,150 @@ public class SubjectListActivity extends AppCompatActivity {
                         }
                     }
                     
-                    // Activar modo silencioso ANTES de iniciar la recuperación
-                    isSilentRecoveryMode = true;
-                    Log.d("SubjectListActivity", "Modo de recuperación silenciosa activado");
+                    // Primero verificar si el código existe (para depuración)
+                    com.gastonlesbegueris.caretemplate.util.UserRecoveryManager recoveryManager = 
+                            new com.gastonlesbegueris.caretemplate.util.UserRecoveryManager(this);
                     
-                    recoverUserFromCode(code);
+                    recoveryManager.verifyRecoveryCodeExists(code, new com.gastonlesbegueris.caretemplate.util.UserRecoveryManager.VerifyCodeCallback() {
+                        @Override
+                        public void onResult(boolean exists, String message) {
+                            runOnUiThread(() -> {
+                                if (exists) {
+                                    // Si existe, proceder con la recuperación
+                                    isSilentRecoveryMode = true;
+                                    Log.d("SubjectListActivity", "Código verificado, iniciando recuperación");
+                                    recoverUserFromCode(code);
+                                } else {
+                                    // Si no existe, mostrar mensaje detallado
+                                    new androidx.appcompat.app.AlertDialog.Builder(SubjectListActivity.this)
+                                            .setTitle(getString(R.string.recovery_code_not_found))
+                                            .setMessage(message)
+                                            .setPositiveButton(getString(R.string.button_ok), null)
+                                            .setIcon(android.R.drawable.ic_dialog_alert)
+                                            .show();
+                                }
+                            });
+                        }
+                    });
                 })
                 .setNegativeButton(getString(R.string.button_cancel), null)
                 .setCancelable(true)
                 .create();
         
         recoverDialog.show();
+    }
+    
+    /**
+     * TextWatcher que formatea automáticamente el código de recuperación mientras se escribe.
+     * Formato: XXXX-XXXX-XXXX (mayúsculas y guiones automáticos)
+     */
+    private static class RecoveryCodeFormatter implements android.text.TextWatcher {
+        private final com.google.android.material.textfield.TextInputEditText editText;
+        private boolean isFormatting = false;
+        private int previousLength = 0;
+        private int previousCursorPosition = 0;
+        
+        public RecoveryCodeFormatter(com.google.android.material.textfield.TextInputEditText editText) {
+            this.editText = editText;
+        }
+        
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            previousLength = s.length();
+            previousCursorPosition = editText.getSelectionStart();
+        }
+        
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+            // No hacer nada aquí
+        }
+        
+        @Override
+        public void afterTextChanged(android.text.Editable s) {
+            if (isFormatting) {
+                return; // Evitar recursión infinita
+            }
+            
+            isFormatting = true;
+            
+            try {
+                String text = s.toString();
+                
+                // Convertir a mayúsculas y quitar caracteres no válidos (solo letras y números)
+                String cleaned = text.toUpperCase().replaceAll("[^A-Z0-9]", "");
+                
+                // Limitar a 12 caracteres
+                if (cleaned.length() > 12) {
+                    cleaned = cleaned.substring(0, 12);
+                }
+                
+                // Formatear con guiones: XXXX-XXXX-XXXX
+                StringBuilder formatted = new StringBuilder();
+                for (int i = 0; i < cleaned.length(); i++) {
+                    if (i > 0 && i % 4 == 0) {
+                        formatted.append("-");
+                    }
+                    formatted.append(cleaned.charAt(i));
+                }
+                
+                // Si el texto cambió, actualizarlo
+                if (!text.equals(formatted.toString())) {
+                    int currentCursorPosition = editText.getSelectionStart();
+                    s.replace(0, s.length(), formatted.toString());
+                    
+                    // Calcular nueva posición del cursor
+                    int newPosition = calculateNewCursorPosition(
+                            text, 
+                            formatted.toString(), 
+                            currentCursorPosition,
+                            previousCursorPosition,
+                            previousLength
+                    );
+                    
+                    if (newPosition >= 0 && newPosition <= formatted.length()) {
+                        editText.setSelection(newPosition);
+                    }
+                }
+            } catch (Exception e) {
+                android.util.Log.e("RecoveryCodeFormatter", "Error formateando código", e);
+            } finally {
+                isFormatting = false;
+            }
+        }
+        
+        /**
+         * Calcula la nueva posición del cursor después del formateo.
+         */
+        private int calculateNewCursorPosition(String oldText, String newText, int currentPos, int previousPos, int previousLength) {
+            // Contar caracteres válidos (sin guiones) antes del cursor en el texto anterior
+            int validCharsBeforeCursor = 0;
+            for (int i = 0; i < Math.min(currentPos, oldText.length()); i++) {
+                char c = oldText.charAt(i);
+                if (c != '-' && Character.isLetterOrDigit(c)) {
+                    validCharsBeforeCursor++;
+                }
+            }
+            
+            // Encontrar la posición en el nuevo texto que corresponde a esos caracteres válidos
+            int newPosition = 0;
+            int validCharsCounted = 0;
+            for (int i = 0; i < newText.length() && validCharsCounted < validCharsBeforeCursor; i++) {
+                char c = newText.charAt(i);
+                if (c != '-') {
+                    validCharsCounted++;
+                }
+                newPosition = i + 1;
+            }
+            
+            // Si estamos justo después de un guión y agregamos un carácter, avanzar el cursor
+            if (newText.length() > previousLength && newPosition < newText.length()) {
+                if (newText.charAt(newPosition - 1) == '-') {
+                    newPosition++;
+                }
+            }
+            
+            return Math.min(newPosition, newText.length());
+        }
     }
     
     private void recoverUserFromCode(String recoveryCode) {
@@ -1221,7 +1418,13 @@ public class SubjectListActivity extends AppCompatActivity {
                         Toast.makeText(SubjectListActivity.this, getString(R.string.data_recovered), Toast.LENGTH_SHORT).show();
                         refreshSubjectsList();
                     } else {
-                        Toast.makeText(SubjectListActivity.this, getString(R.string.recovery_error, errorMsg), Toast.LENGTH_LONG).show();
+                        // Mostrar un diálogo con el error completo para que el usuario pueda leerlo
+                        new androidx.appcompat.app.AlertDialog.Builder(SubjectListActivity.this)
+                                .setTitle(getString(R.string.recovery_code_not_found))
+                                .setMessage(errorMsg)
+                                .setPositiveButton(getString(R.string.button_ok), null)
+                                .setIcon(android.R.drawable.ic_dialog_alert)
+                                .show();
                     }
                 });
             }
@@ -1737,23 +1940,35 @@ public class SubjectListActivity extends AppCompatActivity {
                 });
             });
             
-            // Configurar click en hora
+            // Configurar click en hora - abrir TimePickerDialog con formato 24 horas
             etEventTime.setOnClickListener(v -> {
                 long currentTime = etEventTime.getTag() != null ? (Long) etEventTime.getTag() : System.currentTimeMillis();
                 java.util.Calendar cal = java.util.Calendar.getInstance();
                 cal.setTimeInMillis(currentTime);
-                int hh = cal.get(java.util.Calendar.HOUR_OF_DAY);
-                int mm = cal.get(java.util.Calendar.MINUTE);
+                int hour = cal.get(java.util.Calendar.HOUR_OF_DAY);
+                int minute = cal.get(java.util.Calendar.MINUTE);
                 
-                new android.app.TimePickerDialog(this, (tp, hour, minute) -> {
-                    cal.set(java.util.Calendar.HOUR_OF_DAY, hour);
-                    cal.set(java.util.Calendar.MINUTE, minute);
-                    cal.set(java.util.Calendar.SECOND, 0);
-                    cal.set(java.util.Calendar.MILLISECOND, 0);
-                    java.text.SimpleDateFormat timeFmt = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
-                    etEventTime.setText(timeFmt.format(cal.getTime()));
-                    etEventTime.setTag(cal.getTimeInMillis());
-                }, hh, mm, true).show();
+                // Crear TimePickerDialog con formato 24 horas
+                android.app.TimePickerDialog timePickerDialog = new android.app.TimePickerDialog(
+                    SubjectListActivity.this,
+                    (timeView, selectedHour, selectedMinute) -> {
+                        // Actualizar el tiempo en el Calendar
+                        cal.set(java.util.Calendar.HOUR_OF_DAY, selectedHour);
+                        cal.set(java.util.Calendar.MINUTE, selectedMinute);
+                        cal.set(java.util.Calendar.SECOND, 0);
+                        cal.set(java.util.Calendar.MILLISECOND, 0);
+                        
+                        // Formatear y mostrar la hora seleccionada
+                        java.text.SimpleDateFormat timeFormat2 = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+                        etEventTime.setText(timeFormat2.format(cal.getTime()));
+                        etEventTime.setTag(cal.getTimeInMillis());
+                    },
+                    hour,
+                    minute,
+                    true // true = formato 24 horas
+                );
+                timePickerDialog.setTitle(getString(R.string.event_time_hint));
+                timePickerDialog.show();
             });
         }
         
@@ -1842,18 +2057,38 @@ public class SubjectListActivity extends AppCompatActivity {
                     return;
                 }
 
-                // Obtener referencias a los botones personalizados
+                // Configurar barra de título personalizada
+                final android.view.View llDialogTitleBar = view.findViewById(R.id.llDialogTitleBar);
+                final android.widget.TextView tvDialogTitle = view.findViewById(R.id.tvDialogTitle);
+                final android.widget.ImageButton ibSave = view.findViewById(R.id.ibSave);
+                final android.widget.ImageButton ibClose = view.findViewById(R.id.ibClose);
+                
+                if (tvDialogTitle != null) {
+                    tvDialogTitle.setText(getString(R.string.new_event));
+                }
+                
+                // Ocultar botones al final
                 final com.google.android.material.button.MaterialButton btnSave = view.findViewById(R.id.btnSave);
                 final com.google.android.material.button.MaterialButton btnCancel = view.findViewById(R.id.btnCancel);
+                if (btnSave != null) {
+                    btnSave.setVisibility(android.view.View.GONE);
+                }
+                if (btnCancel != null) {
+                    btnCancel.setVisibility(android.view.View.GONE);
+                }
                 
                 androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
-                        .setTitle(getString(R.string.new_event))
                         .setView(view)
                         .create();
                 
-                // Configurar listener del botón Guardar
-                if (btnSave != null) {
-                    btnSave.setOnClickListener(v -> {
+                // Mostrar barra de título personalizada
+                if (llDialogTitleBar != null) {
+                    llDialogTitleBar.setVisibility(android.view.View.VISIBLE);
+                }
+                
+                // Configurar listener del icono Guardar
+                if (ibSave != null) {
+                    ibSave.setOnClickListener(v -> {
                         final String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
                         if (title.isEmpty()) {
                             Toast.makeText(this, getString(R.string.event_title_required), Toast.LENGTH_SHORT).show();
@@ -1979,14 +2214,14 @@ public class SubjectListActivity extends AppCompatActivity {
                         
                         final Integer fNotificationMinutesBefore = notificationMinutesBefore;
 
-                        insertLocalWithRepeat(fTitle, fSubjectId, fCost, dueAt, fKilometers, fRepeatType, fRepeatInterval, fRepeatEndDate, fRepeatCount, fNotificationMinutesBefore);
                         dialog.dismiss();
+                        insertLocalWithRepeat(fTitle, fSubjectId, fCost, dueAt, fKilometers, fRepeatType, fRepeatInterval, fRepeatEndDate, fRepeatCount, fNotificationMinutesBefore);
                     });
                 }
                 
-                // Configurar listener del botón Cancelar
-                if (btnCancel != null) {
-                    btnCancel.setOnClickListener(v -> dialog.dismiss());
+                // Configurar listener del icono Cerrar (Cancelar)
+                if (ibClose != null) {
+                    ibClose.setOnClickListener(v -> dialog.dismiss());
                 }
                 
                 dialog.show();

@@ -130,6 +130,21 @@ public class ExpensesActivity extends AppCompatActivity {
     }
 
     @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        // Establecer la versión dinámicamente
+        MenuItem versionItem = menu.findItem(R.id.action_version);
+        if (versionItem != null) {
+            try {
+                String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+                versionItem.setTitle("v" + versionName);
+            } catch (android.content.pm.PackageManager.NameNotFoundException e) {
+                versionItem.setTitle("v1.2");
+            }
+        }
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_agenda) {

@@ -1,11 +1,70 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
+
+<!-- Barra de título personalizada con iconos -->
+<LinearLayout
+    android:id="@+id/llDialogTitleBar"
+    android:orientation="horizontal"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp"
+    android:paddingBottom="8dp"
+    android:gravity="center_vertical"
+    android:background="?android:attr/windowBackground">
+
+    <TextView
+        android:id="@+id/tvDialogTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="@string/new_subject"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="?android:attr/textColorPrimary"/>
+
+    <ImageButton
+        android:id="@+id/ibSave"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_save"
+        android:tint="?attr/colorControlNormal"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/button_save"
+        android:padding="12dp"
+        android:layout_marginStart="8dp"/>
+
+    <ImageButton
+        android:id="@+id/ibClose"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_close"
+        android:tint="?attr/colorControlNormal"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/button_cancel"
+        android:padding="12dp"
+        android:layout_marginStart="8dp"/>
+</LinearLayout>
+
+<ScrollView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:maxHeight="500dp"
+    android:fillViewport="true"
+    android:scrollbars="vertical"
+    android:fadeScrollbars="false"
+    android:scrollbarThumbVertical="?android:attr/colorControlNormal"
+    android:scrollbarSize="8dp"
+    android:requiresFadingEdge="vertical"
+    android:fadingEdgeLength="20dp">
 
     <LinearLayout
         android:orientation="vertical"
         android:padding="16dp"
+        android:paddingBottom="24dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
@@ -104,6 +163,8 @@
         </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
 </ScrollView>
+
+</LinearLayout>
 
 
 

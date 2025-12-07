@@ -401,6 +401,16 @@ public class MainActivity extends AppCompatActivity {
         if (shareItem != null) {
             shareItem.setTitle(getString(R.string.menu_import_subject));
         }
+        // Establecer la versión dinámicamente
+        MenuItem versionItem = menu.findItem(R.id.action_version);
+        if (versionItem != null) {
+            try {
+                String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+                versionItem.setTitle("v" + versionName);
+            } catch (android.content.pm.PackageManager.NameNotFoundException e) {
+                versionItem.setTitle("v1.2");
+            }
+        }
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -706,6 +716,11 @@ public class MainActivity extends AppCompatActivity {
         android.view.View view = getLayoutInflater().inflate(R.layout.dialog_recover_code, null);
         com.google.android.material.textfield.TextInputEditText etCode = view.findViewById(R.id.etRecoveryCode);
         
+        // Agregar formateo automático del código mientras se escribe
+        if (etCode != null) {
+            etCode.addTextChangedListener(new RecoveryCodeFormatter(etCode));
+        }
+        
         recoverDialog = new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle(getString(R.string.recovery_code_recover_title))
                 .setMessage(getString(R.string.recovery_code_recover_message))
@@ -737,6 +752,119 @@ public class MainActivity extends AppCompatActivity {
                 .create();
         
         recoverDialog.show();
+    }
+    
+    /**
+     * TextWatcher que formatea automáticamente el código de recuperación mientras se escribe.
+     * Formato: XXXX-XXXX-XXXX (mayúsculas y guiones automáticos)
+     */
+    private static class RecoveryCodeFormatter implements android.text.TextWatcher {
+        private final com.google.android.material.textfield.TextInputEditText editText;
+        private boolean isFormatting = false;
+        private int previousLength = 0;
+        private int previousCursorPosition = 0;
+        
+        public RecoveryCodeFormatter(com.google.android.material.textfield.TextInputEditText editText) {
+            this.editText = editText;
+        }
+        
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            previousLength = s.length();
+            previousCursorPosition = editText.getSelectionStart();
+        }
+        
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+            // No hacer nada aquí
+        }
+        
+        @Override
+        public void afterTextChanged(android.text.Editable s) {
+            if (isFormatting) {
+                return; // Evitar recursión infinita
+            }
+            
+            isFormatting = true;
+            
+            try {
+                String text = s.toString();
+                
+                // Convertir a mayúsculas y quitar caracteres no válidos (solo letras y números)
+                String cleaned = text.toUpperCase().replaceAll("[^A-Z0-9]", "");
+                
+                // Limitar a 12 caracteres
+                if (cleaned.length() > 12) {
+                    cleaned = cleaned.substring(0, 12);
+                }
+                
+                // Formatear con guiones: XXXX-XXXX-XXXX
+                StringBuilder formatted = new StringBuilder();
+                for (int i = 0; i < cleaned.length(); i++) {
+                    if (i > 0 && i % 4 == 0) {
+                        formatted.append("-");
+                    }
+                    formatted.append(cleaned.charAt(i));
+                }
+                
+                // Si el texto cambió, actualizarlo
+                if (!text.equals(formatted.toString())) {
+                    int currentCursorPosition = editText.getSelectionStart();
+                    s.replace(0, s.length(), formatted.toString());
+                    
+                    // Calcular nueva posición del cursor
+                    int newPosition = calculateNewCursorPosition(
+                            text, 
+                            formatted.toString(), 
+                            currentCursorPosition,
+                            previousCursorPosition,
+                            previousLength
+                    );
+                    
+                    if (newPosition >= 0 && newPosition <= formatted.length()) {
+                        editText.setSelection(newPosition);
+                    }
+                }
+            } catch (Exception e) {
+                android.util.Log.e("RecoveryCodeFormatter", "Error formateando código", e);
+            } finally {
+                isFormatting = false;
+            }
+        }
+        
+        /**
+         * Calcula la nueva posición del cursor después del formateo.
+         */
+        private int calculateNewCursorPosition(String oldText, String newText, int currentPos, int previousPos, int previousLength) {
+            // Contar caracteres válidos (sin guiones) antes del cursor en el texto anterior
+            int validCharsBeforeCursor = 0;
+            for (int i = 0; i < Math.min(currentPos, oldText.length()); i++) {
+                char c = oldText.charAt(i);
+                if (c != '-' && Character.isLetterOrDigit(c)) {
+                    validCharsBeforeCursor++;
+                }
+            }
+            
+            // Encontrar la posición en el nuevo texto que corresponde a esos caracteres válidos
+            int newPosition = 0;
+            int validCharsCounted = 0;
+            for (int i = 0; i < newText.length() && validCharsCounted < validCharsBeforeCursor; i++) {
+                char c = newText.charAt(i);
+                if (c != '-') {
+                    validCharsCounted++;
+                }
+                newPosition = i + 1;
+            }
+            
+            // Si estamos justo después de un guión y agregamos un carácter, avanzar el cursor
+            if (newText.length() > previousLength && newPosition < newText.length()) {
+                if (newText.charAt(newPosition - 1) == '-') {
+                    newPosition++;
+                }
+            }
+            
+            return Math.min(newPosition, newText.length());
+        }
     }
     
     private void recoverUserFromCode(String recoveryCode) {
@@ -1613,37 +1741,145 @@ public class MainActivity extends AppCompatActivity {
                     if (idx >= 0) sp.setSelection(idx);
                 }
 
-                new androidx.appcompat.app.AlertDialog.Builder(this)
-                        .setTitle(getString(R.string.new_event))
+                // Configurar campos de fecha y hora
+                final com.google.android.material.textfield.TextInputEditText etEventDate = view.findViewById(R.id.etEventDate);
+                final com.google.android.material.textfield.TextInputEditText etEventTime = view.findViewById(R.id.etEventTime);
+                
+                if (etEventDate != null && etEventTime != null) {
+                    final java.util.Calendar now = java.util.Calendar.getInstance();
+                    java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+                    java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+                    etEventDate.setText(dateFormat.format(now.getTime()));
+                    etEventTime.setText(timeFormat.format(now.getTime()));
+                    etEventDate.setTag(now.getTimeInMillis());
+                    etEventTime.setTag(now.getTimeInMillis());
+                    
+                    // Configurar click en fecha
+                    etEventDate.setOnClickListener(v -> {
+                        long currentDate = etEventDate.getTag() != null ? (Long) etEventDate.getTag() : System.currentTimeMillis();
+                        pickDateOnly(currentDate, dateMillis -> {
+                            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+                            etEventDate.setText(sdf.format(new java.util.Date(dateMillis)));
+                            etEventDate.setTag(dateMillis);
+                        });
+                    });
+                    
+                    // Configurar click en hora - abrir TimePickerDialog con formato 24 horas
+                    etEventTime.setOnClickListener(v -> {
+                        long currentTime = etEventTime.getTag() != null ? (Long) etEventTime.getTag() : System.currentTimeMillis();
+                        java.util.Calendar cal = java.util.Calendar.getInstance();
+                        cal.setTimeInMillis(currentTime);
+                        int hour = cal.get(java.util.Calendar.HOUR_OF_DAY);
+                        int minute = cal.get(java.util.Calendar.MINUTE);
+                        
+                        // Crear TimePickerDialog con formato 24 horas
+                        android.app.TimePickerDialog timePickerDialog = new android.app.TimePickerDialog(
+                            MainActivity.this,
+                            (view2, selectedHour, selectedMinute) -> {
+                                // Actualizar el tiempo en el Calendar
+                                cal.set(java.util.Calendar.HOUR_OF_DAY, selectedHour);
+                                cal.set(java.util.Calendar.MINUTE, selectedMinute);
+                                cal.set(java.util.Calendar.SECOND, 0);
+                                cal.set(java.util.Calendar.MILLISECOND, 0);
+                                
+                                // Formatear y mostrar la hora seleccionada
+                                java.text.SimpleDateFormat timeFormat2 = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+                                etEventTime.setText(timeFormat2.format(cal.getTime()));
+                                etEventTime.setTag(cal.getTimeInMillis());
+                            },
+                            hour,
+                            minute,
+                            true // true = formato 24 horas
+                        );
+                        timePickerDialog.setTitle(getString(R.string.event_time_hint));
+                        timePickerDialog.show();
+                    });
+                }
+
+                // Configurar barra de título personalizada
+                final android.view.View llDialogTitleBar = view.findViewById(R.id.llDialogTitleBar);
+                final android.widget.TextView tvDialogTitle = view.findViewById(R.id.tvDialogTitle);
+                final android.widget.ImageButton ibSave = view.findViewById(R.id.ibSave);
+                final android.widget.ImageButton ibClose = view.findViewById(R.id.ibClose);
+                
+                if (tvDialogTitle != null) {
+                    tvDialogTitle.setText(getString(R.string.new_event));
+                }
+                
+                // Ocultar botones al final
+                final com.google.android.material.button.MaterialButton btnSave = view.findViewById(R.id.btnSave);
+                final com.google.android.material.button.MaterialButton btnCancel = view.findViewById(R.id.btnCancel);
+                if (btnSave != null) {
+                    btnSave.setVisibility(android.view.View.GONE);
+                }
+                if (btnCancel != null) {
+                    btnCancel.setVisibility(android.view.View.GONE);
+                }
+                
+                androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
                         .setView(view)
-                        .setPositiveButton(getString(R.string.button_choose_date_time), (d, w) -> {
-                            final String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
-                            if (title.isEmpty()) {
-                                Toast.makeText(this, getString(R.string.event_title_required), Toast.LENGTH_SHORT).show();
-                                return;
-                            }
-                            if (subjects.isEmpty()) {
-                                Toast.makeText(this, getString(R.string.error_create_subject_first), Toast.LENGTH_LONG).show();
-                                return;
-                            }
-                            final int pos = sp.getSelectedItemPosition();
-                            if (pos < 0 || pos >= subjects.size()) {
-                                Toast.makeText(this, getString(R.string.error_select_subject), Toast.LENGTH_SHORT).show();
-                                return;
-                            }
-                            final String subjectId = subjects.get(pos).id;
+                        .create();
+                
+                // Mostrar barra de título personalizada
+                if (llDialogTitleBar != null) {
+                    llDialogTitleBar.setVisibility(android.view.View.VISIBLE);
+                }
+                
+                // Configurar listener del icono Guardar
+                if (ibSave != null) {
+                    ibSave.setOnClickListener(v -> {
+                        final String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
+                        if (title.isEmpty()) {
+                            Toast.makeText(this, getString(R.string.event_title_required), Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        if (subjects.isEmpty()) {
+                            Toast.makeText(this, getString(R.string.error_create_subject_first), Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        final int pos = sp.getSelectedItemPosition();
+                        if (pos < 0 || pos >= subjects.size()) {
+                            Toast.makeText(this, getString(R.string.error_select_subject), Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        final String subjectId = subjects.get(pos).id;
 
-                            final String c = etCost.getText() != null ? etCost.getText().toString().trim() : "";
-                            final Double cost = c.isEmpty() ? null : safeParseDouble(c);
+                        final String c = etCost.getText() != null ? etCost.getText().toString().trim() : "";
+                        final Double cost = c.isEmpty() ? null : safeParseDouble(c);
 
-                            final String fTitle = title;
-                            final String fSubjectId = subjectId;
-                            final Double fCost = cost;
+                        // Obtener fecha y hora de los campos
+                        long dueAt = System.currentTimeMillis();
+                        if (etEventDate != null && etEventTime != null) {
+                            Long dateMillis = etEventDate.getTag() != null ? (Long) etEventDate.getTag() : null;
+                            Long timeMillis = etEventTime.getTag() != null ? (Long) etEventTime.getTag() : null;
+                            
+                            if (dateMillis != null && timeMillis != null) {
+                                java.util.Calendar dateCal = java.util.Calendar.getInstance();
+                                dateCal.setTimeInMillis(dateMillis);
+                                
+                                java.util.Calendar timeCal = java.util.Calendar.getInstance();
+                                timeCal.setTimeInMillis(timeMillis);
+                                
+                                dateCal.set(java.util.Calendar.HOUR_OF_DAY, timeCal.get(java.util.Calendar.HOUR_OF_DAY));
+                                dateCal.set(java.util.Calendar.MINUTE, timeCal.get(java.util.Calendar.MINUTE));
+                                dateCal.set(java.util.Calendar.SECOND, 0);
+                                dateCal.set(java.util.Calendar.MILLISECOND, 0);
+                                
+                                dueAt = dateCal.getTimeInMillis();
+                            }
+                        }
 
-                            pickDateTime(0, dueAt -> insertLocal(fTitle, fSubjectId, fCost, dueAt));
-                        })
-                        .setNegativeButton(getString(R.string.button_cancel), null)
-                        .show();
+                        dialog.dismiss();
+                        insertLocal(title, subjectId, cost, dueAt);
+                    });
+                }
+                
+                // Configurar listener del icono Cerrar (Cancelar)
+                if (ibClose != null) {
+                    ibClose.setOnClickListener(v -> dialog.dismiss());
+                }
+                
+                dialog.show();
             });
         }).start();
     }
@@ -1910,26 +2146,151 @@ public class MainActivity extends AppCompatActivity {
 
         // Hide subject spinner for editing (subject shouldn't change)
         sp.setVisibility(android.view.View.GONE);
+        
+        // Configurar campos de fecha y hora
+        final com.google.android.material.textfield.TextInputEditText etEventDate = view.findViewById(R.id.etEventDate);
+        final com.google.android.material.textfield.TextInputEditText etEventTime = view.findViewById(R.id.etEventTime);
+        
+        if (etEventDate != null && etEventTime != null) {
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.setTimeInMillis(e.dueAt);
+            java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+            java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+            etEventDate.setText(dateFormat.format(cal.getTime()));
+            etEventTime.setText(timeFormat.format(cal.getTime()));
+            etEventDate.setTag(e.dueAt);
+            etEventTime.setTag(e.dueAt);
+            
+            // Configurar click en fecha
+            etEventDate.setOnClickListener(v -> {
+                long currentDate = etEventDate.getTag() != null ? (Long) etEventDate.getTag() : e.dueAt;
+                pickDateOnly(currentDate, dateMillis -> {
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+                    etEventDate.setText(sdf.format(new java.util.Date(dateMillis)));
+                    etEventDate.setTag(dateMillis);
+                });
+            });
+            
+            // Configurar click en hora - abrir TimePickerDialog con formato 24 horas
+            etEventTime.setOnClickListener(v -> {
+                long currentTime = etEventTime.getTag() != null ? (Long) etEventTime.getTag() : e.dueAt;
+                java.util.Calendar timeCal = java.util.Calendar.getInstance();
+                timeCal.setTimeInMillis(currentTime);
+                int hour = timeCal.get(java.util.Calendar.HOUR_OF_DAY);
+                int minute = timeCal.get(java.util.Calendar.MINUTE);
+                
+                // Crear TimePickerDialog con formato 24 horas
+                android.app.TimePickerDialog timePickerDialog = new android.app.TimePickerDialog(
+                    MainActivity.this,
+                    (view2, selectedHour, selectedMinute) -> {
+                        // Actualizar el tiempo en el Calendar
+                        timeCal.set(java.util.Calendar.HOUR_OF_DAY, selectedHour);
+                        timeCal.set(java.util.Calendar.MINUTE, selectedMinute);
+                        timeCal.set(java.util.Calendar.SECOND, 0);
+                        timeCal.set(java.util.Calendar.MILLISECOND, 0);
+                        
+                        // Formatear y mostrar la hora seleccionada
+                        java.text.SimpleDateFormat timeFormat2 = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+                        etEventTime.setText(timeFormat2.format(timeCal.getTime()));
+                        etEventTime.setTag(timeCal.getTimeInMillis());
+                    },
+                    hour,
+                    minute,
+                    true // true = formato 24 horas
+                );
+                timePickerDialog.setTitle(getString(R.string.event_time_hint));
+                timePickerDialog.show();
+            });
+        }
 
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle(getString(R.string.edit_event))
+        // Configurar barra de título personalizada
+        final android.view.View llDialogTitleBar = view.findViewById(R.id.llDialogTitleBar);
+        final android.widget.TextView tvDialogTitle = view.findViewById(R.id.tvDialogTitle);
+        final android.widget.ImageButton ibDelete = view.findViewById(R.id.ibDelete);
+        final android.widget.ImageButton ibSave = view.findViewById(R.id.ibSave);
+        final android.widget.ImageButton ibClose = view.findViewById(R.id.ibClose);
+        
+        if (tvDialogTitle != null) {
+            tvDialogTitle.setText(getString(R.string.edit_event));
+        }
+        
+        // Ocultar botones al final
+        final com.google.android.material.button.MaterialButton btnSave = view.findViewById(R.id.btnSave);
+        final com.google.android.material.button.MaterialButton btnCancel = view.findViewById(R.id.btnCancel);
+        final com.google.android.material.button.MaterialButton btnDelete = view.findViewById(R.id.btnDelete);
+        if (btnSave != null) {
+            btnSave.setVisibility(android.view.View.GONE);
+        }
+        if (btnCancel != null) {
+            btnCancel.setVisibility(android.view.View.GONE);
+        }
+        if (btnDelete != null) {
+            btnDelete.setVisibility(android.view.View.GONE);
+        }
+        
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setView(view)
-                .setPositiveButton(getString(R.string.button_choose_date_time), (d, w) -> {
-                    String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
-                    if (title.isEmpty()) {
-                        Toast.makeText(this, getString(R.string.event_title_required), Toast.LENGTH_SHORT).show();
-                        return;
+                .create();
+        
+        // Mostrar barra de título personalizada
+        if (llDialogTitleBar != null) {
+            llDialogTitleBar.setVisibility(android.view.View.VISIBLE);
+        }
+        
+        // Configurar listener del icono Eliminar
+        if (ibDelete != null) {
+            ibDelete.setOnClickListener(v -> {
+                dialog.dismiss();
+                softDelete(e.id);
+            });
+        }
+        
+        // Configurar listener del icono Guardar
+        if (ibSave != null) {
+            ibSave.setOnClickListener(v -> {
+                String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
+                if (title.isEmpty()) {
+                    Toast.makeText(this, getString(R.string.event_title_required), Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (!LimitGuard.canCreateEvent(this, db, appType)) return;
+
+                final String c = etCost.getText() != null ? etCost.getText().toString().trim() : "";
+                final Double cost = c.isEmpty() ? null : safeParseDouble(c);
+                
+                // Obtener fecha y hora de los campos
+                long dueAt = e.dueAt;
+                if (etEventDate != null && etEventTime != null) {
+                    Long dateMillis = etEventDate.getTag() != null ? (Long) etEventDate.getTag() : null;
+                    Long timeMillis = etEventTime.getTag() != null ? (Long) etEventTime.getTag() : null;
+                    
+                    if (dateMillis != null && timeMillis != null) {
+                        java.util.Calendar dateCal = java.util.Calendar.getInstance();
+                        dateCal.setTimeInMillis(dateMillis);
+                        
+                        java.util.Calendar timeCal = java.util.Calendar.getInstance();
+                        timeCal.setTimeInMillis(timeMillis);
+                        
+                        dateCal.set(java.util.Calendar.HOUR_OF_DAY, timeCal.get(java.util.Calendar.HOUR_OF_DAY));
+                        dateCal.set(java.util.Calendar.MINUTE, timeCal.get(java.util.Calendar.MINUTE));
+                        dateCal.set(java.util.Calendar.SECOND, 0);
+                        dateCal.set(java.util.Calendar.MILLISECOND, 0);
+                        
+                        dueAt = dateCal.getTimeInMillis();
                     }
-                    if (!LimitGuard.canCreateEvent(this, db, appType)) return;
+                }
 
-                    final String c = etCost.getText() != null ? etCost.getText().toString().trim() : "";
-                    final Double cost = c.isEmpty() ? null : safeParseDouble(c);
-
-                    pickDateTime(e.dueAt, dueAt -> updateLocal(e, title, cost, dueAt));
-                })
-                .setNeutralButton(getString(R.string.button_delete), (d, w) -> softDelete(e.id))
-                .setNegativeButton(getString(R.string.button_cancel), null)
-                .show();
+                dialog.dismiss();
+                updateLocal(e, title, cost, dueAt);
+            });
+        }
+        
+        // Configurar listener del icono Cerrar (Cancelar)
+        if (ibClose != null) {
+            ibClose.setOnClickListener(v -> dialog.dismiss());
+        }
+        
+        dialog.show();
     }
 
     private void updateLocal(EventEntity e, String title, Double cost, long dueAt) {
@@ -1953,6 +2314,26 @@ public class MainActivity extends AppCompatActivity {
 
     // ===== Picker de fecha/hora =====
     private interface DateTimeCallback { void onPicked(long dueAtMillis); }
+    
+    private void pickDateOnly(long initialMillis, DateTimeCallback cb) {
+        final java.util.Calendar cal = java.util.Calendar.getInstance();
+        if (initialMillis > 0) cal.setTimeInMillis(initialMillis);
+        int y = cal.get(java.util.Calendar.YEAR);
+        int m = cal.get(java.util.Calendar.MONTH);
+        int d = cal.get(java.util.Calendar.DAY_OF_MONTH);
+
+        new android.app.DatePickerDialog(this, (v, year, month, day) -> {
+            cal.set(java.util.Calendar.YEAR, year);
+            cal.set(java.util.Calendar.MONTH, month);
+            cal.set(java.util.Calendar.DAY_OF_MONTH, day);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 23);
+            cal.set(java.util.Calendar.MINUTE, 59);
+            cal.set(java.util.Calendar.SECOND, 59);
+            cal.set(java.util.Calendar.MILLISECOND, 999);
+            cb.onPicked(cal.getTimeInMillis());
+        }, y, m, d).show();
+    }
+    
     private void pickDateTime(long initialMillis, DateTimeCallback cb) {
         final java.util.Calendar cal = java.util.Calendar.getInstance();
         if (initialMillis > 0) cal.setTimeInMillis(initialMillis);
