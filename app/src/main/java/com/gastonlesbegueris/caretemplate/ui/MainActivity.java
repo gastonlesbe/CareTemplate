@@ -37,6 +37,8 @@ import com.google.android.gms.ads.OnUserEarnedRewardListener;
 import com.google.android.gms.ads.FullScreenContentCallback;
 import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.AdError;
+import com.google.android.gms.ads.interstitial.InterstitialAd;
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 
 
 import java.util.List;
@@ -60,6 +62,11 @@ public class MainActivity extends AppCompatActivity {
     // Rewarded Ad para código de recuperación
     private RewardedAd rewardedAd;
     private boolean isRewardedAdLoading = false;
+    
+    // Interstitial Ad para sincronización
+    private InterstitialAd interstitialAd;
+    private boolean isInterstitialAdLoading = false;
+    private Runnable syncCallback = null; // Callback para ejecutar después del anuncio
     
     // Flag para indicar que estamos en modo de recuperación silenciosa
     private boolean isSilentRecoveryMode = false;
@@ -227,6 +234,120 @@ public class MainActivity extends AppCompatActivity {
         AdView adView = findViewById(R.id.adView);
         AdRequest adRequest = new AdRequest.Builder().build();
         adView.loadAd(adRequest);
+        
+        // Precargar anuncio intersticial
+        loadInterstitialAd();
+    }
+    
+    private void loadInterstitialAd() {
+        if (isInterstitialAdLoading || interstitialAd != null) {
+            return; // Ya está cargando o ya está cargado
+        }
+        
+        isInterstitialAdLoading = true;
+        String interstitialAdId = getString(R.string.admob_interstitial_id);
+        AdRequest adRequest = new AdRequest.Builder().build();
+        
+        InterstitialAd.load(this, interstitialAdId, adRequest,
+                new InterstitialAdLoadCallback() {
+                    @Override
+                    public void onAdLoaded(InterstitialAd ad) {
+                        isInterstitialAdLoading = false;
+                        interstitialAd = ad;
+                        Log.d("MainActivity", "Interstitial ad loaded");
+                    }
+                    
+                    @Override
+                    public void onAdFailedToLoad(LoadAdError loadAdError) {
+                        isInterstitialAdLoading = false;
+                        interstitialAd = null;
+                        Log.e("MainActivity", "Interstitial ad failed to load: " + loadAdError.getMessage());
+                    }
+                });
+    }
+    
+    private void showInterstitialAdAndSync(Runnable onAdClosed) {
+        syncCallback = onAdClosed;
+        
+        // Si ya hay un ad cargado, mostrarlo directamente
+        if (interstitialAd != null) {
+            showInterstitialAd();
+            return;
+        }
+        
+        // Si no hay ad cargado, intentar cargar uno nuevo
+        if (!isInterstitialAdLoading) {
+            loadInterstitialAd();
+        }
+        
+        // Si después de intentar cargar aún no hay ad, ejecutar la sincronización directamente
+        if (interstitialAd == null) {
+            if (syncCallback != null) {
+                syncCallback.run();
+                syncCallback = null;
+            }
+            return;
+        }
+        
+        // Esperar un poco y mostrar el ad si se cargó
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            if (interstitialAd != null) {
+                showInterstitialAd();
+            } else if (syncCallback != null) {
+                // Si después de esperar no hay ad, ejecutar sincronización directamente
+                syncCallback.run();
+                syncCallback = null;
+            }
+        }, 500);
+    }
+    
+    private void showInterstitialAd() {
+        if (interstitialAd == null) {
+            // Si no hay ad, ejecutar sincronización directamente
+            if (syncCallback != null) {
+                syncCallback.run();
+                syncCallback = null;
+            }
+            return;
+        }
+        
+        interstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+            @Override
+            public void onAdDismissedFullScreenContent() {
+                // Anuncio cerrado, ejecutar sincronización
+                interstitialAd = null;
+                loadInterstitialAd(); // Precargar siguiente anuncio
+                
+                // Ejecutar sincronización (el popup se mostrará cuando termine)
+                if (syncCallback != null) {
+                    syncCallback.run();
+                    syncCallback = null;
+                }
+            }
+            
+            @Override
+            public void onAdFailedToShowFullScreenContent(AdError adError) {
+                // Si falla mostrar el ad, ejecutar sincronización directamente
+                interstitialAd = null;
+                loadInterstitialAd();
+                
+                if (syncCallback != null) {
+                    syncCallback.run();
+                    syncCallback = null;
+                }
+            }
+        });
+        
+        interstitialAd.show(this);
+    }
+    
+    private void showSyncCompletedDialog() {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(getString(R.string.sync_completed))
+                .setMessage(getString(R.string.sync_completed_message))
+                .setPositiveButton(getString(R.string.button_ok), null)
+                .setIcon(android.R.drawable.ic_dialog_info)
+                .show();
     }
 
     @Override
@@ -275,6 +396,11 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
+        // Asegurar que el título del menú "Importar sujeto" esté correcto
+        MenuItem shareItem = menu.findItem(R.id.action_share_subject);
+        if (shareItem != null) {
+            shareItem.setTitle(getString(R.string.menu_import_subject));
+        }
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -287,55 +413,59 @@ public class MainActivity extends AppCompatActivity {
             return true;
 
     } else if (id == R.id.action_sync) {
-            startSyncIconAnimation();
-            try {
-                if (FirebaseAuth.getInstance().getCurrentUser() == null) {
-                    FirebaseAuth.getInstance().signInAnonymously()
-                            .addOnSuccessListener(authResult -> {
-                                if (authResult != null && authResult.getUser() != null) {
-                                    doSync();
-                                } else {
-                                    stopSyncIconAnimation();
-                                    Toast.makeText(this, "Error: No se pudo autenticar", Toast.LENGTH_LONG).show();
-                                }
-                            })
-                            .addOnFailureListener(e -> {
-                                stopSyncIconAnimation();
-                                String errorMsg = e != null ? e.getMessage() : "null";
-                                // Verificar si es error de permisos antes de mostrar
-                                if (isPermissionError(errorMsg)) {
-                                    Log.d("MainActivity", "Error de permisos SILENCIADO en auth failure");
-                                    Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
-                                } else if (errorMsg != null && errorMsg.contains("SecurityException")) {
-                                    Toast.makeText(this, getString(R.string.sync_config_error), Toast.LENGTH_LONG).show();
-                                } else {
-                                    Toast.makeText(this, getString(R.string.auth_error_message, errorMsg), Toast.LENGTH_LONG).show();
-                                }
-                            });
-                } else {
-                    doSync();
-                }
-            } catch (Exception e) {
-                stopSyncIconAnimation();
-                // Verificar si es error de permisos antes de mostrar
-                String errorMsg = e != null ? e.getMessage() : "null";
-                if (isPermissionError(errorMsg)) {
-                    Log.d("MainActivity", "Error de permisos SILENCIADO en doSync catch");
-                    Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(this, getString(R.string.sync_start_error, errorMsg), Toast.LENGTH_LONG).show();
-                }
-            }
+            // Mostrar anuncio intersticial antes de sincronizar
+            showInterstitialAdAndSync(() -> {
+                // Este callback se ejecutará después de que se cierre el anuncio
+                runOnUiThread(() -> {
+                    startSyncIconAnimation();
+                    try {
+                        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+                            FirebaseAuth.getInstance().signInAnonymously()
+                                    .addOnSuccessListener(authResult -> {
+                                        if (authResult != null && authResult.getUser() != null) {
+                                            doSync();
+                                        } else {
+                                            stopSyncIconAnimation();
+                                            Toast.makeText(this, "Error: No se pudo autenticar", Toast.LENGTH_LONG).show();
+                                        }
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        stopSyncIconAnimation();
+                                        String errorMsg = e != null ? e.getMessage() : "null";
+                                        // Verificar si es error de permisos antes de mostrar
+                                        if (isPermissionError(errorMsg)) {
+                                            Log.d("MainActivity", "Error de permisos SILENCIADO en auth failure");
+                                            Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                                        } else if (errorMsg != null && errorMsg.contains("SecurityException")) {
+                                            Toast.makeText(this, getString(R.string.sync_config_error), Toast.LENGTH_LONG).show();
+                                        } else {
+                                            Toast.makeText(this, getString(R.string.auth_error_message, errorMsg), Toast.LENGTH_LONG).show();
+                                        }
+                                    });
+                        } else {
+                            doSync();
+                        }
+                    } catch (Exception e) {
+                        runOnUiThread(() -> {
+                            stopSyncIconAnimation();
+                            showSyncError("Error al iniciar sync", e);
+                        });
+                    }
+                });
+            });
             return true;
         } else if (id == R.id.action_subjects) {
             startActivity(new android.content.Intent(this, SubjectListActivity.class));
             return true;
-        }
-        else if (id == R.id.action_expenses) {
+        } else if (id == R.id.action_expenses) {
             startActivity(new android.content.Intent(this, ExpensesActivity.class));
             return true;
         } else if (id == R.id.action_recovery) {
             showRecoveryCodeDialog();
+            return true;
+        } else if (id == R.id.action_share_subject) {
+            // Mostrar diálogo para importar sujeto compartido
+            showImportSharedSubjectDialog();
             return true;
         }
 
@@ -1074,16 +1204,20 @@ public class MainActivity extends AppCompatActivity {
                     sync.pullSubjects(() -> {
                         sync.pull(
                                 () -> runOnUiThread(() -> {
-                                    Toast.makeText(this, getString(R.string.sync_pull_success), Toast.LENGTH_SHORT).show();
                                     stopSyncIconAnimation();
                                     refreshHeader();
+                                    // Mostrar popup de sincronización realizada
+                                    showSyncCompletedDialog();
                                 }),
                                 e -> runOnUiThread(() -> {
                                     // Verificar si es error de permisos antes de mostrar
                                     String errorMsg = e != null ? e.getMessage() : "null";
                                     if (isPermissionError(errorMsg)) {
                                         Log.d("MainActivity", "Error de permisos SILENCIADO en pull");
-                                        Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                                        stopSyncIconAnimation();
+                                        refreshHeader();
+                                        // Mostrar popup de sincronización realizada
+                                        showSyncCompletedDialog();
                                     } else {
                                         showSyncError("Pull error", e);
                                     }
@@ -1568,6 +1702,192 @@ public class MainActivity extends AppCompatActivity {
         
         // Fallback: generar UUID temporal (se actualizará en la próxima sincronización)
         return java.util.UUID.randomUUID().toString();
+    }
+    
+    // ===== Import Shared Subject =====
+    
+    private void showImportSharedSubjectDialog() {
+        android.widget.EditText etCode = new android.widget.EditText(this);
+        etCode.setHint(getString(R.string.share_subject_code_hint));
+        etCode.setInputType(android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
+        
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(getString(R.string.share_subject_receive_title))
+                .setMessage(getString(R.string.share_subject_receive_message))
+                .setView(etCode)
+                .setPositiveButton(getString(R.string.button_import), (d, w) -> {
+                    String code = etCode != null && etCode.getText() != null ? etCode.getText().toString().trim() : "";
+                    if (code.isEmpty()) {
+                        Toast.makeText(this, getString(R.string.share_subject_invalid), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    importSharedSubject(code);
+                })
+                .setNegativeButton(getString(R.string.button_cancel), null)
+                .show();
+    }
+    
+    private void importSharedSubject(String shareCode) {
+        com.gastonlesbegueris.caretemplate.util.SubjectShareManager shareManager = 
+                new com.gastonlesbegueris.caretemplate.util.SubjectShareManager(this);
+        
+        Toast.makeText(this, getString(R.string.share_subject_importing), Toast.LENGTH_SHORT).show();
+        
+        shareManager.getSharedSubject(shareCode, new com.gastonlesbegueris.caretemplate.util.SubjectShareManager.SharedSubjectCallback() {
+            @Override
+            public void onSharedSubject(String sharedSubjectId, String ownerUserId) {
+                // Importar el sujeto y sus eventos desde el usuario dueño
+                importSubjectFromUser(sharedSubjectId, ownerUserId);
+            }
+            
+            @Override
+            public void onError(Exception error) {
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this, 
+                            getString(R.string.share_subject_import_error, error.getMessage()), 
+                            Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+    
+    private void importSubjectFromUser(String sharedSubjectId, String ownerUserId) {
+        new Thread(() -> {
+            try {
+                // Obtener el sujeto desde Firestore del usuario dueño
+                com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
+                
+                firestore.collection("users").document(ownerUserId)
+                        .collection("apps").document("CareTemplate")
+                        .collection("subjects").document(sharedSubjectId)
+                        .get()
+                        .addOnSuccessListener(subjectDoc -> {
+                            if (!subjectDoc.exists()) {
+                                runOnUiThread(() -> {
+                                    Toast.makeText(MainActivity.this, 
+                                            getString(R.string.share_subject_not_found), 
+                                            Toast.LENGTH_LONG).show();
+                                });
+                                return;
+                            }
+                            
+                            // Crear nuevo sujeto local con los datos del compartido
+                            SubjectEntity newSubject = new SubjectEntity();
+                            newSubject.id = java.util.UUID.randomUUID().toString(); // Nuevo ID para el usuario que recibe
+                            newSubject.appType = subjectDoc.getString("appType");
+                            newSubject.name = subjectDoc.getString("name");
+                            
+                            Long bd = subjectDoc.getLong("birthDate");
+                            newSubject.birthDate = (bd != null ? bd : null);
+                            
+                            Double cm = subjectDoc.getDouble("currentMeasure");
+                            newSubject.currentMeasure = (cm != null ? cm : null);
+                            
+                            newSubject.notes = subjectDoc.getString("notes");
+                            newSubject.iconKey = subjectDoc.getString("iconKey");
+                            newSubject.colorHex = subjectDoc.getString("colorHex");
+                            newSubject.updatedAt = System.currentTimeMillis();
+                            newSubject.deleted = 0;
+                            newSubject.dirty = 1; // Marcar para sincronizar
+                            
+                            // Insertar el sujeto
+                            subjectDao.insert(newSubject);
+                            
+                            // Importar eventos del sujeto compartido
+                            importSubjectEvents(sharedSubjectId, ownerUserId, newSubject.id);
+                            
+                            runOnUiThread(() -> {
+                                Toast.makeText(MainActivity.this, 
+                                        getString(R.string.share_subject_imported), 
+                                        Toast.LENGTH_SHORT).show();
+                                // Refrescar la UI
+                                observeLocal();
+                                observeSubjectsForAdapter();
+                                refreshHeader();
+                            });
+                        })
+                        .addOnFailureListener(e -> {
+                            runOnUiThread(() -> {
+                                Toast.makeText(MainActivity.this, 
+                                        getString(R.string.share_subject_import_error, e.getMessage()), 
+                                        Toast.LENGTH_LONG).show();
+                            });
+                        });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this, 
+                            getString(R.string.share_subject_import_error, e.getMessage()), 
+                            Toast.LENGTH_LONG).show();
+                });
+            }
+        }).start();
+    }
+    
+    private void importSubjectEvents(String originalSubjectId, String ownerUserId, String newSubjectId) {
+        com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
+        String currentUserId = getCurrentUserId();
+        
+        firestore.collection("users").document(ownerUserId)
+                .collection("apps").document("CareTemplate")
+                .collection("events")
+                .whereEqualTo("subjectId", originalSubjectId)
+                .whereEqualTo("deleted", 0)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    new Thread(() -> {
+                        for (com.google.firebase.firestore.QueryDocumentSnapshot doc : querySnapshot) {
+                            EventEntity event = new EventEntity();
+                            event.id = java.util.UUID.randomUUID().toString(); // Nuevo ID
+                            event.uid = currentUserId; // ID del usuario que recibe
+                            event.appType = doc.getString("appType");
+                            event.subjectId = newSubjectId; // ID del nuevo sujeto
+                            event.title = doc.getString("title");
+                            event.note = doc.getString("note");
+                            
+                            Long due = doc.getLong("dueAt");
+                            event.dueAt = (due != null ? due : 0L);
+                            
+                            Long up = doc.getLong("updatedAt");
+                            event.updatedAt = (up != null ? up : System.currentTimeMillis());
+                            
+                            Long del = doc.getLong("deleted");
+                            event.deleted = (del != null ? del.intValue() : 0);
+                            
+                            Double cost = doc.getDouble("cost");
+                            event.cost = cost;
+                            
+                            Double km = doc.getDouble("kilometersAtEvent");
+                            event.kilometersAtEvent = km;
+                            
+                            Long realized = doc.getLong("realized");
+                            event.realized = (realized != null ? realized.intValue() : 0);
+                            
+                            // Campos de repetición
+                            event.repeatType = doc.getString("repeatType");
+                            Long repeatInterval = doc.getLong("repeatInterval");
+                            event.repeatInterval = (repeatInterval != null ? repeatInterval.intValue() : null);
+                            Long repeatEndDate = doc.getLong("repeatEndDate");
+                            event.repeatEndDate = (repeatEndDate != null ? repeatEndDate : null);
+                            Long repeatCount = doc.getLong("repeatCount");
+                            event.repeatCount = (repeatCount != null ? repeatCount.intValue() : null);
+                            event.originalEventId = doc.getString("originalEventId");
+                            
+                            // Campos de notificación
+                            Long notificationMinutesBefore = doc.getLong("notificationMinutesBefore");
+                            event.notificationMinutesBefore = (notificationMinutesBefore != null ? notificationMinutesBefore.intValue() : null);
+                            
+                            Long realizedAt = doc.getLong("realizedAt");
+                            event.realizedAt = (realizedAt != null ? realizedAt : null);
+                            
+                            event.dirty = 1; // Marcar para sincronizar
+                            
+                            eventDao.insert(event);
+                        }
+                    }).start();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("MainActivity", "Error importing events", e);
+                });
     }
 
     private void showEditDialog(EventEntity e) {

@@ -1,5 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+<!-- Barra de título personalizada con iconos (solo visible en edición) -->
+<LinearLayout
+    android:id="@+id/llDialogTitleBar"
+    android:orientation="horizontal"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp"
+    android:paddingBottom="8dp"
+    android:gravity="center_vertical"
+    android:visibility="gone"
+    android:background="?android:attr/windowBackground">
+
+    <TextView
+        android:id="@+id/tvDialogTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="@string/edit_event"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="?android:attr/textColorPrimary"/>
+
+    <ImageButton
+        android:id="@+id/ibDelete"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_delete"
+        android:tint="?attr/colorControlNormal"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/button_delete"
+        android:padding="12dp"
+        android:layout_marginStart="8dp"/>
+
+    <ImageButton
+        android:id="@+id/ibSave"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_save"
+        android:tint="?attr/colorControlNormal"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/button_save_event"
+        android:padding="12dp"
+        android:layout_marginStart="8dp"/>
+
+    <ImageButton
+        android:id="@+id/ibClose"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_close"
+        android:tint="?attr/colorControlNormal"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/button_cancel"
+        android:padding="12dp"
+        android:layout_marginStart="8dp"/>
+</LinearLayout>
+
+<ScrollView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:maxHeight="500dp"
+    android:fillViewport="true"
+    android:scrollbars="vertical">
+    
+<LinearLayout
     android:orientation="vertical"
     android:padding="16dp"
     android:layout_width="match_parent"
@@ -53,6 +122,54 @@
         android:inputType="numberDecimal"/>
 </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- Fecha y Hora -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp"
+        android:text="@string/event_date_time"
+        android:textStyle="bold"
+        android:textSize="16sp"/>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical">
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.App.TextInputLayout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="@string/event_date_hint">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etEventDate"
+                style="@style/Widget.App.TextInputEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:clickable="true"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.App.TextInputLayout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:hint="@string/event_time_hint">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etEventTime"
+                style="@style/Widget.App.TextInputEditText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:focusable="false"
+                android:clickable="true"/>
+        </com.google.android.material.textfield.TextInputLayout>
+    </LinearLayout>
+
     <!-- Repetición de eventos -->
     <TextView
         android:layout_width="match_parent"
@@ -76,19 +193,47 @@
         android:layout_height="wrap_content"
         android:visibility="gone">
 
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.App.TextInputLayout"
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/event_repeat_interval_hint">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etRepeatInterval"
-                style="@style/Widget.App.TextInputEditText"
-                android:layout_width="match_parent"
+            android:layout_marginBottom="4dp"
+            android:text="@string/event_repeat_interval_label"
+            android:textSize="14sp"
+            android:textStyle="bold"/>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical">
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.App.TextInputLayout"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:inputType="number"
-                android:text="1"/>
-        </com.google.android.material.textfield.TextInputLayout>
+                android:layout_weight="1"
+                android:hint="@string/event_repeat_interval_number_hint">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etRepeatInterval"
+                    style="@style/Widget.App.TextInputEditText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:text="1"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <TextView
+                android:id="@+id/tvRepeatIntervalUnit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:text="horas"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:minWidth="60dp"
+                android:gravity="center"/>
+        </LinearLayout>
 
         <TextView
             android:layout_width="match_parent"
@@ -157,4 +302,44 @@
         android:id="@+id/spNotification"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"/>
+</LinearLayout>
+
+</ScrollView>
+
+<!-- Botones personalizados fuera del ScrollView para que siempre sean visibles -->
+<LinearLayout
+    android:orientation="horizontal"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp"
+    android:paddingTop="8dp"
+    android:background="?android:attr/windowBackground"
+    android:gravity="end">
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnCancel"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/button_cancel"
+        android:layout_marginEnd="8dp"
+        android:visibility="gone"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnDelete"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/button_delete"
+        android:layout_marginEnd="8dp"
+        android:visibility="gone"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSave"
+        style="@style/Widget.MaterialComponents.Button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/button_save_event"/>
+</LinearLayout>
+
 </LinearLayout>

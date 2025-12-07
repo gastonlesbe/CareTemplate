@@ -38,6 +38,8 @@ import com.google.android.gms.ads.OnUserEarnedRewardListener;
 import com.google.android.gms.ads.FullScreenContentCallback;
 import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.AdError;
+import com.google.android.gms.ads.interstitial.InterstitialAd;
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import android.util.Log;
@@ -58,6 +60,11 @@ public class SubjectListActivity extends AppCompatActivity {
     // Rewarded Ad para código de recuperación
     private RewardedAd rewardedAd;
     private boolean isRewardedAdLoading = false;
+    
+    // Interstitial Ad para sincronización
+    private InterstitialAd interstitialAd;
+    private boolean isInterstitialAdLoading = false;
+    private Runnable syncCallback = null; // Callback para ejecutar después del anuncio
     
     // Flag para indicar que estamos en modo de recuperación silenciosa
     private boolean isSilentRecoveryMode = false;
@@ -671,6 +678,16 @@ public class SubjectListActivity extends AppCompatActivity {
         getMenuInflater().inflate(R.menu.main_menu, menu);
         return true;
     }
+    
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        // Asegurar que el título del menú "Importar sujeto" esté correcto
+        MenuItem shareItem = menu.findItem(R.id.action_share_subject);
+        if (shareItem != null) {
+            shareItem.setTitle(getString(R.string.menu_import_subject));
+        }
+        return super.onPrepareOptionsMenu(menu);
+    }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -685,12 +702,19 @@ public class SubjectListActivity extends AppCompatActivity {
             startActivity(new android.content.Intent(this, com.gastonlesbegueris.caretemplate.ui.ExpensesActivity.class));
             return true;
         } else if (id == R.id.action_sync) {
-            // Iniciar sincronización
-            doSync();
+            // Mostrar anuncio intersticial antes de sincronizar
+            showInterstitialAdAndSync(() -> {
+                // Este callback se ejecutará después de que se cierre el anuncio
+                runOnUiThread(() -> doSync());
+            });
             return true;
         } else if (id == R.id.action_recovery) {
             // Mostrar el código de recuperación
             showRecoveryCodeDialog();
+            return true;
+        } else if (id == R.id.action_share_subject) {
+            // Mostrar diálogo para importar sujeto compartido
+            showImportSharedSubjectDialog();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -701,6 +725,120 @@ public class SubjectListActivity extends AppCompatActivity {
         AdView adView = findViewById(R.id.adView);
         AdRequest adRequest = new AdRequest.Builder().build();
         adView.loadAd(adRequest);
+        
+        // Precargar anuncio intersticial
+        loadInterstitialAd();
+    }
+    
+    private void loadInterstitialAd() {
+        if (isInterstitialAdLoading || interstitialAd != null) {
+            return; // Ya está cargando o ya está cargado
+        }
+        
+        isInterstitialAdLoading = true;
+        String interstitialAdId = getString(R.string.admob_interstitial_id);
+        AdRequest adRequest = new AdRequest.Builder().build();
+        
+        InterstitialAd.load(this, interstitialAdId, adRequest,
+                new InterstitialAdLoadCallback() {
+                    @Override
+                    public void onAdLoaded(InterstitialAd ad) {
+                        isInterstitialAdLoading = false;
+                        interstitialAd = ad;
+                        Log.d("SubjectListActivity", "Interstitial ad loaded");
+                    }
+                    
+                    @Override
+                    public void onAdFailedToLoad(LoadAdError loadAdError) {
+                        isInterstitialAdLoading = false;
+                        interstitialAd = null;
+                        Log.e("SubjectListActivity", "Interstitial ad failed to load: " + loadAdError.getMessage());
+                    }
+                });
+    }
+    
+    private void showInterstitialAdAndSync(Runnable onAdClosed) {
+        syncCallback = onAdClosed;
+        
+        // Si ya hay un ad cargado, mostrarlo directamente
+        if (interstitialAd != null) {
+            showInterstitialAd();
+            return;
+        }
+        
+        // Si no hay ad cargado, intentar cargar uno nuevo
+        if (!isInterstitialAdLoading) {
+            loadInterstitialAd();
+        }
+        
+        // Si después de intentar cargar aún no hay ad, ejecutar la sincronización directamente
+        if (interstitialAd == null) {
+            if (syncCallback != null) {
+                syncCallback.run();
+                syncCallback = null;
+            }
+            return;
+        }
+        
+        // Esperar un poco y mostrar el ad si se cargó
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            if (interstitialAd != null) {
+                showInterstitialAd();
+            } else if (syncCallback != null) {
+                // Si después de esperar no hay ad, ejecutar sincronización directamente
+                syncCallback.run();
+                syncCallback = null;
+            }
+        }, 500);
+    }
+    
+    private void showInterstitialAd() {
+        if (interstitialAd == null) {
+            // Si no hay ad, ejecutar sincronización directamente
+            if (syncCallback != null) {
+                syncCallback.run();
+                syncCallback = null;
+            }
+            return;
+        }
+        
+        interstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+            @Override
+            public void onAdDismissedFullScreenContent() {
+                // Anuncio cerrado, ejecutar sincronización
+                interstitialAd = null;
+                loadInterstitialAd(); // Precargar siguiente anuncio
+                
+                // Ejecutar sincronización (el popup se mostrará cuando termine)
+                if (syncCallback != null) {
+                    syncCallback.run();
+                    syncCallback = null;
+                }
+            }
+            
+            @Override
+            public void onAdFailedToShowFullScreenContent(AdError adError) {
+                // Si falla mostrar el ad, ejecutar sincronización directamente
+                interstitialAd = null;
+                loadInterstitialAd();
+                
+                if (syncCallback != null) {
+                    syncCallback.run();
+                    syncCallback = null;
+                }
+            }
+        });
+        
+        interstitialAd.show(this);
+    }
+    
+    private void showSyncCompletedDialog() {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(getString(R.string.sync_completed))
+                .setMessage(getString(R.string.sync_completed_message))
+                .setPositiveButton(getString(R.string.button_ok), null)
+                .setIcon(android.R.drawable.ic_dialog_info)
+                .show();
     }
 
     @Override
@@ -1332,16 +1470,18 @@ public class SubjectListActivity extends AppCompatActivity {
                     sync.pullSubjects(() -> {
                         sync.pull(
                                 () -> runOnUiThread(() -> {
-                                    Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
                                     refreshSubjectsList();
+                                    // Mostrar popup de sincronización realizada
+                                    showSyncCompletedDialog();
                                 }),
                                 e -> runOnUiThread(() -> {
                                     // Silenciar errores de permisos ANTES de llamar a showSyncError
                                     String errorMsg = e != null ? e.getMessage() : "null";
                                     if (isPermissionError(errorMsg)) {
                                         Log.d("SubjectListActivity", "Error de permisos silenciado en pull: " + errorMsg);
-                                        Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
                                         refreshSubjectsList();
+                                        // Mostrar popup de sincronización realizada
+                                        showSyncCompletedDialog();
                                     } else {
                                         showSyncError("Error al recuperar datos", e);
                                     }
@@ -1352,8 +1492,9 @@ public class SubjectListActivity extends AppCompatActivity {
                         String errorMsg = e != null ? e.getMessage() : "null";
                         if (isPermissionError(errorMsg)) {
                             Log.d("SubjectListActivity", "Error de permisos SILENCIADO en pullSubjects");
-                            Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
                             refreshSubjectsList();
+                            // Mostrar popup de sincronización realizada
+                            showSyncCompletedDialog();
                         } else {
                             showSyncError("Error al recuperar sujetos", e);
                         }
@@ -1561,14 +1702,59 @@ public class SubjectListActivity extends AppCompatActivity {
         final com.google.android.material.textfield.TextInputEditText etRepeatInterval = view.findViewById(R.id.etRepeatInterval);
         final com.google.android.material.textfield.TextInputEditText etRepeatEndDate = view.findViewById(R.id.etRepeatEndDate);
         final com.google.android.material.textfield.TextInputEditText etRepeatCount = view.findViewById(R.id.etRepeatCount);
+        final android.widget.TextView tvRepeatIntervalUnit = view.findViewById(R.id.tvRepeatIntervalUnit);
         
         // Controles de notificación
         final android.widget.Spinner spNotification = view.findViewById(R.id.spNotification);
+        
+        // Controles de fecha y hora
+        final com.google.android.material.textfield.TextInputEditText etEventDate = view.findViewById(R.id.etEventDate);
+        final com.google.android.material.textfield.TextInputEditText etEventTime = view.findViewById(R.id.etEventTime);
 
         // Verificar que las vistas se encontraron
         if (etTitle == null || etCost == null || sp == null) {
             Toast.makeText(this, getString(R.string.error_load_dialog), Toast.LENGTH_SHORT).show();
             return;
+        }
+        
+        // Inicializar fecha y hora con valores actuales
+        final java.util.Calendar now = java.util.Calendar.getInstance();
+        if (etEventDate != null && etEventTime != null) {
+            java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+            java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+            etEventDate.setText(dateFormat.format(now.getTime()));
+            etEventTime.setText(timeFormat.format(now.getTime()));
+            etEventDate.setTag(now.getTimeInMillis());
+            etEventTime.setTag(now.getTimeInMillis());
+            
+            // Configurar click en fecha
+            etEventDate.setOnClickListener(v -> {
+                long currentDate = etEventDate.getTag() != null ? (Long) etEventDate.getTag() : System.currentTimeMillis();
+                pickDateOnly(currentDate, dateMillis -> {
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+                    etEventDate.setText(sdf.format(new java.util.Date(dateMillis)));
+                    etEventDate.setTag(dateMillis);
+                });
+            });
+            
+            // Configurar click en hora
+            etEventTime.setOnClickListener(v -> {
+                long currentTime = etEventTime.getTag() != null ? (Long) etEventTime.getTag() : System.currentTimeMillis();
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+                cal.setTimeInMillis(currentTime);
+                int hh = cal.get(java.util.Calendar.HOUR_OF_DAY);
+                int mm = cal.get(java.util.Calendar.MINUTE);
+                
+                new android.app.TimePickerDialog(this, (tp, hour, minute) -> {
+                    cal.set(java.util.Calendar.HOUR_OF_DAY, hour);
+                    cal.set(java.util.Calendar.MINUTE, minute);
+                    cal.set(java.util.Calendar.SECOND, 0);
+                    cal.set(java.util.Calendar.MILLISECOND, 0);
+                    java.text.SimpleDateFormat timeFmt = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+                    etEventTime.setText(timeFmt.format(cal.getTime()));
+                    etEventTime.setTag(cal.getTimeInMillis());
+                }, hh, mm, true).show();
+            });
         }
         
         // Mostrar campo de kilómetros solo para "cars"
@@ -1587,12 +1773,23 @@ public class SubjectListActivity extends AppCompatActivity {
             android.widget.ArrayAdapter<String> repeatAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, repeatOptions);
             spRepeatType.setAdapter(repeatAdapter);
             
-            // Mostrar/ocultar opciones de repetición según la selección
+            // Mostrar/ocultar opciones de repetición según la selección y actualizar unidad
             spRepeatType.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
                 @Override
                 public void onItemSelected(android.widget.AdapterView<?> parent, android.view.View view, int position, long id) {
                     if (llRepeatOptions != null) {
                         llRepeatOptions.setVisibility(position == 0 ? View.GONE : View.VISIBLE);
+                    }
+                    // Actualizar la etiqueta de unidad según el tipo seleccionado
+                    if (tvRepeatIntervalUnit != null && position > 0) {
+                        String unit = "";
+                        switch (position) {
+                            case 1: unit = getString(R.string.event_repeat_interval_hours); break;
+                            case 2: unit = getString(R.string.event_repeat_interval_days); break;
+                            case 3: unit = getString(R.string.event_repeat_interval_months); break;
+                            case 4: unit = getString(R.string.event_repeat_interval_years); break;
+                        }
+                        tvRepeatIntervalUnit.setText(unit);
                     }
                 }
                 @Override
@@ -1645,116 +1842,154 @@ public class SubjectListActivity extends AppCompatActivity {
                     return;
                 }
 
-                new androidx.appcompat.app.AlertDialog.Builder(this)
+                // Obtener referencias a los botones personalizados
+                final com.google.android.material.button.MaterialButton btnSave = view.findViewById(R.id.btnSave);
+                final com.google.android.material.button.MaterialButton btnCancel = view.findViewById(R.id.btnCancel);
+                
+                androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
                         .setTitle(getString(R.string.new_event))
                         .setView(view)
-                        .setPositiveButton(getString(R.string.button_choose_date_time), (d, w) -> {
-                            final String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
-                            if (title.isEmpty()) {
-                                Toast.makeText(this, getString(R.string.event_title_required), Toast.LENGTH_SHORT).show();
-                                return;
-                            }
-                            final int pos = sp.getSelectedItemPosition();
-                            if (pos < 0 || pos >= subjects.size()) {
-                                Toast.makeText(this, getString(R.string.error_select_subject), Toast.LENGTH_SHORT).show();
-                                return;
-                            }
-                            final String subjectId = subjects.get(pos).id;
+                        .create();
+                
+                // Configurar listener del botón Guardar
+                if (btnSave != null) {
+                    btnSave.setOnClickListener(v -> {
+                        final String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
+                        if (title.isEmpty()) {
+                            Toast.makeText(this, getString(R.string.event_title_required), Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        final int pos = sp.getSelectedItemPosition();
+                        if (pos < 0 || pos >= subjects.size()) {
+                            Toast.makeText(this, getString(R.string.error_select_subject), Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        final String subjectId = subjects.get(pos).id;
 
-                            final String c = etCost.getText() != null ? etCost.getText().toString().trim() : "";
-                            final Double cost = c.isEmpty() ? null : safeParseDouble(c);
+                        final String c = etCost.getText() != null ? etCost.getText().toString().trim() : "";
+                        final Double cost = c.isEmpty() ? null : safeParseDouble(c);
 
-                            // Para "cars", capturar kilómetros
-                            Double kilometersAtEvent = null;
-                            if ("cars".equals(appType) && etKilometers != null) {
-                                String kmStr = etKilometers.getText() != null ? etKilometers.getText().toString().trim() : "";
-                                if (!kmStr.isEmpty()) {
-                                    kilometersAtEvent = safeParseDouble(kmStr);
-                                }
+                        // Para "cars", capturar kilómetros
+                        Double kilometersAtEvent = null;
+                        if ("cars".equals(appType) && etKilometers != null) {
+                            String kmStr = etKilometers.getText() != null ? etKilometers.getText().toString().trim() : "";
+                            if (!kmStr.isEmpty()) {
+                                kilometersAtEvent = safeParseDouble(kmStr);
                             }
+                        }
 
-                            final String fTitle = title;
-                            final String fSubjectId = subjectId;
-                            final Double fCost = cost;
-                            final Double fKilometers = kilometersAtEvent;
+                        // Capturar fecha y hora
+                        long dueAt = System.currentTimeMillis();
+                        if (etEventDate != null && etEventTime != null) {
+                            java.util.Calendar cal = java.util.Calendar.getInstance();
                             
-                            // Capturar configuración de repetición
-                            String repeatType = null;
-                            Integer repeatInterval = null;
-                            Long repeatEndDate = null;
-                            Integer repeatCount = null;
+                            // Obtener fecha
+                            if (etEventDate.getTag() != null) {
+                                cal.setTimeInMillis((Long) etEventDate.getTag());
+                            }
                             
-                            if (spRepeatType != null && spRepeatType.getSelectedItemPosition() > 0) {
-                                int repeatPos = spRepeatType.getSelectedItemPosition();
-                                switch (repeatPos) {
-                                    case 1: repeatType = "hourly"; break;
-                                    case 2: repeatType = "daily"; break;
-                                    case 3: repeatType = "monthly"; break;
-                                    case 4: repeatType = "yearly"; break;
-                                }
-                                
-                                if (repeatType != null) {
-                                    // Capturar intervalo
-                                    if (etRepeatInterval != null) {
-                                        String intervalStr = etRepeatInterval.getText() != null ? etRepeatInterval.getText().toString().trim() : "";
-                                        if (!intervalStr.isEmpty()) {
-                                            try {
-                                                repeatInterval = Integer.parseInt(intervalStr);
-                                                if (repeatInterval < 1) repeatInterval = 1;
-                                            } catch (Exception e) {
-                                                repeatInterval = 1;
-                                            }
-                                        } else {
+                            // Obtener hora
+                            if (etEventTime.getTag() != null) {
+                                java.util.Calendar timeCal = java.util.Calendar.getInstance();
+                                timeCal.setTimeInMillis((Long) etEventTime.getTag());
+                                cal.set(java.util.Calendar.HOUR_OF_DAY, timeCal.get(java.util.Calendar.HOUR_OF_DAY));
+                                cal.set(java.util.Calendar.MINUTE, timeCal.get(java.util.Calendar.MINUTE));
+                            }
+                            
+                            cal.set(java.util.Calendar.SECOND, 0);
+                            cal.set(java.util.Calendar.MILLISECOND, 0);
+                            dueAt = cal.getTimeInMillis();
+                        }
+
+                        final String fTitle = title;
+                        final String fSubjectId = subjectId;
+                        final Double fCost = cost;
+                        final Double fKilometers = kilometersAtEvent;
+                        
+                        // Capturar configuración de repetición
+                        String repeatType = null;
+                        Integer repeatInterval = null;
+                        Long repeatEndDate = null;
+                        Integer repeatCount = null;
+                        
+                        if (spRepeatType != null && spRepeatType.getSelectedItemPosition() > 0) {
+                            int repeatPos = spRepeatType.getSelectedItemPosition();
+                            switch (repeatPos) {
+                                case 1: repeatType = "hourly"; break;
+                                case 2: repeatType = "daily"; break;
+                                case 3: repeatType = "monthly"; break;
+                                case 4: repeatType = "yearly"; break;
+                            }
+                            
+                            if (repeatType != null) {
+                                // Capturar intervalo
+                                if (etRepeatInterval != null) {
+                                    String intervalStr = etRepeatInterval.getText() != null ? etRepeatInterval.getText().toString().trim() : "";
+                                    if (!intervalStr.isEmpty()) {
+                                        try {
+                                            repeatInterval = Integer.parseInt(intervalStr);
+                                            if (repeatInterval < 1) repeatInterval = 1;
+                                        } catch (Exception e) {
                                             repeatInterval = 1;
                                         }
                                     } else {
                                         repeatInterval = 1;
                                     }
-                                    
-                                    // Capturar fecha de fin o número de repeticiones
-                                    if (etRepeatEndDate != null && etRepeatEndDate.getTag() != null) {
-                                        repeatEndDate = (Long) etRepeatEndDate.getTag();
-                                    } else if (etRepeatCount != null) {
-                                        String countStr = etRepeatCount.getText() != null ? etRepeatCount.getText().toString().trim() : "";
-                                        if (!countStr.isEmpty()) {
-                                            try {
-                                                repeatCount = Integer.parseInt(countStr);
-                                                if (repeatCount < 1) repeatCount = null;
-                                            } catch (Exception e) {
-                                                // Ignorar
-                                            }
+                                } else {
+                                    repeatInterval = 1;
+                                }
+                                
+                                // Capturar fecha de fin o número de repeticiones
+                                if (etRepeatEndDate != null && etRepeatEndDate.getTag() != null) {
+                                    repeatEndDate = (Long) etRepeatEndDate.getTag();
+                                } else if (etRepeatCount != null) {
+                                    String countStr = etRepeatCount.getText() != null ? etRepeatCount.getText().toString().trim() : "";
+                                    if (!countStr.isEmpty()) {
+                                        try {
+                                            repeatCount = Integer.parseInt(countStr);
+                                            if (repeatCount < 1) repeatCount = null;
+                                        } catch (Exception e) {
+                                            // Ignorar
                                         }
                                     }
                                 }
                             }
+                        }
 
-                            final String fRepeatType = repeatType;
-                            final Integer fRepeatInterval = repeatInterval;
-                            final Long fRepeatEndDate = repeatEndDate;
-                            final Integer fRepeatCount = repeatCount;
-                            
-                            // Capturar configuración de notificación
-                            Integer notificationMinutesBefore = null;
-                            if (spNotification != null && spNotification.getSelectedItemPosition() > 0) {
-                                int notificationPos = spNotification.getSelectedItemPosition();
-                                switch (notificationPos) {
-                                    case 1: notificationMinutesBefore = 5; break;
-                                    case 2: notificationMinutesBefore = 15; break;
-                                    case 3: notificationMinutesBefore = 30; break;
-                                    case 4: notificationMinutesBefore = 60; break; // 1 hora
-                                    case 5: notificationMinutesBefore = 120; break; // 2 horas
-                                    case 6: notificationMinutesBefore = 1440; break; // 1 día
-                                    case 7: notificationMinutesBefore = 2880; break; // 2 días
-                                    case 8: notificationMinutesBefore = 10080; break; // 1 semana
-                                }
+                        final String fRepeatType = repeatType;
+                        final Integer fRepeatInterval = repeatInterval;
+                        final Long fRepeatEndDate = repeatEndDate;
+                        final Integer fRepeatCount = repeatCount;
+                        
+                        // Capturar configuración de notificación
+                        Integer notificationMinutesBefore = null;
+                        if (spNotification != null && spNotification.getSelectedItemPosition() > 0) {
+                            int notificationPos = spNotification.getSelectedItemPosition();
+                            switch (notificationPos) {
+                                case 1: notificationMinutesBefore = 5; break;
+                                case 2: notificationMinutesBefore = 15; break;
+                                case 3: notificationMinutesBefore = 30; break;
+                                case 4: notificationMinutesBefore = 60; break; // 1 hora
+                                case 5: notificationMinutesBefore = 120; break; // 2 horas
+                                case 6: notificationMinutesBefore = 1440; break; // 1 día
+                                case 7: notificationMinutesBefore = 2880; break; // 2 días
+                                case 8: notificationMinutesBefore = 10080; break; // 1 semana
                             }
-                            
-                            final Integer fNotificationMinutesBefore = notificationMinutesBefore;
+                        }
+                        
+                        final Integer fNotificationMinutesBefore = notificationMinutesBefore;
 
-                            pickDateTime(0, dueAt -> insertLocalWithRepeat(fTitle, fSubjectId, fCost, dueAt, fKilometers, fRepeatType, fRepeatInterval, fRepeatEndDate, fRepeatCount, fNotificationMinutesBefore));
-                        })
-                        .setNegativeButton(getString(R.string.button_cancel), null)
-                        .show();
+                        insertLocalWithRepeat(fTitle, fSubjectId, fCost, dueAt, fKilometers, fRepeatType, fRepeatInterval, fRepeatEndDate, fRepeatCount, fNotificationMinutesBefore);
+                        dialog.dismiss();
+                    });
+                }
+                
+                // Configurar listener del botón Cancelar
+                if (btnCancel != null) {
+                    btnCancel.setOnClickListener(v -> dialog.dismiss());
+                }
+                
+                dialog.show();
             });
         }).start();
     }
@@ -1840,10 +2075,10 @@ public class SubjectListActivity extends AppCompatActivity {
                     } else if (repeatCount != null && eventsCreated >= repeatCount) {
                         shouldStop = true;
                     } else if (repeatEndDate == null && repeatCount == null) {
-                        // Si no hay límite, crear eventos por 2 años por defecto
+                        // Si no hay límite, crear eventos por 10 años por defecto (prácticamente sin límite)
                         java.util.Calendar limitCal = java.util.Calendar.getInstance();
                         limitCal.setTimeInMillis(dueAt);
-                        limitCal.add(java.util.Calendar.YEAR, 2);
+                        limitCal.add(java.util.Calendar.YEAR, 10);
                         if (nextDueAt > limitCal.getTimeInMillis()) {
                             shouldStop = true;
                         }
@@ -1984,6 +2219,190 @@ public class SubjectListActivity extends AppCompatActivity {
     /**
      * Obtiene el UID del usuario actual (Firebase UID o UUID local)
      */
+    // ===== Import Shared Subject =====
+    
+    private void showImportSharedSubjectDialog() {
+        android.widget.EditText etCode = new android.widget.EditText(this);
+        etCode.setHint(getString(R.string.share_subject_code_hint));
+        etCode.setInputType(android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
+        
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(getString(R.string.share_subject_receive_title))
+                .setMessage(getString(R.string.share_subject_receive_message))
+                .setView(etCode)
+                .setPositiveButton(getString(R.string.button_import), (d, w) -> {
+                    String code = etCode != null && etCode.getText() != null ? etCode.getText().toString().trim() : "";
+                    if (code.isEmpty()) {
+                        Toast.makeText(this, getString(R.string.share_subject_invalid), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    importSharedSubject(code);
+                })
+                .setNegativeButton(getString(R.string.button_cancel), null)
+                .show();
+    }
+    
+    private void importSharedSubject(String shareCode) {
+        com.gastonlesbegueris.caretemplate.util.SubjectShareManager shareManager = 
+                new com.gastonlesbegueris.caretemplate.util.SubjectShareManager(this);
+        
+        Toast.makeText(this, getString(R.string.share_subject_importing), Toast.LENGTH_SHORT).show();
+        
+        shareManager.getSharedSubject(shareCode, new com.gastonlesbegueris.caretemplate.util.SubjectShareManager.SharedSubjectCallback() {
+            @Override
+            public void onSharedSubject(String sharedSubjectId, String ownerUserId) {
+                // Importar el sujeto y sus eventos desde el usuario dueño
+                importSubjectFromUser(sharedSubjectId, ownerUserId);
+            }
+            
+            @Override
+            public void onError(Exception error) {
+                runOnUiThread(() -> {
+                    Toast.makeText(SubjectListActivity.this, 
+                            getString(R.string.share_subject_import_error, error.getMessage()), 
+                            Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+    
+    private void importSubjectFromUser(String sharedSubjectId, String ownerUserId) {
+        new Thread(() -> {
+            try {
+                // Obtener el sujeto desde Firestore del usuario dueño
+                com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
+                
+                firestore.collection("users").document(ownerUserId)
+                        .collection("apps").document("CareTemplate")
+                        .collection("subjects").document(sharedSubjectId)
+                        .get()
+                        .addOnSuccessListener(subjectDoc -> {
+                            if (!subjectDoc.exists()) {
+                                runOnUiThread(() -> {
+                                    Toast.makeText(SubjectListActivity.this, 
+                                            getString(R.string.share_subject_not_found), 
+                                            Toast.LENGTH_LONG).show();
+                                });
+                                return;
+                            }
+                            
+                            // Crear nuevo sujeto local con los datos del compartido
+                            SubjectEntity newSubject = new SubjectEntity();
+                            newSubject.id = java.util.UUID.randomUUID().toString(); // Nuevo ID para el usuario que recibe
+                            newSubject.appType = subjectDoc.getString("appType");
+                            newSubject.name = subjectDoc.getString("name");
+                            
+                            Long bd = subjectDoc.getLong("birthDate");
+                            newSubject.birthDate = (bd != null ? bd : null);
+                            
+                            Double cm = subjectDoc.getDouble("currentMeasure");
+                            newSubject.currentMeasure = (cm != null ? cm : null);
+                            
+                            newSubject.notes = subjectDoc.getString("notes");
+                            newSubject.iconKey = subjectDoc.getString("iconKey");
+                            newSubject.colorHex = subjectDoc.getString("colorHex");
+                            newSubject.updatedAt = System.currentTimeMillis();
+                            newSubject.deleted = 0;
+                            newSubject.dirty = 1; // Marcar para sincronizar
+                            
+                            // Insertar el sujeto
+                            dao.insert(newSubject);
+                            
+                            // Importar eventos del sujeto compartido
+                            importSubjectEvents(sharedSubjectId, ownerUserId, newSubject.id);
+                            
+                            runOnUiThread(() -> {
+                                Toast.makeText(SubjectListActivity.this, 
+                                        getString(R.string.share_subject_imported), 
+                                        Toast.LENGTH_SHORT).show();
+                                // Refrescar la lista de sujetos
+                                refreshSubjectsList();
+                            });
+                        })
+                        .addOnFailureListener(e -> {
+                            runOnUiThread(() -> {
+                                Toast.makeText(SubjectListActivity.this, 
+                                        getString(R.string.share_subject_import_error, e.getMessage()), 
+                                        Toast.LENGTH_LONG).show();
+                            });
+                        });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    Toast.makeText(SubjectListActivity.this, 
+                            getString(R.string.share_subject_import_error, e.getMessage()), 
+                            Toast.LENGTH_LONG).show();
+                });
+            }
+        }).start();
+    }
+    
+    private void importSubjectEvents(String originalSubjectId, String ownerUserId, String newSubjectId) {
+        com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
+        String currentUserId = getCurrentUserId();
+        
+        firestore.collection("users").document(ownerUserId)
+                .collection("apps").document("CareTemplate")
+                .collection("events")
+                .whereEqualTo("subjectId", originalSubjectId)
+                .whereEqualTo("deleted", 0)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    new Thread(() -> {
+                        for (com.google.firebase.firestore.QueryDocumentSnapshot doc : querySnapshot) {
+                            EventEntity event = new EventEntity();
+                            event.id = java.util.UUID.randomUUID().toString(); // Nuevo ID
+                            event.uid = currentUserId; // ID del usuario que recibe
+                            event.appType = doc.getString("appType");
+                            event.subjectId = newSubjectId; // ID del nuevo sujeto
+                            event.title = doc.getString("title");
+                            event.note = doc.getString("note");
+                            
+                            Long due = doc.getLong("dueAt");
+                            event.dueAt = (due != null ? due : 0L);
+                            
+                            Long up = doc.getLong("updatedAt");
+                            event.updatedAt = (up != null ? up : System.currentTimeMillis());
+                            
+                            Long del = doc.getLong("deleted");
+                            event.deleted = (del != null ? del.intValue() : 0);
+                            
+                            Double cost = doc.getDouble("cost");
+                            event.cost = cost;
+                            
+                            Double km = doc.getDouble("kilometersAtEvent");
+                            event.kilometersAtEvent = km;
+                            
+                            Long realized = doc.getLong("realized");
+                            event.realized = (realized != null ? realized.intValue() : 0);
+                            
+                            // Campos de repetición
+                            event.repeatType = doc.getString("repeatType");
+                            Long repeatInterval = doc.getLong("repeatInterval");
+                            event.repeatInterval = (repeatInterval != null ? repeatInterval.intValue() : null);
+                            Long repeatEndDate = doc.getLong("repeatEndDate");
+                            event.repeatEndDate = (repeatEndDate != null ? repeatEndDate : null);
+                            Long repeatCount = doc.getLong("repeatCount");
+                            event.repeatCount = (repeatCount != null ? repeatCount.intValue() : null);
+                            event.originalEventId = doc.getString("originalEventId");
+                            
+                            // Campos de notificación
+                            Long notificationMinutesBefore = doc.getLong("notificationMinutesBefore");
+                            event.notificationMinutesBefore = (notificationMinutesBefore != null ? notificationMinutesBefore.intValue() : null);
+                            
+                            Long realizedAt = doc.getLong("realizedAt");
+                            event.realizedAt = (realizedAt != null ? realizedAt : null);
+                            
+                            event.dirty = 1; // Marcar para sincronizar
+                            
+                            eventDao.insert(event);
+                        }
+                    }).start();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("SubjectListActivity", "Error importing events", e);
+                });
+    }
+    
     private String getCurrentUserId() {
         // Intentar obtener Firebase UID primero
         com.google.firebase.auth.FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();

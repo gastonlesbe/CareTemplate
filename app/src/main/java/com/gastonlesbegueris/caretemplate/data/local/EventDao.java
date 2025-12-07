@@ -50,6 +50,10 @@ public interface EventDao {
     @Query("SELECT * FROM events WHERE appType=:appType AND deleted=0 AND realized=0 AND dueAt <= :now ORDER BY dueAt ASC")
     List<EventEntity> listDueUnrealized(String appType, long now);
 
+    // Obtener todos los eventos pendientes (futuros) para reprogramar notificaciones
+    @Query("SELECT * FROM events WHERE appType=:appType AND deleted=0 AND realized=0 AND dueAt >= :now ORDER BY dueAt ASC")
+    List<EventEntity> listPendingEvents(String appType, long now);
+
     // ====== Agendas por día ======
 
 
@@ -134,6 +138,18 @@ public interface EventDao {
     // 5) obtener un evento por ID
     @Query("SELECT * FROM events WHERE id=:id")
     EventEntity findOne(String id);
+
+    // 6) obtener el evento original de un evento repetido
+    @Query("SELECT * FROM events WHERE id=:originalEventId AND deleted=0")
+    EventEntity findOriginalEvent(String originalEventId);
+
+    // 7) obtener todos los eventos repetidos de un evento original
+    @Query("SELECT * FROM events WHERE originalEventId=:originalEventId AND deleted=0")
+    List<EventEntity> findRepeatedEvents(String originalEventId);
+
+    // 8) eliminar (soft delete) todos los eventos repetidos de un original
+    @Query("UPDATE events SET deleted=1, updatedAt=:now, dirty=1 WHERE originalEventId=:originalEventId AND deleted=0")
+    void softDeleteRepeatedEvents(String originalEventId, long now);
 
 }
 

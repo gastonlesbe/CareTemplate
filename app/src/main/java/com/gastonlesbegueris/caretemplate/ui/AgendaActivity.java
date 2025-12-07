@@ -276,6 +276,66 @@ public class AgendaActivity extends AppCompatActivity {
 
     // ===== Edit Event Dialog =====
     private void showEditDialog(EventEntity e) {
+        // Verificar que la Activity aún existe
+        if (isFinishing() || isDestroyed()) {
+            return;
+        }
+        
+        // Si es un evento repetido, necesitamos obtener el original en un hilo de fondo
+        if (e.originalEventId != null) {
+            // Buscar el original en un hilo de fondo antes de mostrar el diálogo
+            new Thread(() -> {
+                try {
+                    EventEntity original = dao.findOriginalEvent(e.originalEventId);
+                    runOnUiThread(() -> {
+                        if (!isFinishing() && !isDestroyed()) {
+                            // Mostrar el diálogo con los datos del original
+                            showEditDialogWithOriginal(e, original);
+                        }
+                    });
+                } catch (Exception ex) {
+                    android.util.Log.e("AgendaActivity", "Error al buscar evento original", ex);
+                    runOnUiThread(() -> {
+                        if (!isFinishing() && !isDestroyed()) {
+                            android.widget.Toast.makeText(this, "Error al cargar evento", android.widget.Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+            }).start();
+            return;
+        }
+        
+        // Si no es repetido, mostrar diálogo directamente
+        showEditDialogWithOriginal(e, null);
+    }
+    
+    private void showEditDialogWithOriginal(EventEntity e, EventEntity original) {
+        // Verificar que la Activity aún existe
+        if (isFinishing() || isDestroyed()) {
+            return;
+        }
+        
+        try {
+            // Si es un evento repetido y tenemos el original, usar sus datos de repetición
+            EventEntity eventToEdit = e;
+            if (e.originalEventId != null && original != null) {
+                // Usar los datos del evento repetido para título, costo, fecha, pero la repetición del original
+                eventToEdit = new EventEntity();
+                eventToEdit.id = e.id; // Mantener el ID del evento que se está editando
+                eventToEdit.title = e.title;
+                eventToEdit.cost = e.cost;
+                eventToEdit.dueAt = e.dueAt;
+                eventToEdit.notificationMinutesBefore = e.notificationMinutesBefore;
+                // Usar la configuración de repetición del original
+                eventToEdit.repeatType = original.repeatType;
+                eventToEdit.repeatInterval = original.repeatInterval;
+                eventToEdit.repeatEndDate = original.repeatEndDate;
+                eventToEdit.repeatCount = original.repeatCount;
+                eventToEdit.originalEventId = e.originalEventId;
+            }
+            
+            final EventEntity finalEvent = eventToEdit;
+        
         final android.view.View view = getLayoutInflater().inflate(R.layout.dialog_add_event, null);
         final com.google.android.material.textfield.TextInputEditText etTitle = view.findViewById(R.id.etTitle);
         final com.google.android.material.textfield.TextInputEditText etCost = view.findViewById(R.id.etCost);
@@ -287,9 +347,14 @@ public class AgendaActivity extends AppCompatActivity {
         final com.google.android.material.textfield.TextInputEditText etRepeatInterval = view.findViewById(R.id.etRepeatInterval);
         final com.google.android.material.textfield.TextInputEditText etRepeatEndDate = view.findViewById(R.id.etRepeatEndDate);
         final com.google.android.material.textfield.TextInputEditText etRepeatCount = view.findViewById(R.id.etRepeatCount);
+        final android.widget.TextView tvRepeatIntervalUnit = view.findViewById(R.id.tvRepeatIntervalUnit);
         
         // Controles de notificación
         final android.widget.Spinner spNotification = view.findViewById(R.id.spNotification);
+        
+        // Controles de fecha y hora
+        final com.google.android.material.textfield.TextInputEditText etEventDate = view.findViewById(R.id.etEventDate);
+        final com.google.android.material.textfield.TextInputEditText etEventTime = view.findViewById(R.id.etEventTime);
 
         if (etTitle == null || etCost == null) {
             android.widget.Toast.makeText(this, getString(R.string.error_load_dialog), android.widget.Toast.LENGTH_SHORT).show();
@@ -297,9 +362,50 @@ public class AgendaActivity extends AppCompatActivity {
         }
 
         // Pre-populate fields
-        etTitle.setText(e.title);
-        if (e.cost != null) {
-            etCost.setText(String.format(java.util.Locale.getDefault(), "%.2f", e.cost));
+        etTitle.setText(finalEvent.title);
+        if (finalEvent.cost != null) {
+            etCost.setText(String.format(java.util.Locale.getDefault(), "%.2f", finalEvent.cost));
+        }
+        
+        // Pre-populate fecha y hora
+        if (etEventDate != null && etEventTime != null) {
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.setTimeInMillis(finalEvent.dueAt);
+            java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+            java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+            etEventDate.setText(dateFormat.format(cal.getTime()));
+            etEventTime.setText(timeFormat.format(cal.getTime()));
+            etEventDate.setTag(finalEvent.dueAt);
+            etEventTime.setTag(finalEvent.dueAt);
+            
+            // Configurar click en fecha
+            etEventDate.setOnClickListener(v -> {
+                long currentDate = etEventDate.getTag() != null ? (Long) etEventDate.getTag() : finalEvent.dueAt;
+                pickDateOnly(currentDate, dateMillis -> {
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+                    etEventDate.setText(sdf.format(new java.util.Date(dateMillis)));
+                    etEventDate.setTag(dateMillis);
+                });
+            });
+            
+            // Configurar click en hora
+            etEventTime.setOnClickListener(v -> {
+                long currentTime = etEventTime.getTag() != null ? (Long) etEventTime.getTag() : finalEvent.dueAt;
+                java.util.Calendar timeCal = java.util.Calendar.getInstance();
+                timeCal.setTimeInMillis(currentTime);
+                int hh = timeCal.get(java.util.Calendar.HOUR_OF_DAY);
+                int mm = timeCal.get(java.util.Calendar.MINUTE);
+                
+                new android.app.TimePickerDialog(this, (tp, hour, minute) -> {
+                    timeCal.set(java.util.Calendar.HOUR_OF_DAY, hour);
+                    timeCal.set(java.util.Calendar.MINUTE, minute);
+                    timeCal.set(java.util.Calendar.SECOND, 0);
+                    timeCal.set(java.util.Calendar.MILLISECOND, 0);
+                    java.text.SimpleDateFormat timeFmt = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+                    etEventTime.setText(timeFmt.format(timeCal.getTime()));
+                    etEventTime.setTag(timeCal.getTimeInMillis());
+                }, hh, mm, true).show();
+            });
         }
 
         // Hide subject spinner for editing
@@ -319,9 +425,9 @@ public class AgendaActivity extends AppCompatActivity {
             spRepeatType.setAdapter(repeatAdapter);
             
             // Seleccionar el tipo de repetición actual
-            if (e.repeatType != null) {
+            if (finalEvent.repeatType != null) {
                 int position = 0;
-                switch (e.repeatType) {
+                switch (finalEvent.repeatType) {
                     case "hourly": position = 1; break;
                     case "daily": position = 2; break;
                     case "monthly": position = 3; break;
@@ -331,43 +437,65 @@ public class AgendaActivity extends AppCompatActivity {
             }
             
             // Pre-populate repeat interval
-            if (e.repeatInterval != null && etRepeatInterval != null) {
-                etRepeatInterval.setText(String.valueOf(e.repeatInterval));
+            if (finalEvent.repeatInterval != null && etRepeatInterval != null) {
+                etRepeatInterval.setText(String.valueOf(finalEvent.repeatInterval));
             }
             
             // Pre-populate repeat end date
-            if (e.repeatEndDate != null && etRepeatEndDate != null) {
+            if (finalEvent.repeatEndDate != null && etRepeatEndDate != null) {
                 java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
-                etRepeatEndDate.setText(sdf.format(new java.util.Date(e.repeatEndDate)));
-                etRepeatEndDate.setTag(e.repeatEndDate);
+                etRepeatEndDate.setText(sdf.format(new java.util.Date(finalEvent.repeatEndDate)));
+                etRepeatEndDate.setTag(finalEvent.repeatEndDate);
             }
             
             // Pre-populate repeat count
-            if (e.repeatCount != null && etRepeatCount != null) {
-                etRepeatCount.setText(String.valueOf(e.repeatCount));
+            if (finalEvent.repeatCount != null && etRepeatCount != null) {
+                etRepeatCount.setText(String.valueOf(finalEvent.repeatCount));
             }
             
-            // Mostrar/ocultar opciones de repetición según la selección
+            // Mostrar/ocultar opciones de repetición según la selección y actualizar unidad
             spRepeatType.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
                 @Override
                 public void onItemSelected(android.widget.AdapterView<?> parent, android.view.View view, int position, long id) {
                     if (llRepeatOptions != null) {
                         llRepeatOptions.setVisibility(position == 0 ? android.view.View.GONE : android.view.View.VISIBLE);
                     }
+                    // Actualizar la etiqueta de unidad según el tipo seleccionado
+                    if (tvRepeatIntervalUnit != null && position > 0) {
+                        String unit = "";
+                        switch (position) {
+                            case 1: unit = getString(R.string.event_repeat_interval_hours); break;
+                            case 2: unit = getString(R.string.event_repeat_interval_days); break;
+                            case 3: unit = getString(R.string.event_repeat_interval_months); break;
+                            case 4: unit = getString(R.string.event_repeat_interval_years); break;
+                        }
+                        tvRepeatIntervalUnit.setText(unit);
+                    }
                 }
                 @Override
                 public void onNothingSelected(android.widget.AdapterView<?> parent) {}
             });
             
-            // Mostrar opciones si hay repetición
-            if (llRepeatOptions != null && e.repeatType != null) {
+            // Mostrar opciones si hay repetición y actualizar unidad
+            if (llRepeatOptions != null && finalEvent.repeatType != null) {
                 llRepeatOptions.setVisibility(android.view.View.VISIBLE);
+                // Actualizar la etiqueta de unidad según el tipo de repetición del evento
+                if (tvRepeatIntervalUnit != null) {
+                    String unit = "";
+                    switch (finalEvent.repeatType) {
+                        case "hourly": unit = getString(R.string.event_repeat_interval_hours); break;
+                        case "daily": unit = getString(R.string.event_repeat_interval_days); break;
+                        case "monthly": unit = getString(R.string.event_repeat_interval_months); break;
+                        case "yearly": unit = getString(R.string.event_repeat_interval_years); break;
+                    }
+                    tvRepeatIntervalUnit.setText(unit);
+                }
             }
             
             // Configurar click en fecha de fin
             if (etRepeatEndDate != null) {
                 etRepeatEndDate.setOnClickListener(v -> {
-                    long initialDate = e.repeatEndDate != null ? e.repeatEndDate : System.currentTimeMillis();
+                    long initialDate = finalEvent.repeatEndDate != null ? finalEvent.repeatEndDate : System.currentTimeMillis();
                     pickDateOnly(initialDate, dateMillis -> {
                         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
                         etRepeatEndDate.setText(sdf.format(new java.util.Date(dateMillis)));
@@ -393,7 +521,7 @@ public class AgendaActivity extends AppCompatActivity {
             spNotification.setAdapter(notificationAdapter);
             
             // Seleccionar la notificación actual
-            if (e.notificationMinutesBefore != null) {
+            if (finalEvent.notificationMinutesBefore != null) {
                 int position = 0;
                 switch (e.notificationMinutesBefore) {
                     case 5: position = 1; break;
@@ -409,95 +537,164 @@ public class AgendaActivity extends AppCompatActivity {
             }
         }
 
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle(getString(R.string.edit_event))
+        // Obtener referencias a la barra de título personalizada y sus iconos
+        final android.view.View llDialogTitleBar = view.findViewById(R.id.llDialogTitleBar);
+        final android.widget.ImageButton ibDelete = view.findViewById(R.id.ibDelete);
+        final android.widget.ImageButton ibSave = view.findViewById(R.id.ibSave);
+        final android.widget.ImageButton ibClose = view.findViewById(R.id.ibClose);
+        
+        // Ocultar botones al final para edición
+        final com.google.android.material.button.MaterialButton btnSave = view.findViewById(R.id.btnSave);
+        final com.google.android.material.button.MaterialButton btnCancel = view.findViewById(R.id.btnCancel);
+        if (btnSave != null) {
+            btnSave.setVisibility(android.view.View.GONE);
+        }
+        if (btnCancel != null) {
+            btnCancel.setVisibility(android.view.View.GONE);
+        }
+        
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setView(view)
-                .setPositiveButton(getString(R.string.button_choose_date_time), (d, w) -> {
-                    String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
-                    if (title.isEmpty()) {
-                        android.widget.Toast.makeText(this, getString(R.string.event_title_required), android.widget.Toast.LENGTH_SHORT).show();
-                        return;
-                    }
+                .create();
+        
+        // Mostrar barra de título personalizada con iconos
+        if (llDialogTitleBar != null) {
+            llDialogTitleBar.setVisibility(android.view.View.VISIBLE);
+        }
+        
+        // Configurar listener del icono Eliminar
+        if (ibDelete != null) {
+            ibDelete.setOnClickListener(v -> {
+                dialog.dismiss();
+                softDelete(e.id);
+            });
+        }
+        
+        // Configurar listener del icono Cerrar (Cancelar)
+        if (ibClose != null) {
+            ibClose.setOnClickListener(v -> dialog.dismiss());
+        }
+        
+        // Configurar listener del icono Guardar
+        if (ibSave != null) {
+            ibSave.setOnClickListener(v -> {
+                String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
+                if (title.isEmpty()) {
+                    android.widget.Toast.makeText(this, getString(R.string.event_title_required), android.widget.Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
-                    final String c = etCost.getText() != null ? etCost.getText().toString().trim() : "";
-                    final Double cost = c.isEmpty() ? null : safeParseDouble(c);
+                final String c = etCost.getText() != null ? etCost.getText().toString().trim() : "";
+                final Double cost = c.isEmpty() ? null : safeParseDouble(c);
+                
+                // Capturar fecha y hora
+                long dueAt = finalEvent.dueAt;
+                if (etEventDate != null && etEventTime != null) {
+                    java.util.Calendar cal = java.util.Calendar.getInstance();
                     
-                    // Capturar configuración de repetición
-                    String repeatType = null;
-                    Integer repeatInterval = null;
-                    Long repeatEndDate = null;
-                    Integer repeatCount = null;
+                    // Obtener fecha
+                    if (etEventDate.getTag() != null) {
+                        cal.setTimeInMillis((Long) etEventDate.getTag());
+                    } else {
+                        cal.setTimeInMillis(finalEvent.dueAt);
+                    }
                     
-                    if (spRepeatType != null && spRepeatType.getSelectedItemPosition() > 0) {
-                        int repeatPos = spRepeatType.getSelectedItemPosition();
-                        switch (repeatPos) {
-                            case 1: repeatType = "hourly"; break;
-                            case 2: repeatType = "daily"; break;
-                            case 3: repeatType = "monthly"; break;
-                            case 4: repeatType = "yearly"; break;
-                        }
-                        
-                        if (repeatType != null) {
-                            if (etRepeatInterval != null) {
-                                String intervalStr = etRepeatInterval.getText() != null ? etRepeatInterval.getText().toString().trim() : "";
-                                if (!intervalStr.isEmpty()) {
-                                    try {
-                                        repeatInterval = Integer.parseInt(intervalStr);
-                                        if (repeatInterval < 1) repeatInterval = 1;
-                                    } catch (Exception ex) {
-                                        repeatInterval = 1;
-                                    }
-                                } else {
+                    // Obtener hora
+                    if (etEventTime.getTag() != null) {
+                        java.util.Calendar timeCal = java.util.Calendar.getInstance();
+                        timeCal.setTimeInMillis((Long) etEventTime.getTag());
+                        cal.set(java.util.Calendar.HOUR_OF_DAY, timeCal.get(java.util.Calendar.HOUR_OF_DAY));
+                        cal.set(java.util.Calendar.MINUTE, timeCal.get(java.util.Calendar.MINUTE));
+                    }
+                    
+                    cal.set(java.util.Calendar.SECOND, 0);
+                    cal.set(java.util.Calendar.MILLISECOND, 0);
+                    dueAt = cal.getTimeInMillis();
+                }
+                
+                // Capturar configuración de repetición
+                String repeatType = null;
+                Integer repeatInterval = null;
+                Long repeatEndDate = null;
+                Integer repeatCount = null;
+                
+                if (spRepeatType != null && spRepeatType.getSelectedItemPosition() > 0) {
+                    int repeatPos = spRepeatType.getSelectedItemPosition();
+                    switch (repeatPos) {
+                        case 1: repeatType = "hourly"; break;
+                        case 2: repeatType = "daily"; break;
+                        case 3: repeatType = "monthly"; break;
+                        case 4: repeatType = "yearly"; break;
+                    }
+                    
+                    if (repeatType != null) {
+                        if (etRepeatInterval != null) {
+                            String intervalStr = etRepeatInterval.getText() != null ? etRepeatInterval.getText().toString().trim() : "";
+                            if (!intervalStr.isEmpty()) {
+                                try {
+                                    repeatInterval = Integer.parseInt(intervalStr);
+                                    if (repeatInterval < 1) repeatInterval = 1;
+                                } catch (Exception ex) {
                                     repeatInterval = 1;
                                 }
                             } else {
                                 repeatInterval = 1;
                             }
-                            
-                            if (etRepeatEndDate != null && etRepeatEndDate.getTag() != null) {
-                                repeatEndDate = (Long) etRepeatEndDate.getTag();
-                            } else if (etRepeatCount != null) {
-                                String countStr = etRepeatCount.getText() != null ? etRepeatCount.getText().toString().trim() : "";
-                                if (!countStr.isEmpty()) {
-                                    try {
-                                        repeatCount = Integer.parseInt(countStr);
-                                        if (repeatCount < 1) repeatCount = null;
-                                    } catch (Exception ex) {
-                                        // Ignorar
-                                    }
+                        } else {
+                            repeatInterval = 1;
+                        }
+                        
+                        if (etRepeatEndDate != null && etRepeatEndDate.getTag() != null) {
+                            repeatEndDate = (Long) etRepeatEndDate.getTag();
+                        } else if (etRepeatCount != null) {
+                            String countStr = etRepeatCount.getText() != null ? etRepeatCount.getText().toString().trim() : "";
+                            if (!countStr.isEmpty()) {
+                                try {
+                                    repeatCount = Integer.parseInt(countStr);
+                                    if (repeatCount < 1) repeatCount = null;
+                                } catch (Exception ex) {
+                                    // Ignorar
                                 }
                             }
                         }
                     }
-                    
-                    final String fRepeatType = repeatType;
-                    final Integer fRepeatInterval = repeatInterval;
-                    final Long fRepeatEndDate = repeatEndDate;
-                    final Integer fRepeatCount = repeatCount;
-                    
-                    // Capturar configuración de notificación
-                    Integer notificationMinutesBefore = null;
-                    if (spNotification != null && spNotification.getSelectedItemPosition() > 0) {
-                        int notificationPos = spNotification.getSelectedItemPosition();
-                        switch (notificationPos) {
-                            case 1: notificationMinutesBefore = 5; break;
-                            case 2: notificationMinutesBefore = 15; break;
-                            case 3: notificationMinutesBefore = 30; break;
-                            case 4: notificationMinutesBefore = 60; break;
-                            case 5: notificationMinutesBefore = 120; break;
-                            case 6: notificationMinutesBefore = 1440; break;
-                            case 7: notificationMinutesBefore = 2880; break;
-                            case 8: notificationMinutesBefore = 10080; break;
-                        }
+                }
+                
+                final String fRepeatType = repeatType;
+                final Integer fRepeatInterval = repeatInterval;
+                final Long fRepeatEndDate = repeatEndDate;
+                final Integer fRepeatCount = repeatCount;
+                
+                // Capturar configuración de notificación
+                Integer notificationMinutesBefore = null;
+                if (spNotification != null && spNotification.getSelectedItemPosition() > 0) {
+                    int notificationPos = spNotification.getSelectedItemPosition();
+                    switch (notificationPos) {
+                        case 1: notificationMinutesBefore = 5; break;
+                        case 2: notificationMinutesBefore = 15; break;
+                        case 3: notificationMinutesBefore = 30; break;
+                        case 4: notificationMinutesBefore = 60; break;
+                        case 5: notificationMinutesBefore = 120; break;
+                        case 6: notificationMinutesBefore = 1440; break;
+                        case 7: notificationMinutesBefore = 2880; break;
+                        case 8: notificationMinutesBefore = 10080; break;
                     }
-                    
-                    final Integer fNotificationMinutesBefore = notificationMinutesBefore;
+                }
+                
+                final Integer fNotificationMinutesBefore = notificationMinutesBefore;
 
-                    pickDateTime(e.dueAt, dueAt -> updateLocal(e, title, cost, dueAt, fRepeatType, fRepeatInterval, fRepeatEndDate, fRepeatCount, fNotificationMinutesBefore));
-                })
-                .setNeutralButton(getString(R.string.button_delete), (d, w) -> softDelete(e.id))
-                .setNegativeButton(getString(R.string.button_cancel), null)
-                .show();
+                updateLocal(e, title, cost, dueAt, fRepeatType, fRepeatInterval, fRepeatEndDate, fRepeatCount, fNotificationMinutesBefore);
+                dialog.dismiss();
+            });
+        }
+        
+        dialog.show();
+        } catch (Exception ex) {
+            android.util.Log.e("AgendaActivity", "Error al mostrar diálogo de edición", ex);
+            if (!isFinishing() && !isDestroyed()) {
+                android.widget.Toast.makeText(this, "Error al cargar el diálogo de edición", android.widget.Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     private Double safeParseDouble(String s) {
@@ -558,30 +755,283 @@ public class AgendaActivity extends AppCompatActivity {
                              String repeatType, Integer repeatInterval, Long repeatEndDate, Integer repeatCount,
                              Integer notificationMinutesBefore) {
         new Thread(() -> {
-            // Cancelar notificación anterior si existía
-            if (e.notificationMinutesBefore != null && e.notificationMinutesBefore > 0) {
-                com.gastonlesbegueris.caretemplate.util.NotificationHelper.cancelNotification(this, e.id);
+            try {
+                // Determinar si es evento original o repetido
+                EventEntity originalEvent = e;
+                boolean isRepeatedEvent = e.originalEventId != null;
+                
+                if (isRepeatedEvent) {
+                    // Si es un evento repetido, obtener el original
+                    originalEvent = dao.findOriginalEvent(e.originalEventId);
+                    if (originalEvent == null) {
+                        // Si no se encuentra el original, actualizar solo este evento
+                        updateSingleEvent(e, title, cost, dueAt, repeatType, repeatInterval, repeatEndDate, repeatCount, notificationMinutesBefore);
+                        return;
+                    }
+                }
+                
+                // Verificar si la configuración de repetición cambió
+                boolean repeatChanged = !java.util.Objects.equals(originalEvent.repeatType, repeatType) ||
+                                       !java.util.Objects.equals(originalEvent.repeatInterval, repeatInterval) ||
+                                       !java.util.Objects.equals(originalEvent.repeatEndDate, repeatEndDate) ||
+                                       !java.util.Objects.equals(originalEvent.repeatCount, repeatCount);
+                
+                if (repeatChanged && (repeatType != null || originalEvent.repeatType != null)) {
+                    // La repetición cambió, necesitamos regenerar los eventos repetidos
+                    updateEventWithRepeat(originalEvent, title, cost, dueAt, repeatType, repeatInterval, 
+                                        repeatEndDate, repeatCount, notificationMinutesBefore);
+                } else {
+                    // Solo actualizar el evento individual (o el original si no hay repetición)
+                    if (isRepeatedEvent) {
+                        // Actualizar solo el evento repetido que se editó
+                        updateSingleEvent(e, title, cost, dueAt, null, null, null, null, notificationMinutesBefore);
+                    } else {
+                        // Actualizar el evento original
+                        updateSingleEvent(originalEvent, title, cost, dueAt, repeatType, repeatInterval, 
+                                        repeatEndDate, repeatCount, notificationMinutesBefore);
+                    }
+                }
+            } catch (Exception ex) {
+                android.util.Log.e("AgendaActivity", "Error al actualizar evento", ex);
+                runOnUiThread(() -> {
+                    if (!isFinishing() && !isDestroyed()) {
+                        android.widget.Toast.makeText(this, "Error al actualizar evento: " + ex.getMessage(), android.widget.Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        }).start();
+    }
+    
+    private void updateSingleEvent(EventEntity e, String title, Double cost, long dueAt,
+                                  String repeatType, Integer repeatInterval, Long repeatEndDate, Integer repeatCount,
+                                  Integer notificationMinutesBefore) {
+        final boolean[] updateSuccess = {false};
+        try {
+            // Cancelar notificación anterior si existía (no crítico si falla)
+            try {
+                if (e.notificationMinutesBefore != null && e.notificationMinutesBefore > 0) {
+                    com.gastonlesbegueris.caretemplate.util.NotificationHelper.cancelNotification(getApplicationContext(), e.id);
+                }
+            } catch (Exception notifEx) {
+                android.util.Log.w("AgendaActivity", "Error al cancelar notificación anterior (no crítico)", notifEx);
             }
             
             e.title = title;
             e.cost = cost;
             e.dueAt = dueAt;
-            e.repeatType = repeatType;
-            e.repeatInterval = repeatInterval;
-            e.repeatEndDate = repeatEndDate;
-            e.repeatCount = repeatCount;
+            if (repeatType != null || e.originalEventId == null) {
+                // Solo actualizar repetición si es el evento original o si se está eliminando la repetición
+                e.repeatType = repeatType;
+                e.repeatInterval = repeatInterval;
+                e.repeatEndDate = repeatEndDate;
+                e.repeatCount = repeatCount;
+            }
             e.notificationMinutesBefore = notificationMinutesBefore;
             e.updatedAt = System.currentTimeMillis();
             e.dirty = 1;
             dao.update(e);
+            updateSuccess[0] = true;
             
-            // Programar nueva notificación si es necesario
-            if (notificationMinutesBefore != null && notificationMinutesBefore > 0) {
-                com.gastonlesbegueris.caretemplate.util.NotificationHelper.scheduleNotification(this, e);
+            // Programar nueva notificación si es necesario (no crítico si falla)
+            try {
+                if (notificationMinutesBefore != null && notificationMinutesBefore > 0) {
+                    com.gastonlesbegueris.caretemplate.util.NotificationHelper.scheduleNotification(getApplicationContext(), e);
+                }
+            } catch (Exception notifEx) {
+                android.util.Log.w("AgendaActivity", "Error al programar notificación (no crítico)", notifEx);
             }
             
-            runOnUiThread(() -> android.widget.Toast.makeText(this, getString(R.string.event_updated), android.widget.Toast.LENGTH_SHORT).show());
-        }).start();
+            runOnUiThread(() -> {
+                if (!isFinishing() && !isDestroyed()) {
+                    android.widget.Toast.makeText(this, getString(R.string.event_updated), android.widget.Toast.LENGTH_SHORT).show();
+                }
+            });
+        } catch (Exception ex) {
+            android.util.Log.e("AgendaActivity", "Error al actualizar evento individual: " + ex.getMessage(), ex);
+            runOnUiThread(() -> {
+                if (!isFinishing() && !isDestroyed()) {
+                    if (updateSuccess[0]) {
+                        // Si la actualización fue exitosa pero hubo un error menor, mostrar éxito
+                        android.widget.Toast.makeText(this, getString(R.string.event_updated), android.widget.Toast.LENGTH_SHORT).show();
+                    } else {
+                        android.widget.Toast.makeText(this, "Error al actualizar evento", android.widget.Toast.LENGTH_LONG).show();
+                    }
+                }
+            });
+        }
+    }
+    
+    private void updateEventWithRepeat(EventEntity originalEvent, String title, Double cost, long dueAt,
+                                       String repeatType, Integer repeatInterval, Long repeatEndDate, Integer repeatCount,
+                                       Integer notificationMinutesBefore) {
+        final boolean[] updateSuccess = {false};
+        try {
+            // Cancelar notificaciones de eventos repetidos existentes (no crítico si falla)
+            try {
+                java.util.List<EventEntity> repeatedEvents = dao.findRepeatedEvents(originalEvent.id);
+                for (EventEntity repeated : repeatedEvents) {
+                    if (repeated != null && repeated.notificationMinutesBefore != null && repeated.notificationMinutesBefore > 0) {
+                        com.gastonlesbegueris.caretemplate.util.NotificationHelper.cancelNotification(getApplicationContext(), repeated.id);
+                    }
+                }
+            } catch (Exception notifEx) {
+                android.util.Log.w("AgendaActivity", "Error al cancelar notificaciones repetidas (no crítico)", notifEx);
+            }
+            
+            // Cancelar notificación del original (no crítico si falla)
+            try {
+                if (originalEvent.notificationMinutesBefore != null && originalEvent.notificationMinutesBefore > 0) {
+                    com.gastonlesbegueris.caretemplate.util.NotificationHelper.cancelNotification(getApplicationContext(), originalEvent.id);
+                }
+            } catch (Exception notifEx) {
+                android.util.Log.w("AgendaActivity", "Error al cancelar notificación original (no crítico)", notifEx);
+            }
+            
+            // Eliminar eventos repetidos existentes
+            long now = System.currentTimeMillis();
+            dao.softDeleteRepeatedEvents(originalEvent.id, now);
+            
+            // Actualizar el evento original
+            originalEvent.title = title;
+            originalEvent.cost = cost;
+            originalEvent.dueAt = dueAt;
+            originalEvent.repeatType = repeatType;
+            originalEvent.repeatInterval = repeatInterval;
+            originalEvent.repeatEndDate = repeatEndDate;
+            originalEvent.repeatCount = repeatCount;
+            originalEvent.notificationMinutesBefore = notificationMinutesBefore;
+            originalEvent.updatedAt = now;
+            originalEvent.dirty = 1;
+            dao.update(originalEvent);
+            updateSuccess[0] = true;
+            
+            // Programar notificación para el original (no crítico si falla)
+            try {
+                if (notificationMinutesBefore != null && notificationMinutesBefore > 0) {
+                    com.gastonlesbegueris.caretemplate.util.NotificationHelper.scheduleNotification(getApplicationContext(), originalEvent);
+                }
+            } catch (Exception notifEx) {
+                android.util.Log.w("AgendaActivity", "Error al programar notificación original (no crítico)", notifEx);
+            }
+            
+            // Si hay repetición, crear nuevos eventos repetidos (no crítico si falla parcialmente)
+            try {
+                if (repeatType != null && repeatInterval != null && repeatInterval > 0) {
+                    createRepeatedEvents(originalEvent, repeatType, repeatInterval, repeatEndDate, repeatCount, notificationMinutesBefore);
+                }
+            } catch (Exception repeatEx) {
+                android.util.Log.w("AgendaActivity", "Error al crear eventos repetidos (no crítico)", repeatEx);
+            }
+            
+            runOnUiThread(() -> {
+                if (!isFinishing() && !isDestroyed()) {
+                    String message = getString(R.string.event_updated);
+                    if (repeatType != null) {
+                        message += " (repetición actualizada)";
+                    }
+                    android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show();
+                }
+            });
+        } catch (Exception ex) {
+            android.util.Log.e("AgendaActivity", "Error al actualizar evento con repetición: " + ex.getMessage(), ex);
+            runOnUiThread(() -> {
+                if (!isFinishing() && !isDestroyed()) {
+                    if (updateSuccess[0]) {
+                        // Si la actualización fue exitosa pero hubo un error menor, mostrar éxito
+                        String message = getString(R.string.event_updated);
+                        if (repeatType != null) {
+                            message += " (repetición actualizada)";
+                        }
+                        android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show();
+                    } else {
+                        android.widget.Toast.makeText(this, "Error al actualizar evento", android.widget.Toast.LENGTH_LONG).show();
+                    }
+                }
+            });
+        }
+    }
+    
+    private void createRepeatedEvents(EventEntity originalEvent, String repeatType, Integer repeatInterval,
+                                     Long repeatEndDate, Integer repeatCount, Integer notificationMinutesBefore) {
+        try {
+            long dueAt = originalEvent.dueAt;
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.setTimeInMillis(dueAt);
+            
+            int eventsCreated = 1; // Ya contamos el original
+            long nextDueAt = dueAt;
+            
+            while (true) {
+                java.util.Calendar nextCal = java.util.Calendar.getInstance();
+                nextCal.setTimeInMillis(nextDueAt);
+                
+                switch (repeatType) {
+                    case "hourly":
+                        nextCal.add(java.util.Calendar.HOUR_OF_DAY, repeatInterval);
+                        break;
+                    case "daily":
+                        nextCal.add(java.util.Calendar.DAY_OF_MONTH, repeatInterval);
+                        break;
+                    case "monthly":
+                        nextCal.add(java.util.Calendar.MONTH, repeatInterval);
+                        break;
+                    case "yearly":
+                        nextCal.add(java.util.Calendar.YEAR, repeatInterval);
+                        break;
+                }
+                
+                nextDueAt = nextCal.getTimeInMillis();
+                
+                boolean shouldStop = false;
+                if (repeatEndDate != null && nextDueAt > repeatEndDate) {
+                    shouldStop = true;
+                } else if (repeatCount != null && eventsCreated >= repeatCount) {
+                    shouldStop = true;
+                } else if (repeatEndDate == null && repeatCount == null) {
+                    // Si no hay límite, crear eventos por 10 años por defecto (prácticamente sin límite)
+                    java.util.Calendar limitCal = java.util.Calendar.getInstance();
+                    limitCal.setTimeInMillis(dueAt);
+                    limitCal.add(java.util.Calendar.YEAR, 10);
+                    if (nextDueAt > limitCal.getTimeInMillis()) {
+                        shouldStop = true;
+                    }
+                }
+                
+                if (shouldStop) break;
+                
+                // Crear evento repetido
+                EventEntity repeatedEvent = new EventEntity();
+                repeatedEvent.id = java.util.UUID.randomUUID().toString();
+                repeatedEvent.uid = originalEvent.uid;
+                repeatedEvent.appType = originalEvent.appType;
+                repeatedEvent.subjectId = originalEvent.subjectId;
+                repeatedEvent.title = originalEvent.title;
+                repeatedEvent.note = originalEvent.note;
+                repeatedEvent.cost = null;
+                repeatedEvent.kilometersAtEvent = null;
+                repeatedEvent.realized = 0;
+                repeatedEvent.dueAt = nextDueAt;
+                repeatedEvent.updatedAt = System.currentTimeMillis();
+                repeatedEvent.deleted = 0;
+                repeatedEvent.dirty = 1;
+                repeatedEvent.repeatType = null;
+                repeatedEvent.repeatInterval = null;
+                repeatedEvent.repeatEndDate = null;
+                repeatedEvent.repeatCount = null;
+                repeatedEvent.originalEventId = originalEvent.id;
+                repeatedEvent.notificationMinutesBefore = notificationMinutesBefore;
+                
+                dao.insert(repeatedEvent);
+                
+                if (notificationMinutesBefore != null && notificationMinutesBefore > 0) {
+                    com.gastonlesbegueris.caretemplate.util.NotificationHelper.scheduleNotification(getApplicationContext(), repeatedEvent);
+                }
+                
+                eventsCreated++;
+            }
+        } catch (Exception ex) {
+            android.util.Log.e("AgendaActivity", "Error al crear eventos repetidos", ex);
+        }
     }
 
     private void softDelete(String id) {

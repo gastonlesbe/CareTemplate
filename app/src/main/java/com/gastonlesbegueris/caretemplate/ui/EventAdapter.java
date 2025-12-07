@@ -151,11 +151,35 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.VH> {
         });
 
         h.btnEdit.setOnClickListener(v -> {
-            if (listener != null) listener.onEdit(e);
+            // Consumir el evento para evitar propagación
+            if (listener != null) {
+                listener.onEdit(e);
+            }
+        });
+        
+        // Prevenir que el click del botón se propague al itemView
+        h.btnEdit.setOnTouchListener((v, event) -> {
+            if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
+                v.performClick();
+            }
+            // Consumir el evento para evitar propagación
+            return true;
         });
 
         h.btnDelete.setOnClickListener(v -> {
-            if (listener != null) listener.onDelete(e);
+            // Consumir el evento para evitar propagación
+            if (listener != null) {
+                listener.onDelete(e);
+            }
+        });
+        
+        // Prevenir que el click del botón se propague al itemView
+        h.btnDelete.setOnTouchListener((v, event) -> {
+            if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
+                v.performClick();
+            }
+            // Consumir el evento para evitar propagación
+            return true;
         });
     }
 

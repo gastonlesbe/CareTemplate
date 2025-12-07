@@ -109,7 +109,9 @@
                 app:cornerRadius="50dp"
                 android:contentDescription="@string/edit"
                 android:layout_margin="8dp"
-                 />
+                android:clickable="true"
+                android:focusable="true"
+                android:duplicateParentState="false" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnDelete"
@@ -122,7 +124,10 @@
                 app:iconTint="@color/app_on_primary"
                 app:backgroundTint="?attr/colorPrimary"
                 app:cornerRadius="50dp"
-                android:layout_margin="8dp"/>
+                android:layout_margin="8dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:duplicateParentState="false"/>
 
             <CheckBox
                 android:id="@+id/cbDone"
@@ -130,7 +135,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:text="@string/event_realized"
-                android:textColor="#FFFFFF" />
+                android:textColor="?android:attr/textColorPrimary" />
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

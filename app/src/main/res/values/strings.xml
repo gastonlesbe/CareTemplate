@@ -56,8 +56,13 @@
     <string name="button_copy_code">Copiar código</string>
     <string name="button_recover_with_code">Recuperar datos con código</string>
     <string name="button_choose_date_time">Elegir fecha/hora</string>
+    <string name="button_save_event">Guardar evento</string>
+    <string name="event_date_time">Fecha y Hora</string>
+    <string name="event_date_hint">Fecha</string>
+    <string name="event_time_hint">Hora</string>
     <string name="button_mark_only">Solo marcar</string>
     <string name="button_share">Compartir</string>
+    <string name="menu_import_subject">Importar sujeto</string>
     <string name="button_import">Importar</string>
     <string name="button_ok">OK</string>
     
@@ -150,6 +155,8 @@
     <string name="event_repeat_interval_years">años</string>
     <string name="event_repeat_until">Repetir hasta</string>
     <string name="event_repeat_times">Repetir %1$d veces</string>
+    <string name="event_repeat_interval_label">Intervalo de repetición</string>
+    <string name="event_repeat_interval_number_hint">Cantidad</string>
     <string name="event_repeat_interval_hint">Cada cuántos</string>
     <string name="event_repeat_end_date_hint">Fecha de fin (opcional)</string>
     <string name="event_repeat_count_hint">Número de repeticiones (opcional)</string>
@@ -167,7 +174,8 @@
     <string name="event_notification_1week">1 semana antes</string>
     <string name="notification_channel_name">Recordatorios de eventos</string>
     <string name="notification_channel_description">Notificaciones para recordarte eventos importantes</string>
-    <string name="notification_event_reminder">Evento: %1$s</string>
+    <string name="notification_event_reminder">Recordatorio: El evento es el %1$s</string>
+    <string name="notification_event_due">⚠️ Evento vencido: %1$s</string>
     <string name="notification_permission_denied">Para recibir recordatorios de eventos, necesitas permitir las notificaciones. Puedes activarlo en Configuración de la app.</string>
     
     <!-- Event validation -->
@@ -227,5 +235,10 @@
     <string name="placeholder_subject_name">Kefu</string>
     <string name="placeholder_space"> </string>
     
-    <!-- AdMob codes are defined per flavor -->
+    <!-- AdMob codes are defined per flavor in build.gradle -->
+    <!-- Estos valores son fallback, se sobrescriben por flavor -->
+    <string name="admob_app_id">ca-app-pub-9841764898906750~2089158049</string>
+    <string name="admob_interstitial_id">ca-app-pub-9841764898906750/6449521527</string>
+    <string name="sync_completed">Sincronización realizada ✅</string>
+    <string name="sync_completed_message">Tus datos se han sincronizado correctamente con la nube.</string>
 </resources>

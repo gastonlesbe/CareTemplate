@@ -8,6 +8,12 @@
 
     <!-- Android 13+ (API 33) notifications permission (still request at runtime in code) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    
+    <!-- Permisos para alarmas exactas (necesario para notificaciones cuando la app está cerrada) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:name=".CareTemplateApplication"
@@ -64,6 +70,20 @@
             android:name=".util.EventNotificationReceiver"
             android:enabled="true"
             android:exported="false" />
+        
+        <!-- BroadcastReceiver para reprogramar notificaciones después del reinicio -->
+        <receiver
+            android:name=".util.BootReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
 
     </application>
 </manifest>
