@@ -32,5 +32,11 @@
         android:icon="@drawable/ic_sync"
         app:showAsAction="never" />
 
+    <item
+        android:id="@+id/action_share_subject"
+        android:title="@string/button_share"
+        android:icon="@drawable/ic_sync"
+        app:showAsAction="never" />
+
 
 </menu>

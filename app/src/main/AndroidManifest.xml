@@ -59,9 +59,11 @@
             android:name=".ui.AgendaMonthActivity"
             android:configChanges="orientation|screenSize" />
 
-
-
-
+        <!-- BroadcastReceiver para notificaciones de eventos -->
+        <receiver
+            android:name=".util.EventNotificationReceiver"
+            android:enabled="true"
+            android:exported="false" />
 
     </application>
 </manifest>

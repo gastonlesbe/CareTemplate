@@ -28,6 +28,16 @@ public class EventEntity {
 
     @ColumnInfo(name = "kilometersAtEvent") public Double kilometersAtEvent; // km del auto al momento del evento (solo para cars)
 
+    // Repetición de eventos
+    @ColumnInfo(name = "repeatType")     public String repeatType;      // null, "hourly", "daily", "monthly", "yearly"
+    @ColumnInfo(name = "repeatInterval") public Integer repeatInterval; // cada cuántas horas/días/meses/años (default: 1)
+    @ColumnInfo(name = "repeatEndDate")  public Long repeatEndDate;     // fecha de fin de repetición (opcional)
+    @ColumnInfo(name = "repeatCount")    public Integer repeatCount;    // número de repeticiones (opcional, alternativo a repeatEndDate)
+    @ColumnInfo(name = "originalEventId") public String originalEventId; // ID del evento original si es una repetición (null si es el original)
+
+    // Notificaciones
+    @ColumnInfo(name = "notificationMinutesBefore") public Integer notificationMinutesBefore; // minutos antes del evento para mostrar notificación (null = sin notificación)
+
     @ColumnInfo(name = "updatedAt")  public long   updatedAt;
     @ColumnInfo(name = "deleted")    public int    deleted;        // 0/1
     @ColumnInfo(name = "dirty")      public int    dirty;          // 0/1

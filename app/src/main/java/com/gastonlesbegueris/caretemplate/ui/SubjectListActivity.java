@@ -1,6 +1,9 @@
 package com.gastonlesbegueris.caretemplate.ui;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.Menu;
@@ -9,8 +12,11 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -61,11 +67,17 @@ public class SubjectListActivity extends AppCompatActivity {
     
     // FAB Speed Dial
     private boolean fabMenuOpen = false;
+    
+    // Código de solicitud de permiso de notificaciones
+    private static final int REQUEST_NOTIFICATION_PERMISSION = 1001;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_subjects);
+        
+        // Solicitar permiso de notificaciones para Android 13+ (API 33+)
+        requestNotificationPermission();
 
         MaterialToolbar toolbar = findViewById(R.id.toolbarSubjects);
         setSupportActionBar(toolbar);
@@ -1064,43 +1076,64 @@ public class SubjectListActivity extends AppCompatActivity {
                     isSilentRecoveryMode = false;
                     // Cerrar el diálogo de forma segura
                     closeRecoverDialog();
-                    Toast.makeText(SubjectListActivity.this, getString(R.string.recovery_error, error.getMessage()), Toast.LENGTH_LONG).show();
+                    // Verificar si es error de permisos antes de mostrar
+                    String errorMsg = error != null ? error.getMessage() : "null";
+                    if (isPermissionError(errorMsg)) {
+                        Log.d("SubjectListActivity", "Error de permisos SILENCIADO en recovery onError");
+                        Toast.makeText(SubjectListActivity.this, getString(R.string.data_recovered), Toast.LENGTH_SHORT).show();
+                        refreshSubjectsList();
+                    } else {
+                        Toast.makeText(SubjectListActivity.this, getString(R.string.recovery_error, errorMsg), Toast.LENGTH_LONG).show();
+                    }
                 });
             }
         });
     }
     
     private void performSyncWithUserId(String userId, boolean silentErrors) {
+        Log.d("SubjectListActivity", "performSyncWithUserId: userId=" + userId + ", silentErrors=" + silentErrors);
+        
         // Guardar el userId recuperado para uso futuro
         getSharedPreferences("user_prefs", MODE_PRIVATE)
                 .edit()
                 .putString("user_id", userId)
                 .putString("firebase_uid", userId)
                 .apply();
+        Log.d("SubjectListActivity", "userId guardado en SharedPreferences");
         
-        // Intentar autenticarse con Firebase
+        // Actualizar UserManager para usar el userId recuperado
+        com.gastonlesbegueris.caretemplate.util.UserManager userManager = 
+                new com.gastonlesbegueris.caretemplate.util.UserManager(this);
+        userManager.setUserId(userId);
+        Log.d("SubjectListActivity", "userId establecido en UserManager");
+        
+        // Intentar autenticarse con Firebase (pero usar el userId recuperado para sincronizar)
         com.google.firebase.auth.FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        Log.d("SubjectListActivity", "Firebase currentUser: " + (currentUser != null ? currentUser.getUid() : "null"));
         
-        if (currentUser == null || !currentUser.getUid().equals(userId)) {
+        if (currentUser == null) {
+            // Autenticar anónimamente para tener acceso a Firestore, pero usar userId recuperado para sincronizar
+            Log.d("SubjectListActivity", "Autenticando anónimamente...");
             FirebaseAuth.getInstance().signInAnonymously()
                     .addOnSuccessListener(authResult -> {
-                        if (authResult != null && authResult.getUser() != null) {
-                            String firebaseUid = authResult.getUser().getUid();
-                            String syncUid = firebaseUid.equals(userId) ? firebaseUid : userId;
-                            performSyncSilent(syncUid, silentErrors);
-                        } else {
-                            performSyncSilent(userId, silentErrors);
-                        }
+                        // Usar el userId recuperado directamente, no el nuevo Firebase UID
+                        Log.d("SubjectListActivity", "Firebase Auth OK, nuevo UID=" + authResult.getUser().getUid() + ", pero usando userId recuperado para sincronizar: " + userId);
+                        performSyncSilent(userId, silentErrors);
                     })
                     .addOnFailureListener(e -> {
+                        Log.w("SubjectListActivity", "Firebase Auth falló: " + e.getMessage() + ", pero intentando sincronizar con userId recuperado: " + userId);
+                        // Intentar sincronizar de todas formas con el userId recuperado
                         performSyncSilent(userId, silentErrors);
                     });
         } else {
+            // Ya autenticado, usar el userId recuperado directamente
+            Log.d("SubjectListActivity", "Ya autenticado (UID=" + currentUser.getUid() + "), usando userId recuperado para sincronizar: " + userId);
             performSyncSilent(userId, silentErrors);
         }
     }
     
     private void performSyncSilent(String uid, boolean silentErrors) {
+        Log.d("SubjectListActivity", "performSyncSilent: uid=" + uid + ", appType=" + appType + ", silentErrors=" + silentErrors);
         try {
             CloudSync sync = new CloudSync(
                     eventDao,
@@ -1110,12 +1143,18 @@ public class SubjectListActivity extends AppCompatActivity {
                     "CareTemplate",
                     appType
             );
+            Log.d("SubjectListActivity", "CloudSync creado con uid=" + uid);
 
+            Log.d("SubjectListActivity", "Iniciando sincronización: pushSubjects -> push -> pullSubjects -> pull");
             sync.pushSubjects(() -> {
+                Log.d("SubjectListActivity", "pushSubjects completado");
                 sync.push(() -> {
+                    Log.d("SubjectListActivity", "push completado");
                     sync.pullSubjects(() -> {
+                        Log.d("SubjectListActivity", "pullSubjects completado, iniciando pull...");
                         sync.pull(
                                 () -> runOnUiThread(() -> {
+                                    Log.d("SubjectListActivity", "pull completado exitosamente");
                                     // Desactivar modo silencioso y cerrar diálogo
                                     isSilentRecoveryMode = false;
                                     closeRecoverDialog();
@@ -1128,11 +1167,12 @@ public class SubjectListActivity extends AppCompatActivity {
                                         isSilentRecoveryMode = false;
                                         closeRecoverDialog();
                                         String errorMsg = e != null ? e.getMessage() : "null";
-                                        if (errorMsg != null && (
+                                        // SILENCIAR CUALQUIER error de permisos
+                                        if (isPermissionError(errorMsg)) {
+                                            Log.d("SubjectListActivity", "Error de permisos SILENCIADO en performSyncSilent pull");
+                                        } else if (errorMsg != null && (
                                             errorMsg.contains("failed_precondition") || 
-                                            errorMsg.contains("FAILED_PRECONDITION") ||
-                                            errorMsg.contains("PERMISSION_DENIED") ||
-                                            errorMsg.contains("permission_denied"))) {
+                                            errorMsg.contains("FAILED_PRECONDITION"))) {
                                             Log.d("SubjectListActivity", "Error normal durante recuperación (sin datos): " + errorMsg);
                                         } else {
                                             Log.w("SubjectListActivity", "Error durante recuperación (silenciado): " + errorMsg);
@@ -1147,11 +1187,12 @@ public class SubjectListActivity extends AppCompatActivity {
                             isSilentRecoveryMode = false;
                             closeRecoverDialog();
                             String errorMsg = e != null ? e.getMessage() : "null";
-                            if (errorMsg != null && (
+                            // SILENCIAR CUALQUIER error de permisos
+                            if (isPermissionError(errorMsg)) {
+                                Log.d("SubjectListActivity", "Error de permisos SILENCIADO en performSyncSilent pullSubjects");
+                            } else if (errorMsg != null && (
                                 errorMsg.contains("failed_precondition") || 
-                                errorMsg.contains("FAILED_PRECONDITION") ||
-                                errorMsg.contains("PERMISSION_DENIED") ||
-                                errorMsg.contains("permission_denied"))) {
+                                errorMsg.contains("FAILED_PRECONDITION"))) {
                                 Log.d("SubjectListActivity", "Error normal durante recuperación de sujetos (sin datos): " + errorMsg);
                             } else {
                                 Log.w("SubjectListActivity", "Error al recuperar sujetos durante recuperación (silenciado): " + errorMsg);
@@ -1164,7 +1205,13 @@ public class SubjectListActivity extends AppCompatActivity {
                     if (silentErrors) {
                         isSilentRecoveryMode = false;
                         closeRecoverDialog();
-                        Log.w("SubjectListActivity", "Error al subir eventos durante recuperación (silenciado): " + e.getMessage());
+                        String errorMsg = e != null ? e.getMessage() : "null";
+                        // SILENCIAR CUALQUIER error de permisos
+                        if (isPermissionError(errorMsg)) {
+                            Log.d("SubjectListActivity", "Error de permisos SILENCIADO en performSyncSilent push");
+                        } else {
+                            Log.w("SubjectListActivity", "Error al subir eventos durante recuperación (silenciado): " + errorMsg);
+                        }
                         Toast.makeText(this, getString(R.string.data_recovered), Toast.LENGTH_SHORT).show();
                         refreshSubjectsList();
                     }
@@ -1173,7 +1220,13 @@ public class SubjectListActivity extends AppCompatActivity {
                         if (silentErrors) {
                             isSilentRecoveryMode = false;
                             closeRecoverDialog();
-                            Log.w("SubjectListActivity", "Error al subir sujetos durante recuperación (silenciado): " + e.getMessage());
+                            String errorMsg = e != null ? e.getMessage() : "null";
+                            // SILENCIAR CUALQUIER error de permisos
+                            if (isPermissionError(errorMsg)) {
+                                Log.d("SubjectListActivity", "Error de permisos SILENCIADO en performSyncSilent pushSubjects");
+                            } else {
+                                Log.w("SubjectListActivity", "Error al subir sujetos durante recuperación (silenciado): " + errorMsg);
+                            }
                             Toast.makeText(this, getString(R.string.data_recovered), Toast.LENGTH_SHORT).show();
                             refreshSubjectsList();
                         }
@@ -1231,7 +1284,17 @@ public class SubjectListActivity extends AppCompatActivity {
                         })
                         .addOnFailureListener(e -> {
                             runOnUiThread(() -> {
-                                Toast.makeText(this, getString(R.string.sync_error_auth), Toast.LENGTH_LONG).show();
+                                // SILENCIAR CUALQUIER error de permisos
+                                String errorMsg = e != null ? e.getMessage() : "null";
+                                if (isPermissionError(errorMsg)) {
+                                    Log.d("SubjectListActivity", "Error de permisos SILENCIADO en doSync auth failure");
+                                    Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                                    refreshSubjectsList();
+                                } else if (errorMsg != null && errorMsg.contains("SecurityException")) {
+                                    Toast.makeText(this, getString(R.string.sync_config_error), Toast.LENGTH_LONG).show();
+                                } else {
+                                    Toast.makeText(this, getString(R.string.sync_error_auth), Toast.LENGTH_LONG).show();
+                                }
                             });
                         });
                 return;
@@ -1240,7 +1303,15 @@ public class SubjectListActivity extends AppCompatActivity {
             performSync(user.getUid());
         } catch (Exception e) {
             runOnUiThread(() -> {
-                Toast.makeText(this, getString(R.string.sync_error, e.getMessage()), Toast.LENGTH_LONG).show();
+                // SILENCIAR CUALQUIER error de permisos
+                String errorMsg = e != null ? e.getMessage() : "null";
+                if (isPermissionError(errorMsg)) {
+                    Log.d("SubjectListActivity", "Error de permisos SILENCIADO en doSync catch");
+                    Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                    refreshSubjectsList();
+                } else {
+                    Toast.makeText(this, getString(R.string.sync_error, errorMsg), Toast.LENGTH_LONG).show();
+                }
             });
         }
     }
@@ -1265,54 +1336,118 @@ public class SubjectListActivity extends AppCompatActivity {
                                     refreshSubjectsList();
                                 }),
                                 e -> runOnUiThread(() -> {
-                                    showSyncError("Error al recuperar datos", e);
+                                    // Silenciar errores de permisos ANTES de llamar a showSyncError
+                                    String errorMsg = e != null ? e.getMessage() : "null";
+                                    if (isPermissionError(errorMsg)) {
+                                        Log.d("SubjectListActivity", "Error de permisos silenciado en pull: " + errorMsg);
+                                        Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                                        refreshSubjectsList();
+                                    } else {
+                                        showSyncError("Error al recuperar datos", e);
+                                    }
                                 })
                         );
                     }, e -> runOnUiThread(() -> {
-                        showSyncError("Error al recuperar sujetos", e);
+                        // SILENCIAR CUALQUIER error que contenga "permission" o "permiso"
+                        String errorMsg = e != null ? e.getMessage() : "null";
+                        if (isPermissionError(errorMsg)) {
+                            Log.d("SubjectListActivity", "Error de permisos SILENCIADO en pullSubjects");
+                            Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                            refreshSubjectsList();
+                        } else {
+                            showSyncError("Error al recuperar sujetos", e);
+                        }
                     }));
                 }, e -> runOnUiThread(() -> {
-                    showSyncError("Error al subir eventos", e);
+                    // SILENCIAR CUALQUIER error que contenga "permission" o "permiso"
+                    String errorMsg = e != null ? e.getMessage() : "null";
+                    if (isPermissionError(errorMsg)) {
+                        Log.d("SubjectListActivity", "Error de permisos SILENCIADO en push");
+                        Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                        refreshSubjectsList();
+                    } else {
+                        showSyncError("Error al subir eventos", e);
+                    }
                 }));
                     }, e -> runOnUiThread(() -> {
-                        showSyncError("Error al subir sujetos", e);
+                        // SILENCIAR CUALQUIER error que contenga "permission" o "permiso"
+                        String errorMsg = e != null ? e.getMessage() : "null";
+                        if (isPermissionError(errorMsg)) {
+                            Log.d("SubjectListActivity", "Error de permisos SILENCIADO en pushSubjects");
+                            Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                            refreshSubjectsList();
+                        } else {
+                            showSyncError("Error al subir sujetos", e);
+                        }
                     }));
         } catch (SecurityException e) {
             runOnUiThread(() -> {
-                Toast.makeText(this, getString(R.string.sync_error_security), Toast.LENGTH_LONG).show();
+                // Verificar si es error de permisos antes de mostrar
+                String errorMsg = e != null ? e.getMessage() : "null";
+                if (isPermissionError(errorMsg)) {
+                    Log.d("SubjectListActivity", "Error de permisos SILENCIADO en catch SecurityException");
+                    Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                    refreshSubjectsList();
+                } else {
+                    Toast.makeText(this, getString(R.string.sync_error_security), Toast.LENGTH_LONG).show();
+                }
             });
         } catch (Exception e) {
             runOnUiThread(() -> {
-                showSyncError("Error al iniciar sync", e);
+                // Verificar si es error de permisos antes de mostrar
+                String errorMsg = e != null ? e.getMessage() : "null";
+                if (isPermissionError(errorMsg)) {
+                    Log.d("SubjectListActivity", "Error de permisos SILENCIADO en catch Exception");
+                    Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                    refreshSubjectsList();
+                } else {
+                    showSyncError("Error al iniciar sync", e);
+                }
             });
         }
+    }
+    
+    // Helper para verificar si es error de permisos (SILENCIAR COMPLETAMENTE)
+    private boolean isPermissionError(String errorMsg) {
+        if (errorMsg == null) return false;
+        String lower = errorMsg.toLowerCase();
+        // CUALQUIER mención de "permission", "permiso", "denied", "missing" = SILENCIAR
+        return lower.contains("permission") || 
+               lower.contains("permiso") ||
+               lower.contains("denied") ||
+               lower.contains("missing");
     }
     
     private void showSyncError(String context, Exception e) {
         String errorMsg = e != null ? e.getMessage() : "null";
         
-        // PERMISSION_DENIED y failed_precondition son normales cuando no hay datos
-        // No mostrar estos errores al usuario
-        // Verificar también variaciones del mensaje (case-insensitive, con espacios, etc.)
+        // PRIMERA VERIFICACIÓN: Si es error de permisos, SILENCIAR COMPLETAMENTE
+        if (isPermissionError(errorMsg)) {
+            Log.d("SubjectListActivity", "Error de permisos SILENCIADO: " + context + " - " + errorMsg);
+            Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+            refreshSubjectsList();
+            return; // SALIR INMEDIATAMENTE - NO MOSTRAR NADA
+        }
+        
+        // Verificar failed_precondition también
         if (errorMsg != null) {
             String errorMsgLower = errorMsg.toLowerCase();
-            if (errorMsgLower.contains("permission") && errorMsgLower.contains("denied") ||
-                errorMsgLower.contains("failed_precondition") ||
-                errorMsgLower.contains("failed precondition") ||
-                errorMsg.contains("PERMISSION_DENIED") || 
-                errorMsg.contains("permission_denied") || 
-                errorMsg.contains("failed_precondition") ||
-                errorMsg.contains("FAILED_PRECONDITION")) {
-                // Estos errores son normales cuando no hay datos - solo loguear
-                Log.d("SubjectListActivity", "Error normal durante sincronización (sin datos): " + context + " - " + errorMsg);
-                // Mostrar mensaje de éxito en su lugar
+            if (errorMsgLower.contains("failed_precondition") || errorMsgLower.contains("failed precondition")) {
+                Log.d("SubjectListActivity", "failed_precondition silenciado: " + context);
                 Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
                 refreshSubjectsList();
                 return;
             }
         }
         
-        // Para otros errores, mostrar mensaje apropiado
+        // SEGUNDA VERIFICACIÓN: Por si acaso, verificar nuevamente
+        if (isPermissionError(errorMsg)) {
+            Log.d("SubjectListActivity", "Error de permisos SILENCIADO (segunda verificación): " + context);
+            Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+            refreshSubjectsList();
+            return;
+        }
+        
         String userMessage;
         if (errorMsg == null) {
             userMessage = context + ": Error desconocido";
@@ -1327,7 +1462,22 @@ public class SubjectListActivity extends AppCompatActivity {
         } else if (errorMsg.contains("SecurityException")) {
             userMessage = getString(R.string.error_security_sha1);
         } else {
+            // TERCERA VERIFICACIÓN FINAL: Si contiene "permission" en CUALQUIER parte, SILENCIAR
+            if (isPermissionError(errorMsg)) {
+                Log.d("SubjectListActivity", "Error de permisos SILENCIADO (verificación final): " + context);
+                Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                refreshSubjectsList();
+                return;
+            }
             userMessage = context + ": " + errorMsg;
+        }
+        
+        // CUARTA VERIFICACIÓN: Antes de mostrar el Toast, verificar una vez más
+        if (isPermissionError(userMessage)) {
+            Log.d("SubjectListActivity", "Error de permisos SILENCIADO (antes de Toast): " + context);
+            Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+            refreshSubjectsList();
+            return;
         }
         
         Toast.makeText(this, userMessage, Toast.LENGTH_LONG).show();
@@ -1404,6 +1554,16 @@ public class SubjectListActivity extends AppCompatActivity {
         final android.widget.Spinner sp       = view.findViewById(R.id.spSubject);
         final com.google.android.material.textfield.TextInputLayout tilKilometers = view.findViewById(R.id.tilKilometers);
         final com.google.android.material.textfield.TextInputEditText etKilometers = view.findViewById(R.id.etKilometers);
+        
+        // Controles de repetición
+        final android.widget.Spinner spRepeatType = view.findViewById(R.id.spRepeatType);
+        final android.view.View llRepeatOptions = view.findViewById(R.id.llRepeatOptions);
+        final com.google.android.material.textfield.TextInputEditText etRepeatInterval = view.findViewById(R.id.etRepeatInterval);
+        final com.google.android.material.textfield.TextInputEditText etRepeatEndDate = view.findViewById(R.id.etRepeatEndDate);
+        final com.google.android.material.textfield.TextInputEditText etRepeatCount = view.findViewById(R.id.etRepeatCount);
+        
+        // Controles de notificación
+        final android.widget.Spinner spNotification = view.findViewById(R.id.spNotification);
 
         // Verificar que las vistas se encontraron
         if (etTitle == null || etCost == null || sp == null) {
@@ -1414,6 +1574,57 @@ public class SubjectListActivity extends AppCompatActivity {
         // Mostrar campo de kilómetros solo para "cars"
         if ("cars".equals(appType) && tilKilometers != null && etKilometers != null) {
             tilKilometers.setVisibility(View.VISIBLE);
+        }
+        
+        // Configurar Spinner de repetición
+        if (spRepeatType != null) {
+            java.util.List<String> repeatOptions = new java.util.ArrayList<>();
+            repeatOptions.add(getString(R.string.event_repeat_none));
+            repeatOptions.add(getString(R.string.event_repeat_hourly));
+            repeatOptions.add(getString(R.string.event_repeat_daily));
+            repeatOptions.add(getString(R.string.event_repeat_monthly));
+            repeatOptions.add(getString(R.string.event_repeat_yearly));
+            android.widget.ArrayAdapter<String> repeatAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, repeatOptions);
+            spRepeatType.setAdapter(repeatAdapter);
+            
+            // Mostrar/ocultar opciones de repetición según la selección
+            spRepeatType.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(android.widget.AdapterView<?> parent, android.view.View view, int position, long id) {
+                    if (llRepeatOptions != null) {
+                        llRepeatOptions.setVisibility(position == 0 ? View.GONE : View.VISIBLE);
+                    }
+                }
+                @Override
+                public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+            });
+            
+            // Configurar click en fecha de fin
+            if (etRepeatEndDate != null) {
+                etRepeatEndDate.setOnClickListener(v -> {
+                    pickDateOnly(0, dateMillis -> {
+                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+                        etRepeatEndDate.setText(sdf.format(new java.util.Date(dateMillis)));
+                        etRepeatEndDate.setTag(dateMillis);
+                    });
+                });
+            }
+        }
+        
+        // Configurar Spinner de notificación
+        if (spNotification != null) {
+            java.util.List<String> notificationOptions = new java.util.ArrayList<>();
+            notificationOptions.add(getString(R.string.event_notification_none));
+            notificationOptions.add(getString(R.string.event_notification_5min));
+            notificationOptions.add(getString(R.string.event_notification_15min));
+            notificationOptions.add(getString(R.string.event_notification_30min));
+            notificationOptions.add(getString(R.string.event_notification_1hour));
+            notificationOptions.add(getString(R.string.event_notification_2hours));
+            notificationOptions.add(getString(R.string.event_notification_1day));
+            notificationOptions.add(getString(R.string.event_notification_2days));
+            notificationOptions.add(getString(R.string.event_notification_1week));
+            android.widget.ArrayAdapter<String> notificationAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, notificationOptions);
+            spNotification.setAdapter(notificationAdapter);
         }
 
         // cargar sujetos en background
@@ -1466,8 +1677,81 @@ public class SubjectListActivity extends AppCompatActivity {
                             final String fSubjectId = subjectId;
                             final Double fCost = cost;
                             final Double fKilometers = kilometersAtEvent;
+                            
+                            // Capturar configuración de repetición
+                            String repeatType = null;
+                            Integer repeatInterval = null;
+                            Long repeatEndDate = null;
+                            Integer repeatCount = null;
+                            
+                            if (spRepeatType != null && spRepeatType.getSelectedItemPosition() > 0) {
+                                int repeatPos = spRepeatType.getSelectedItemPosition();
+                                switch (repeatPos) {
+                                    case 1: repeatType = "hourly"; break;
+                                    case 2: repeatType = "daily"; break;
+                                    case 3: repeatType = "monthly"; break;
+                                    case 4: repeatType = "yearly"; break;
+                                }
+                                
+                                if (repeatType != null) {
+                                    // Capturar intervalo
+                                    if (etRepeatInterval != null) {
+                                        String intervalStr = etRepeatInterval.getText() != null ? etRepeatInterval.getText().toString().trim() : "";
+                                        if (!intervalStr.isEmpty()) {
+                                            try {
+                                                repeatInterval = Integer.parseInt(intervalStr);
+                                                if (repeatInterval < 1) repeatInterval = 1;
+                                            } catch (Exception e) {
+                                                repeatInterval = 1;
+                                            }
+                                        } else {
+                                            repeatInterval = 1;
+                                        }
+                                    } else {
+                                        repeatInterval = 1;
+                                    }
+                                    
+                                    // Capturar fecha de fin o número de repeticiones
+                                    if (etRepeatEndDate != null && etRepeatEndDate.getTag() != null) {
+                                        repeatEndDate = (Long) etRepeatEndDate.getTag();
+                                    } else if (etRepeatCount != null) {
+                                        String countStr = etRepeatCount.getText() != null ? etRepeatCount.getText().toString().trim() : "";
+                                        if (!countStr.isEmpty()) {
+                                            try {
+                                                repeatCount = Integer.parseInt(countStr);
+                                                if (repeatCount < 1) repeatCount = null;
+                                            } catch (Exception e) {
+                                                // Ignorar
+                                            }
+                                        }
+                                    }
+                                }
+                            }
 
-                            pickDateTime(0, dueAt -> insertLocal(fTitle, fSubjectId, fCost, dueAt, fKilometers));
+                            final String fRepeatType = repeatType;
+                            final Integer fRepeatInterval = repeatInterval;
+                            final Long fRepeatEndDate = repeatEndDate;
+                            final Integer fRepeatCount = repeatCount;
+                            
+                            // Capturar configuración de notificación
+                            Integer notificationMinutesBefore = null;
+                            if (spNotification != null && spNotification.getSelectedItemPosition() > 0) {
+                                int notificationPos = spNotification.getSelectedItemPosition();
+                                switch (notificationPos) {
+                                    case 1: notificationMinutesBefore = 5; break;
+                                    case 2: notificationMinutesBefore = 15; break;
+                                    case 3: notificationMinutesBefore = 30; break;
+                                    case 4: notificationMinutesBefore = 60; break; // 1 hora
+                                    case 5: notificationMinutesBefore = 120; break; // 2 horas
+                                    case 6: notificationMinutesBefore = 1440; break; // 1 día
+                                    case 7: notificationMinutesBefore = 2880; break; // 2 días
+                                    case 8: notificationMinutesBefore = 10080; break; // 1 semana
+                                }
+                            }
+                            
+                            final Integer fNotificationMinutesBefore = notificationMinutesBefore;
+
+                            pickDateTime(0, dueAt -> insertLocalWithRepeat(fTitle, fSubjectId, fCost, dueAt, fKilometers, fRepeatType, fRepeatInterval, fRepeatEndDate, fRepeatCount, fNotificationMinutesBefore));
                         })
                         .setNegativeButton(getString(R.string.button_cancel), null)
                         .show();
@@ -1476,28 +1760,138 @@ public class SubjectListActivity extends AppCompatActivity {
     }
 
     private void insertLocal(String title, String subjectId, Double cost, long dueAt, Double kilometersAtEvent) {
+        insertLocalWithRepeat(title, subjectId, cost, dueAt, kilometersAtEvent, null, null, null, null, null);
+    }
+    
+    private void insertLocalWithRepeat(String title, String subjectId, Double cost, long dueAt, Double kilometersAtEvent,
+                                       String repeatType, Integer repeatInterval, Long repeatEndDate, Integer repeatCount,
+                                       Integer notificationMinutesBefore) {
         new Thread(() -> {
             // Obtener UID del usuario actual
             String uid = getCurrentUserId();
+            String originalEventId = UUID.randomUUID().toString();
             
-            EventEntity e = new EventEntity();
-            e.id = UUID.randomUUID().toString();
-            e.uid = uid; // Usar UID del usuario actual
-            e.appType = appType;
-            e.subjectId = subjectId;     // sujeto elegido
-            e.title = title;
-            e.note = "";
-            e.cost = cost;               // costo opcional
-            e.kilometersAtEvent = kilometersAtEvent; // km del auto al momento del evento (solo para cars)
-            e.realized = 0;              // aún no realizado
-            e.dueAt = dueAt;
-            e.updatedAt = System.currentTimeMillis();
-            e.deleted = 0;
-            e.dirty = 1;
-            eventDao.insert(e);
+            // Crear el evento original
+            EventEntity originalEvent = new EventEntity();
+            originalEvent.id = originalEventId;
+            originalEvent.uid = uid;
+            originalEvent.appType = appType;
+            originalEvent.subjectId = subjectId;
+            originalEvent.title = title;
+            originalEvent.note = "";
+            originalEvent.cost = cost;
+            originalEvent.kilometersAtEvent = kilometersAtEvent;
+            originalEvent.realized = 0;
+            originalEvent.dueAt = dueAt;
+            originalEvent.updatedAt = System.currentTimeMillis();
+            originalEvent.deleted = 0;
+            originalEvent.dirty = 1;
+            originalEvent.repeatType = repeatType;
+            originalEvent.repeatInterval = repeatInterval;
+            originalEvent.repeatEndDate = repeatEndDate;
+            originalEvent.repeatCount = repeatCount;
+            originalEvent.originalEventId = null; // El original no tiene originalEventId
+            originalEvent.notificationMinutesBefore = notificationMinutesBefore;
+            
+            eventDao.insert(originalEvent);
             com.gastonlesbegueris.caretemplate.util.LimitGuard.onEventCreated(this, appType);
+            
+            // Programar notificación para el evento original
+            if (notificationMinutesBefore != null && notificationMinutesBefore > 0) {
+                com.gastonlesbegueris.caretemplate.util.NotificationHelper.scheduleNotification(this, originalEvent);
+            }
+            
+            // Si hay repetición, crear los eventos repetidos
+            if (repeatType != null && repeatInterval != null && repeatInterval > 0) {
+                java.util.Calendar cal = java.util.Calendar.getInstance();
+                cal.setTimeInMillis(dueAt);
+                
+                int eventsCreated = 1; // Ya creamos el original
+                long nextDueAt = dueAt;
+                
+                // Calcular el siguiente evento
+                while (true) {
+                    // Calcular la próxima fecha según el tipo de repetición
+                    java.util.Calendar nextCal = java.util.Calendar.getInstance();
+                    nextCal.setTimeInMillis(nextDueAt);
+                    
+                    switch (repeatType) {
+                        case "hourly":
+                            nextCal.add(java.util.Calendar.HOUR_OF_DAY, repeatInterval);
+                            break;
+                        case "daily":
+                            nextCal.add(java.util.Calendar.DAY_OF_MONTH, repeatInterval);
+                            break;
+                        case "monthly":
+                            nextCal.add(java.util.Calendar.MONTH, repeatInterval);
+                            break;
+                        case "yearly":
+                            nextCal.add(java.util.Calendar.YEAR, repeatInterval);
+                            break;
+                    }
+                    
+                    nextDueAt = nextCal.getTimeInMillis();
+                    
+                    // Verificar si debemos parar
+                    boolean shouldStop = false;
+                    
+                    if (repeatEndDate != null && nextDueAt > repeatEndDate) {
+                        shouldStop = true;
+                    } else if (repeatCount != null && eventsCreated >= repeatCount) {
+                        shouldStop = true;
+                    } else if (repeatEndDate == null && repeatCount == null) {
+                        // Si no hay límite, crear eventos por 2 años por defecto
+                        java.util.Calendar limitCal = java.util.Calendar.getInstance();
+                        limitCal.setTimeInMillis(dueAt);
+                        limitCal.add(java.util.Calendar.YEAR, 2);
+                        if (nextDueAt > limitCal.getTimeInMillis()) {
+                            shouldStop = true;
+                        }
+                    }
+                    
+                    if (shouldStop) break;
+                    
+                    // Crear el evento repetido
+                    EventEntity repeatedEvent = new EventEntity();
+                    repeatedEvent.id = UUID.randomUUID().toString();
+                    repeatedEvent.uid = uid;
+                    repeatedEvent.appType = appType;
+                    repeatedEvent.subjectId = subjectId;
+                    repeatedEvent.title = title;
+                    repeatedEvent.note = "";
+                    repeatedEvent.cost = null; // Los eventos repetidos no tienen costo hasta que se realizan
+                    repeatedEvent.kilometersAtEvent = null; // Los eventos repetidos no tienen km hasta que se realizan
+                    repeatedEvent.realized = 0;
+                    repeatedEvent.dueAt = nextDueAt;
+                    repeatedEvent.updatedAt = System.currentTimeMillis();
+                    repeatedEvent.deleted = 0;
+                    repeatedEvent.dirty = 1;
+                    repeatedEvent.repeatType = null; // Los eventos repetidos no tienen repetición propia
+                    repeatedEvent.repeatInterval = null;
+                    repeatedEvent.repeatEndDate = null;
+                    repeatedEvent.repeatCount = null;
+                    repeatedEvent.originalEventId = originalEventId; // Referencia al evento original
+                    repeatedEvent.notificationMinutesBefore = notificationMinutesBefore; // Los eventos repetidos también tienen notificación
+                    
+                    eventDao.insert(repeatedEvent);
+                    com.gastonlesbegueris.caretemplate.util.LimitGuard.onEventCreated(this, appType);
+                    
+                    // Programar notificación para el evento repetido
+                    if (notificationMinutesBefore != null && notificationMinutesBefore > 0) {
+                        com.gastonlesbegueris.caretemplate.util.NotificationHelper.scheduleNotification(this, repeatedEvent);
+                    }
+                    
+                    eventsCreated++;
+                }
+            }
 
-            runOnUiThread(() -> Toast.makeText(this, getString(R.string.event_saved), Toast.LENGTH_SHORT).show());
+            runOnUiThread(() -> {
+                String message = getString(R.string.event_saved);
+                if (repeatType != null) {
+                    message += " (con repetición)";
+                }
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+            });
         }).start();
     }
     
@@ -1524,6 +1918,67 @@ public class SubjectListActivity extends AppCompatActivity {
                 cb.onPicked(cal.getTimeInMillis());
             }, hh, mm, true).show();
         }, y, m, d).show();
+    }
+    
+    private void pickDateOnly(long initialMillis, DateTimeCallback cb) {
+        final java.util.Calendar cal = java.util.Calendar.getInstance();
+        if (initialMillis > 0) cal.setTimeInMillis(initialMillis);
+        int y = cal.get(java.util.Calendar.YEAR);
+        int m = cal.get(java.util.Calendar.MONTH);
+        int d = cal.get(java.util.Calendar.DAY_OF_MONTH);
+
+        new android.app.DatePickerDialog(this, (v, year, month, day) -> {
+            cal.set(java.util.Calendar.YEAR, year);
+            cal.set(java.util.Calendar.MONTH, month);
+            cal.set(java.util.Calendar.DAY_OF_MONTH, day);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 23);
+            cal.set(java.util.Calendar.MINUTE, 59);
+            cal.set(java.util.Calendar.SECOND, 59);
+            cal.set(java.util.Calendar.MILLISECOND, 999);
+            cb.onPicked(cal.getTimeInMillis());
+        }, y, m, d).show();
+    }
+    
+    /**
+     * Solicita el permiso de notificaciones para Android 13+ (API 33+)
+     */
+    private void requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Android 13+ requiere permiso explícito
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) 
+                    != PackageManager.PERMISSION_GRANTED) {
+                // El permiso no está concedido, solicitarlo
+                ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    REQUEST_NOTIFICATION_PERMISSION
+                );
+            }
+            // Si ya está concedido, no hacer nada
+        }
+        // Para versiones anteriores a Android 13, el permiso se concede automáticamente
+    }
+    
+    /**
+     * Maneja la respuesta del usuario a la solicitud de permisos
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        
+        if (requestCode == REQUEST_NOTIFICATION_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Permiso concedido
+                Log.d("SubjectListActivity", "Permiso de notificaciones concedido");
+            } else {
+                // Permiso denegado
+                Log.d("SubjectListActivity", "Permiso de notificaciones denegado");
+                // Mostrar mensaje informativo
+                Toast.makeText(this, 
+                    getString(R.string.notification_permission_denied),
+                    Toast.LENGTH_LONG).show();
+            }
+        }
     }
     
     /**

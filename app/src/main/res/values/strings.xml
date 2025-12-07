@@ -57,6 +57,9 @@
     <string name="button_recover_with_code">Recuperar datos con código</string>
     <string name="button_choose_date_time">Elegir fecha/hora</string>
     <string name="button_mark_only">Solo marcar</string>
+    <string name="button_share">Compartir</string>
+    <string name="button_import">Importar</string>
+    <string name="button_ok">OK</string>
     
     <!-- Recovery code -->
     <string name="recovery_code_title">Código de recuperación</string>
@@ -74,8 +77,24 @@
     <string name="recovery_code_error">Error al obtener código. Intenta más tarde.</string>
     <string name="recovery_code_generate_error">Error: No se pudo generar el código</string>
     <string name="recovery_code_show_error">Error al mostrar el código: %1$s</string>
-    <string name="error_permission_denied">Error de permisos. Verifica las reglas de Firestore en Firebase Console</string>
     <string name="error_security_sha1">Error de seguridad. Verifica SHA-1 en Firebase Console</string>
+    
+    <!-- Share subject -->
+    <string name="share_subject">Compartir sujeto</string>
+    <string name="share_subject_title">Compartir sujeto</string>
+    <string name="share_subject_message">Genera un código para compartir este sujeto con otra persona</string>
+    <string name="share_subject_code_title">Código de compartir</string>
+    <string name="share_subject_code_message">Comparte este código con la persona que quieres que tenga este sujeto:</string>
+    <string name="share_subject_code_copied">Código copiado al portapapeles</string>
+    <string name="share_subject_receive_title">Recibir sujeto compartido</string>
+    <string name="share_subject_receive_message">Ingresa el código de compartir que te enviaron</string>
+    <string name="share_subject_code_hint">Código de compartir (formato: XXXX-XXXX-XXXX)</string>
+    <string name="share_subject_invalid">Ingresa un código válido</string>
+    <string name="share_subject_not_found">Código de compartir no encontrado</string>
+    <string name="share_subject_error">Error al compartir: %1$s</string>
+    <string name="share_subject_importing">Importando sujeto compartido…</string>
+    <string name="share_subject_imported">Sujeto importado exitosamente ✅</string>
+    <string name="share_subject_import_error">Error al importar sujeto: %1$s</string>
     
     <!-- Recovery process -->
     <string name="recovering_data">Recuperando datos…</string>
@@ -109,11 +128,47 @@
     <string name="event_mark_realized">Marcar como realizado</string>
     <string name="event_mark_realized_message">Podés guardar el costo ahora.</string>
     <string name="event_realized">Realizado</string>
+    <string name="event_marked_realized">Marcado como realizado</string>
+    <string name="event_marked_pending">Marcado como pendiente</string>
     <string name="event_subject_placeholder">(Sujeto)</string>
     <string name="event_date_format">dd/MM HH:mm</string>
     <string name="event_cost_format">$%1$.2f</string>
     <string name="event_kilometers">Kilómetros: %1$s km</string>
     <string name="event_cost_zero">$0.00</string>
+    
+    <!-- Event repetition -->
+    <string name="event_repeat">Repetir evento</string>
+    <string name="event_repeat_none">No repetir</string>
+    <string name="event_repeat_hourly">Cada hora</string>
+    <string name="event_repeat_daily">Cada día</string>
+    <string name="event_repeat_monthly">Cada mes</string>
+    <string name="event_repeat_yearly">Cada año</string>
+    <string name="event_repeat_interval">Cada %1$d %2$s</string>
+    <string name="event_repeat_interval_hours">horas</string>
+    <string name="event_repeat_interval_days">días</string>
+    <string name="event_repeat_interval_months">meses</string>
+    <string name="event_repeat_interval_years">años</string>
+    <string name="event_repeat_until">Repetir hasta</string>
+    <string name="event_repeat_times">Repetir %1$d veces</string>
+    <string name="event_repeat_interval_hint">Cada cuántos</string>
+    <string name="event_repeat_end_date_hint">Fecha de fin (opcional)</string>
+    <string name="event_repeat_count_hint">Número de repeticiones (opcional)</string>
+    
+    <!-- Event notifications -->
+    <string name="event_notification">Notificación</string>
+    <string name="event_notification_none">Sin notificación</string>
+    <string name="event_notification_5min">5 minutos antes</string>
+    <string name="event_notification_15min">15 minutos antes</string>
+    <string name="event_notification_30min">30 minutos antes</string>
+    <string name="event_notification_1hour">1 hora antes</string>
+    <string name="event_notification_2hours">2 horas antes</string>
+    <string name="event_notification_1day">1 día antes</string>
+    <string name="event_notification_2days">2 días antes</string>
+    <string name="event_notification_1week">1 semana antes</string>
+    <string name="notification_channel_name">Recordatorios de eventos</string>
+    <string name="notification_channel_description">Notificaciones para recordarte eventos importantes</string>
+    <string name="notification_event_reminder">Evento: %1$s</string>
+    <string name="notification_permission_denied">Para recibir recordatorios de eventos, necesitas permitir las notificaciones. Puedes activarlo en Configuración de la app.</string>
     
     <!-- Event validation -->
     <string name="error_create_subject_first">Primero creá un sujeto</string>

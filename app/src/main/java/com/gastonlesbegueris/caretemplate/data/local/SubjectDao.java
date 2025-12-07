@@ -14,7 +14,8 @@ public interface SubjectDao {
     @Update
     void update(SubjectEntity s);
     // --- Soporte de Sync con filtro por appType ---
-    @Query("SELECT * FROM subjects WHERE dirty = 1 AND deleted = 0 AND appType = :appType")
+    // Incluir también los borrados para sincronizar las eliminaciones
+    @Query("SELECT * FROM subjects WHERE dirty = 1 AND appType = :appType")
     List<SubjectEntity> listDirty(String appType);
 
 
@@ -34,11 +35,15 @@ public interface SubjectDao {
     SubjectEntity findOne(String id);
 
     // Sync helpers
-    @Query("SELECT * FROM subjects WHERE dirty = 1 AND deleted = 0")
+    // Incluir también los borrados para sincronizar las eliminaciones
+    @Query("SELECT * FROM subjects WHERE dirty = 1")
     List<SubjectEntity> listDirty();
 
     @Query("UPDATE subjects SET dirty = 0 WHERE id IN (:ids)")
     void markClean(List<String> ids);
+
+    @Query("DELETE FROM subjects WHERE id = :id")
+    void deletePermanently(String id);
 
     @Query("SELECT MAX(updatedAt) FROM subjects WHERE appType = :appType")
     Long lastUpdatedForApp(String appType);

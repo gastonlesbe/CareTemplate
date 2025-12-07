@@ -131,6 +131,10 @@ public interface EventDao {
     @Insert(onConflict = REPLACE)
     void insertAll(List<EventEntity> list);
 
+    // 5) obtener un evento por ID
+    @Query("SELECT * FROM events WHERE id=:id")
+    EventEntity findOne(String id);
+
 }
 
 

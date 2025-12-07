@@ -301,8 +301,12 @@ public class MainActivity extends AppCompatActivity {
                             })
                             .addOnFailureListener(e -> {
                                 stopSyncIconAnimation();
-                                String errorMsg = e.getMessage();
-                                if (errorMsg != null && errorMsg.contains("SecurityException")) {
+                                String errorMsg = e != null ? e.getMessage() : "null";
+                                // Verificar si es error de permisos antes de mostrar
+                                if (isPermissionError(errorMsg)) {
+                                    Log.d("MainActivity", "Error de permisos SILENCIADO en auth failure");
+                                    Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                                } else if (errorMsg != null && errorMsg.contains("SecurityException")) {
                                     Toast.makeText(this, getString(R.string.sync_config_error), Toast.LENGTH_LONG).show();
                                 } else {
                                     Toast.makeText(this, getString(R.string.auth_error_message, errorMsg), Toast.LENGTH_LONG).show();
@@ -313,7 +317,14 @@ public class MainActivity extends AppCompatActivity {
                 }
             } catch (Exception e) {
                 stopSyncIconAnimation();
-                Toast.makeText(this, getString(R.string.sync_start_error, e.getMessage()), Toast.LENGTH_LONG).show();
+                // Verificar si es error de permisos antes de mostrar
+                String errorMsg = e != null ? e.getMessage() : "null";
+                if (isPermissionError(errorMsg)) {
+                    Log.d("MainActivity", "Error de permisos SILENCIADO en doSync catch");
+                    Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, getString(R.string.sync_start_error, errorMsg), Toast.LENGTH_LONG).show();
+                }
             }
             return true;
         } else if (id == R.id.action_subjects) {
@@ -647,7 +658,14 @@ public class MainActivity extends AppCompatActivity {
                     isSilentRecoveryMode = false;
                     // Cerrar el diálogo de forma segura
                     closeRecoverDialog();
-                    Toast.makeText(MainActivity.this, getString(R.string.recovery_error, error.getMessage()), Toast.LENGTH_LONG).show();
+                    // Verificar si es error de permisos antes de mostrar
+                    String errorMsg = error != null ? error.getMessage() : "null";
+                    if (isPermissionError(errorMsg)) {
+                        Log.d("MainActivity", "Error de permisos SILENCIADO en recovery onError");
+                        Toast.makeText(MainActivity.this, getString(R.string.data_recovered), Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(MainActivity.this, getString(R.string.recovery_error, errorMsg), Toast.LENGTH_LONG).show();
+                    }
                 });
             }
         });
@@ -819,7 +837,14 @@ public class MainActivity extends AppCompatActivity {
                     observeSubjectsForAdapter();
                     refreshHeader();
                 } else if (!silentErrors) {
-                    Toast.makeText(this, getString(R.string.sync_error_security), Toast.LENGTH_LONG).show();
+                    // Verificar si es error de permisos antes de mostrar
+                    String errorMsg = e != null ? e.getMessage() : "null";
+                    if (isPermissionError(errorMsg)) {
+                        Log.d("MainActivity", "Error de permisos SILENCIADO en performSyncSilent SecurityException");
+                        Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, getString(R.string.sync_error_security), Toast.LENGTH_LONG).show();
+                    }
                 }
             });
         } catch (Exception e) {
@@ -833,7 +858,14 @@ public class MainActivity extends AppCompatActivity {
                     observeSubjectsForAdapter();
                     refreshHeader();
                 } else if (!silentErrors) {
-                    Toast.makeText(this, getString(R.string.sync_error, e.getMessage()), Toast.LENGTH_LONG).show();
+                    // Verificar si es error de permisos antes de mostrar
+                    String errorMsg = e != null ? e.getMessage() : "null";
+                    if (isPermissionError(errorMsg)) {
+                        Log.d("MainActivity", "Error de permisos SILENCIADO en performSyncSilent Exception");
+                        Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, getString(R.string.sync_error, errorMsg), Toast.LENGTH_LONG).show();
+                    }
                 }
             });
         }
@@ -879,6 +911,17 @@ public class MainActivity extends AppCompatActivity {
         menuItemSync.setEnabled(true);
     }
 
+    // Helper para verificar si es error de permisos (SILENCIAR COMPLETAMENTE)
+    private boolean isPermissionError(String errorMsg) {
+        if (errorMsg == null) return false;
+        String lower = errorMsg.toLowerCase();
+        // CUALQUIER mención de "permission", "permiso", "denied", "missing" = SILENCIAR
+        return lower.contains("permission") || 
+               lower.contains("permiso") ||
+               lower.contains("denied") ||
+               lower.contains("missing");
+    }
+    
     private void showSyncError(String context, Exception e) {
         // Verificar si estamos en modo de recuperación silenciosa
         // Si estamos en modo silencioso, NO mostrar errores (especialmente PERMISSION_DENIED)
@@ -923,8 +966,25 @@ public class MainActivity extends AppCompatActivity {
         }
         
         String errorMsg = e.getMessage();
-        String userMessage;
         
+        // PRIMERA VERIFICACIÓN: Si es error de permisos, SILENCIAR COMPLETAMENTE
+        if (isPermissionError(errorMsg)) {
+            Log.d("MainActivity", "Error de permisos SILENCIADO: " + context + " - " + errorMsg);
+            // Cerrar diálogo si existe
+            if (recoverDialog != null) {
+                try {
+                    if (recoverDialog.isShowing()) {
+                        recoverDialog.dismiss();
+                    }
+                } catch (Exception ex) {
+                    Log.w("MainActivity", "Error al cerrar diálogo: " + ex.getMessage());
+                }
+                recoverDialog = null;
+            }
+            return; // NO MOSTRAR NADA - SALIR INMEDIATAMENTE
+        }
+        
+        String userMessage;
         if (errorMsg == null) {
             userMessage = context + ": Error desconocido";
         } else if (errorMsg.contains("Failed to get service") || 
@@ -933,19 +993,27 @@ public class MainActivity extends AppCompatActivity {
                    errorMsg.contains("DEADLINE_EXCEEDED") ||
                    errorMsg.contains("network")) {
             userMessage = getString(R.string.sync_error_connection);
-        } else if (errorMsg.contains("PERMISSION_DENIED") || errorMsg.contains("permission")) {
-            userMessage = getString(R.string.error_permission_denied);
         } else if (errorMsg.contains("UNAUTHENTICATED") || errorMsg.contains("auth")) {
             userMessage = getString(R.string.sync_error_auth);
         } else if (errorMsg.contains("SecurityException")) {
             userMessage = getString(R.string.error_security_sha1);
         } else if (errorMsg.contains("failed_precondition") || errorMsg.contains("FAILED_PRECONDITION")) {
             // No mostrar error para failed_precondition - el código maneja esto automáticamente con fallbacks
-            // Solo loguear para debugging
             Log.d("MainActivity", "failed_precondition manejado automáticamente, no mostrar error al usuario");
             return; // No mostrar Toast
         } else {
+            // ÚLTIMA VERIFICACIÓN: Si contiene "permission" en CUALQUIER parte, SILENCIAR
+            if (isPermissionError(errorMsg)) {
+                Log.d("MainActivity", "Error de permisos SILENCIADO (verificación final): " + context);
+                return; // NO MOSTRAR NADA
+            }
             userMessage = context + ": " + errorMsg;
+        }
+        
+        // VERIFICACIÓN FINAL ANTES DE MOSTRAR: Si el mensaje contiene "permission", NO MOSTRAR
+        if (isPermissionError(userMessage)) {
+            Log.d("MainActivity", "Error de permisos SILENCIADO (antes de Toast): " + context);
+            return; // NO MOSTRAR NADA
         }
         
         Toast.makeText(this, userMessage, Toast.LENGTH_LONG).show();
@@ -1011,31 +1079,73 @@ public class MainActivity extends AppCompatActivity {
                                     refreshHeader();
                                 }),
                                 e -> runOnUiThread(() -> {
-                                    showSyncError("Pull error", e);
+                                    // Verificar si es error de permisos antes de mostrar
+                                    String errorMsg = e != null ? e.getMessage() : "null";
+                                    if (isPermissionError(errorMsg)) {
+                                        Log.d("MainActivity", "Error de permisos SILENCIADO en pull");
+                                        Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                                    } else {
+                                        showSyncError("Pull error", e);
+                                    }
                                     stopSyncIconAnimation();
                                 })
                         );
                     }, e -> runOnUiThread(() -> {
-                        showSyncError("Pull subjects error", e);
+                        // Verificar si es error de permisos antes de mostrar
+                        String errorMsg = e != null ? e.getMessage() : "null";
+                        if (isPermissionError(errorMsg)) {
+                            Log.d("MainActivity", "Error de permisos SILENCIADO en pullSubjects");
+                            Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                        } else {
+                            showSyncError("Pull subjects error", e);
+                        }
                         stopSyncIconAnimation();
                     }));
                 }, e -> runOnUiThread(() -> {
-                    showSyncError("Push events error", e);
+                    // Verificar si es error de permisos antes de mostrar
+                    String errorMsg = e != null ? e.getMessage() : "null";
+                    if (isPermissionError(errorMsg)) {
+                        Log.d("MainActivity", "Error de permisos SILENCIADO en push events");
+                        Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                    } else {
+                        showSyncError("Push events error", e);
+                    }
                     stopSyncIconAnimation();
                 }));
             }, e -> runOnUiThread(() -> {
-                showSyncError("Push subjects error", e);
+                // Verificar si es error de permisos antes de mostrar
+                String errorMsg = e != null ? e.getMessage() : "null";
+                if (isPermissionError(errorMsg)) {
+                    Log.d("MainActivity", "Error de permisos SILENCIADO en pushSubjects");
+                    Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                } else {
+                    showSyncError("Push subjects error", e);
+                }
                 stopSyncIconAnimation();
             }));
         } catch (SecurityException e) {
             runOnUiThread(() -> {
                 stopSyncIconAnimation();
-                Toast.makeText(this, "Error de seguridad. Verifica la configuración de Firebase (SHA-1)", Toast.LENGTH_LONG).show();
+                // Verificar si es error de permisos antes de mostrar
+                String errorMsg = e != null ? e.getMessage() : "null";
+                if (isPermissionError(errorMsg)) {
+                    Log.d("MainActivity", "Error de permisos SILENCIADO en doSync SecurityException");
+                    Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Error de seguridad. Verifica la configuración de Firebase (SHA-1)", Toast.LENGTH_LONG).show();
+                }
             });
         } catch (Exception e) {
             runOnUiThread(() -> {
                 stopSyncIconAnimation();
-                Toast.makeText(this, "Error en sync: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                // Verificar si es error de permisos antes de mostrar
+                String errorMsg = e != null ? e.getMessage() : "null";
+                if (isPermissionError(errorMsg)) {
+                    Log.d("MainActivity", "Error de permisos SILENCIADO en doSync Exception");
+                    Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Error en sync: " + errorMsg, Toast.LENGTH_LONG).show();
+                }
             });
         }
     }

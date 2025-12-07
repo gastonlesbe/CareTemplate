@@ -22,6 +22,13 @@ public class Event {
 
     // Para distinguir qué app/flavor creó el documento: "pets" | "cars" | "family"
     public String appType;
+    
+    // Repetición de eventos (opcional)
+    public String repeatType;      // null, "hourly", "daily", "monthly", "yearly"
+    public Integer repeatInterval; // cada cuántas horas/días/meses/años (default: 1)
+    public Long repeatEndDate;     // fecha de fin de repetición (opcional)
+    public Integer repeatCount;    // número de repeticiones (opcional, alternativo a repeatEndDate)
+    public String originalEventId;  // ID del evento original si es una repetición (null si es el original)
 
     // Constructor vacío requerido por Firestore
     public Event() {}

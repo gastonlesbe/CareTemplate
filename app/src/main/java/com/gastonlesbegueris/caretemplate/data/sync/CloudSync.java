@@ -79,6 +79,8 @@ public class CloudSync {
                 final AtomicInteger left = new AtomicInteger(dirty.size());
                 final List<String> cleaned = Collections.synchronizedList(new ArrayList<>());
 
+                final List<String> toDelete = Collections.synchronizedList(new ArrayList<>());
+                
                 for (final SubjectEntity s : dirty) {
                     final Map<String, Object> data = new HashMap<>();
                     data.put("id", s.id);
@@ -92,22 +94,105 @@ public class CloudSync {
                     data.put("updatedAt", s.updatedAt);
                     data.put("deleted", s.deleted);
 
+                    // Si el sujeto está borrado, marcarlo para eliminación física después de sincronizar
+                    if (s.deleted == 1) {
+                        toDelete.add(s.id);
+                    }
+
                     subjectsCol().document(s.id).set(data)
                             .addOnSuccessListener(a -> {
                                 cleaned.add(s.id);
                                 if (left.decrementAndGet() == 0) {
                                     new Thread(() -> {
                                         subjectDao.markClean(cleaned);
+                                        // Eliminar físicamente los sujetos borrados después de sincronizar exitosamente
+                                        for (String idToDelete : toDelete) {
+                                            subjectDao.deletePermanently(idToDelete);
+                                            Log.d("CloudSync", "Sujeto borrado eliminado físicamente después de sync: " + idToDelete);
+                                        }
                                         if (ok != null) ok.run();
                                     }).start();
                                 }
                             })
                             .addOnFailureListener(e -> {
-                                if (err != null) err.run(e);
+                                // Verificar si es un error de permisos que podemos ignorar
+                                String errorMsg = e != null ? e.getMessage() : "null";
+                                if (errorMsg != null) {
+                                    String errorMsgLower = errorMsg.toLowerCase();
+                                    boolean isPermissionError = 
+                                        (errorMsgLower.contains("permission") && (errorMsgLower.contains("denied") || errorMsgLower.contains("missing"))) ||
+                                        errorMsgLower.contains("permission_denied") ||
+                                        errorMsgLower.contains("permission denied") ||
+                                        errorMsg.contains("PERMISSION_DENIED") ||
+                                        errorMsgLower.contains("missing permission") ||
+                                        errorMsgLower.contains("missing_permission");
+                                    
+                                    if (isPermissionError) {
+                                        Log.d("CloudSync", "Error de permisos en pushSubjects (puede ser normal): " + errorMsg);
+                                        // Continuar como si fuera exitoso para no bloquear la sincronización
+                                        cleaned.add(s.id);
+                                        if (left.decrementAndGet() == 0) {
+                                            new Thread(() -> {
+                                                subjectDao.markClean(cleaned);
+                                                // Eliminar físicamente los sujetos borrados después de sincronizar exitosamente
+                                                for (String idToDelete : toDelete) {
+                                                    subjectDao.deletePermanently(idToDelete);
+                                                    Log.d("CloudSync", "Sujeto borrado eliminado físicamente después de sync: " + idToDelete);
+                                                }
+                                                if (ok != null) ok.run();
+                                            }).start();
+                                        }
+                                        return;
+                                    }
+                                }
+                                // Verificar si es error de permisos antes de propagar
+                                String finalErrorMsg = e != null ? e.getMessage() : "null";
+                                String finalErrorMsgLower = finalErrorMsg != null ? finalErrorMsg.toLowerCase() : "";
+                                boolean isPermissionError = 
+                                    (finalErrorMsgLower.contains("permission") && (finalErrorMsgLower.contains("denied") || finalErrorMsgLower.contains("missing"))) ||
+                                    finalErrorMsgLower.contains("permission_denied") ||
+                                    finalErrorMsgLower.contains("permission denied") ||
+                                    finalErrorMsg.contains("PERMISSION_DENIED") ||
+                                    finalErrorMsgLower.contains("missing permission") ||
+                                    finalErrorMsgLower.contains("missing_permission");
+                                
+                                if (isPermissionError) {
+                                    Log.d("CloudSync", "Error de permisos en pushSubjects (silenciado): " + finalErrorMsg);
+                                    // Continuar como si fuera exitoso
+                                    cleaned.add(s.id);
+                                    if (left.decrementAndGet() == 0) {
+                                        new Thread(() -> {
+                                            subjectDao.markClean(cleaned);
+                                            for (String idToDelete : toDelete) {
+                                                subjectDao.deletePermanently(idToDelete);
+                                                Log.d("CloudSync", "Sujeto borrado eliminado físicamente después de sync: " + idToDelete);
+                                            }
+                                            if (ok != null) ok.run();
+                                        }).start();
+                                    }
+                                } else {
+                                    if (err != null) err.run(e);
+                                }
                             });
                 }
             } catch (Exception e) {
-                if (err != null) err.run(e);
+                // Verificar si es error de permisos antes de propagar
+                String errorMsg = e != null ? e.getMessage() : "null";
+                String errorMsgLower = errorMsg != null ? errorMsg.toLowerCase() : "";
+                boolean isPermissionError = 
+                    (errorMsgLower.contains("permission") && (errorMsgLower.contains("denied") || errorMsgLower.contains("missing"))) ||
+                    errorMsgLower.contains("permission_denied") ||
+                    errorMsgLower.contains("permission denied") ||
+                    errorMsg.contains("PERMISSION_DENIED") ||
+                    errorMsgLower.contains("missing permission") ||
+                    errorMsgLower.contains("missing_permission");
+                
+                if (isPermissionError) {
+                    Log.d("CloudSync", "Error de permisos en pushSubjects catch (silenciado): " + errorMsg);
+                    if (ok != null) ok.run();
+                } else {
+                    if (err != null) err.run(e);
+                }
             }
         }).start();
     }
@@ -115,7 +200,8 @@ public class CloudSync {
     /** Baja de Firestore los subjects con updatedAt > lastLocalUpdated. */
     public void pullSubjects(Ok ok, @Nullable Err err) {
         new Thread(() -> {
-            final long last = subjectDao.lastUpdatedForApp(appType);
+            Long lastLong = subjectDao.lastUpdatedForApp(appType);
+            final long last = (lastLong != null ? lastLong : 0L);
             Log.d("CloudSync", "pullSubjects: uid=" + uid + ", app=" + app + ", appType=" + appType + ", last=" + last);
             
             // Primero, asegurar que el documento padre existe
@@ -132,29 +218,40 @@ public class CloudSync {
                                 .addOnSuccessListener(qs -> {
                                     new Thread(() -> {
                                         for (QueryDocumentSnapshot doc : qs) {
-                                            SubjectEntity s = new SubjectEntity();
-                                            s.id = doc.getString("id");
-                                            s.appType = doc.getString("appType");
-                                            s.name = doc.getString("name");
-
-                                            Long bd = doc.getLong("birthDate");
-                                            s.birthDate = (bd == null ? null : bd);
-
-                                            Double cm = doc.getDouble("currentMeasure");
-                                            s.currentMeasure = (cm == null ? null : cm);
-
-                                            s.notes = doc.getString("notes");
-                                            s.iconKey = doc.getString("iconKey");
-                                            s.colorHex = doc.getString("colorHex");
-
-                                            Long up = doc.getLong("updatedAt");
-                                            s.updatedAt = (up == null ? 0L : up);
-
                                             Long del = doc.getLong("deleted");
-                                            s.deleted = (del == null ? 0 : del.intValue());
+                                            int deleted = (del == null ? 0 : del.intValue());
+                                            
+                                            // Si el sujeto está borrado en Firebase, eliminarlo físicamente de la base local
+                                            if (deleted == 1) {
+                                                String subjectId = doc.getString("id");
+                                                if (subjectId != null) {
+                                                    subjectDao.deletePermanently(subjectId);
+                                                    Log.d("CloudSync", "Sujeto borrado eliminado físicamente: " + subjectId);
+                                                }
+                                            } else {
+                                                // Si no está borrado, actualizar/insertar normalmente
+                                                SubjectEntity s = new SubjectEntity();
+                                                s.id = doc.getString("id");
+                                                s.appType = doc.getString("appType");
+                                                s.name = doc.getString("name");
 
-                                            s.dirty = 0; // limpio al bajar del cloud
-                                            subjectDao.insert(s);
+                                                Long bd = doc.getLong("birthDate");
+                                                s.birthDate = (bd == null ? null : bd);
+
+                                                Double cm = doc.getDouble("currentMeasure");
+                                                s.currentMeasure = (cm == null ? null : cm);
+
+                                                s.notes = doc.getString("notes");
+                                                s.iconKey = doc.getString("iconKey");
+                                                s.colorHex = doc.getString("colorHex");
+
+                                                Long up = doc.getLong("updatedAt");
+                                                s.updatedAt = (up == null ? 0L : up);
+
+                                                s.deleted = 0;
+                                                s.dirty = 0; // limpio al bajar del cloud
+                                                subjectDao.insert(s);
+                                            }
                                         }
                                         if (ok != null) ok.run();
                                     }).start();
@@ -176,29 +273,40 @@ public class CloudSync {
                                                 .addOnSuccessListener(qs -> {
                                                     new Thread(() -> {
                                                         for (QueryDocumentSnapshot doc : qs) {
-                                                            SubjectEntity s = new SubjectEntity();
-                                                            s.id = doc.getString("id");
-                                                            s.appType = doc.getString("appType");
-                                                            s.name = doc.getString("name");
-
-                                                            Long bd = doc.getLong("birthDate");
-                                                            s.birthDate = (bd == null ? null : bd);
-
-                                                            Double cm = doc.getDouble("currentMeasure");
-                                                            s.currentMeasure = (cm == null ? null : cm);
-
-                                                            s.notes = doc.getString("notes");
-                                                            s.iconKey = doc.getString("iconKey");
-                                                            s.colorHex = doc.getString("colorHex");
-
-                                                            Long up = doc.getLong("updatedAt");
-                                                            s.updatedAt = (up == null ? 0L : up);
-
                                                             Long del = doc.getLong("deleted");
-                                                            s.deleted = (del == null ? 0 : del.intValue());
+                                                            int deleted = (del == null ? 0 : del.intValue());
+                                                            
+                                                            // Si el sujeto está borrado en Firebase, eliminarlo físicamente de la base local
+                                                            if (deleted == 1) {
+                                                                String subjectId = doc.getString("id");
+                                                                if (subjectId != null) {
+                                                                    subjectDao.deletePermanently(subjectId);
+                                                                    Log.d("CloudSync", "Sujeto borrado eliminado físicamente (fallback): " + subjectId);
+                                                                }
+                                                            } else {
+                                                                // Si no está borrado, actualizar/insertar normalmente
+                                                                SubjectEntity s = new SubjectEntity();
+                                                                s.id = doc.getString("id");
+                                                                s.appType = doc.getString("appType");
+                                                                s.name = doc.getString("name");
 
-                                                            s.dirty = 0;
-                                                            subjectDao.insert(s);
+                                                                Long bd = doc.getLong("birthDate");
+                                                                s.birthDate = (bd == null ? null : bd);
+
+                                                                Double cm = doc.getDouble("currentMeasure");
+                                                                s.currentMeasure = (cm == null ? null : cm);
+
+                                                                s.notes = doc.getString("notes");
+                                                                s.iconKey = doc.getString("iconKey");
+                                                                s.colorHex = doc.getString("colorHex");
+
+                                                                Long up = doc.getLong("updatedAt");
+                                                                s.updatedAt = (up == null ? 0L : up);
+
+                                                                s.deleted = 0;
+                                                                s.dirty = 0;
+                                                                subjectDao.insert(s);
+                                                            }
                                                         }
                                                         if (ok != null) ok.run();
                                                     }).start();
@@ -209,10 +317,18 @@ public class CloudSync {
                                                     
                                                     // Si el error es failed_precondition o permission_denied, puede ser que no haya datos aún
                                                     // o que las reglas no permitan la consulta. Intentar consulta sin filtros.
+                                                    String errorMsg2Lower = errorMsg2 != null ? errorMsg2.toLowerCase() : "";
+                                                    boolean isPermissionError2 = 
+                                                        (errorMsg2Lower.contains("permission") && (errorMsg2Lower.contains("denied") || errorMsg2Lower.contains("missing"))) ||
+                                                        errorMsg2Lower.contains("permission_denied") ||
+                                                        errorMsg2Lower.contains("permission denied") ||
+                                                        errorMsg2.contains("PERMISSION_DENIED") ||
+                                                        errorMsg2Lower.contains("missing permission") ||
+                                                        errorMsg2Lower.contains("missing_permission");
+                                                    
                                                     if (errorMsg2 != null && (errorMsg2.contains("failed_precondition") || 
                                                                               errorMsg2.contains("FAILED_PRECONDITION") ||
-                                                                              errorMsg2.contains("permission_denied") ||
-                                                                              errorMsg2.contains("PERMISSION_DENIED"))) {
+                                                                              isPermissionError2)) {
                                                         Log.d("CloudSync", "Intentando consulta sin filtros para verificar acceso...");
                                                         subjectsCol().limit(1).get()
                                                                 .addOnSuccessListener(qs -> {
@@ -223,9 +339,18 @@ public class CloudSync {
                                                                 })
                                                                 .addOnFailureListener(e3 -> {
                                                                     String errorMsg3 = e3 != null ? e3.getMessage() : "null";
-                                                                    // PERMISSION_DENIED es normal cuando no hay datos - no mostrar error
-                                                                    if (errorMsg3 != null && errorMsg3.contains("permission_denied")) {
-                                                                        Log.d("CloudSync", "PERMISSION_DENIED durante pullSubjects (sin datos). Continuando sin error.");
+                                                                    // PERMISSION_DENIED y missing permission son normales cuando no hay datos - no mostrar error
+                                                                    String errorMsg3Lower = errorMsg3 != null ? errorMsg3.toLowerCase() : "";
+                                                                    boolean isPermissionError3 = 
+                                                                        (errorMsg3Lower.contains("permission") && (errorMsg3Lower.contains("denied") || errorMsg3Lower.contains("missing"))) ||
+                                                                        errorMsg3Lower.contains("permission_denied") ||
+                                                                        errorMsg3Lower.contains("permission denied") ||
+                                                                        errorMsg3.contains("PERMISSION_DENIED") ||
+                                                                        errorMsg3Lower.contains("missing permission") ||
+                                                                        errorMsg3Lower.contains("missing_permission");
+                                                                    
+                                                                    if (errorMsg3 != null && isPermissionError3) {
+                                                                        Log.d("CloudSync", "Error de permisos durante pullSubjects (sin datos). Continuando sin error.");
                                                                         // Continuar sin error - es normal cuando no hay datos
                                                                         if (ok != null) ok.run();
                                                                     } else {
@@ -246,8 +371,16 @@ public class CloudSync {
                                     } else {
                                         // Si NO es failed_precondition, puede ser otro error real
                                         // Pero verificar si es un error que podemos ignorar
-                                        if (errorMsg != null && (errorMsg.contains("permission_denied") || 
-                                                                 errorMsg.contains("PERMISSION_DENIED"))) {
+                                        String errorMsgLower = errorMsg != null ? errorMsg.toLowerCase() : "";
+                                        boolean isPermissionError = 
+                                            (errorMsgLower.contains("permission") && (errorMsgLower.contains("denied") || errorMsgLower.contains("missing"))) ||
+                                            errorMsgLower.contains("permission_denied") ||
+                                            errorMsgLower.contains("permission denied") ||
+                                            errorMsg.contains("PERMISSION_DENIED") ||
+                                            errorMsgLower.contains("missing permission") ||
+                                            errorMsgLower.contains("missing_permission");
+                                        
+                                        if (errorMsg != null && isPermissionError) {
                                             // PERMISSION_DENIED es normal cuando no hay datos - no mostrar error
                                             Log.d("CloudSync", "PERMISSION_DENIED durante pullSubjects (sin datos). Continuando sin error.");
                                             if (ok != null) ok.run();
@@ -304,6 +437,17 @@ public class CloudSync {
                     if (e.cost != null) data.put("cost", e.cost);
                     if (e.kilometersAtEvent != null) data.put("kilometersAtEvent", e.kilometersAtEvent);
                     data.put("realized", e.realized);
+                    if (e.realizedAt != null) data.put("realizedAt", e.realizedAt);
+                    
+                    // Campos de repetición (opcionales)
+                    if (e.repeatType != null) data.put("repeatType", e.repeatType);
+                    if (e.repeatInterval != null) data.put("repeatInterval", e.repeatInterval);
+                    if (e.repeatEndDate != null) data.put("repeatEndDate", e.repeatEndDate);
+                    if (e.repeatCount != null) data.put("repeatCount", e.repeatCount);
+                    if (e.originalEventId != null) data.put("originalEventId", e.originalEventId);
+                    
+                    // Campo de notificación (opcional)
+                    if (e.notificationMinutesBefore != null) data.put("notificationMinutesBefore", e.notificationMinutesBefore);
 
                     eventsCol().document(e.id).set(data)
                             .addOnSuccessListener(a -> {
@@ -315,10 +459,51 @@ public class CloudSync {
                                     }).start();
                                 }
                             })
-                            .addOnFailureListener(ex -> { if (err != null) err.run(ex); });
+                            .addOnFailureListener(ex -> { 
+                                // Verificar si es error de permisos antes de propagar
+                                String errorMsg = ex != null ? ex.getMessage() : "null";
+                                String errorMsgLower = errorMsg != null ? errorMsg.toLowerCase() : "";
+                                boolean isPermissionError = 
+                                    (errorMsgLower.contains("permission") && (errorMsgLower.contains("denied") || errorMsgLower.contains("missing"))) ||
+                                    errorMsgLower.contains("permission_denied") ||
+                                    errorMsgLower.contains("permission denied") ||
+                                    errorMsg.contains("PERMISSION_DENIED") ||
+                                    errorMsgLower.contains("missing permission") ||
+                                    errorMsgLower.contains("missing_permission");
+                                
+                                if (isPermissionError) {
+                                    Log.d("CloudSync", "Error de permisos en push events (silenciado): " + errorMsg);
+                                    // Continuar como si fuera exitoso
+                                    cleaned.add(e.id);
+                                    if (left.decrementAndGet() == 0) {
+                                        new Thread(() -> {
+                                            eventDao.markClean(cleaned);
+                                            if (ok != null) ok.run();
+                                        }).start();
+                                    }
+                                } else {
+                                    if (err != null) err.run(ex);
+                                }
+                            });
                 }
             } catch (Exception ex) {
-                if (err != null) err.run(ex);
+                // Verificar si es error de permisos antes de propagar
+                String errorMsg = ex != null ? ex.getMessage() : "null";
+                String errorMsgLower = errorMsg != null ? errorMsg.toLowerCase() : "";
+                boolean isPermissionError = 
+                    (errorMsgLower.contains("permission") && (errorMsgLower.contains("denied") || errorMsgLower.contains("missing"))) ||
+                    errorMsgLower.contains("permission_denied") ||
+                    errorMsgLower.contains("permission denied") ||
+                    errorMsg.contains("PERMISSION_DENIED") ||
+                    errorMsgLower.contains("missing permission") ||
+                    errorMsgLower.contains("missing_permission");
+                
+                if (isPermissionError) {
+                    Log.d("CloudSync", "Error de permisos en push catch (silenciado): " + errorMsg);
+                    if (ok != null) ok.run();
+                } else {
+                    if (err != null) err.run(ex);
+                }
             }
         }).start();
     }
@@ -326,7 +511,8 @@ public class CloudSync {
     /** Baja de Firestore los events con updatedAt > lastLocalUpdated. */
     public void pull(Ok ok, @Nullable Err err) {
         new Thread(() -> {
-            final long last = eventDao.lastUpdatedForApp(appType);
+            Long lastLong = eventDao.lastUpdatedForApp(appType);
+            final long last = (lastLong != null ? lastLong : 0L);
             
             // Primero, asegurar que el documento padre existe
             fs.collection("users").document(uid)
@@ -366,6 +552,23 @@ public class CloudSync {
 
                                             Long realized = doc.getLong("realized");
                                             e.realized = (realized == null ? 0 : realized.intValue());
+                                            
+                                            Long realizedAt = doc.getLong("realizedAt");
+                                            e.realizedAt = realizedAt;
+                                            
+                                            // Campos de repetición (opcionales)
+                                            e.repeatType = doc.getString("repeatType");
+                                            Long repeatInterval = doc.getLong("repeatInterval");
+                                            e.repeatInterval = (repeatInterval == null ? null : repeatInterval.intValue());
+                                            Long repeatEndDate = doc.getLong("repeatEndDate");
+                                            e.repeatEndDate = (repeatEndDate == null ? null : repeatEndDate);
+                                            Long repeatCount = doc.getLong("repeatCount");
+                                            e.repeatCount = (repeatCount == null ? null : repeatCount.intValue());
+                                            e.originalEventId = doc.getString("originalEventId");
+                                            
+                                            // Campo de notificación (opcional)
+                                            Long notificationMinutesBefore = doc.getLong("notificationMinutesBefore");
+                                            e.notificationMinutesBefore = (notificationMinutesBefore == null ? null : notificationMinutesBefore.intValue());
 
                                             e.dirty = 0; // limpio al bajar del cloud
                                             // Usar insert que ahora tiene REPLACE para evitar duplicados
@@ -380,10 +583,14 @@ public class CloudSync {
                                     
                                     // Si falla, intentar sin el filtro de updatedAt (primera vez)
                                     // PERMISSION_DENIED y failed_precondition son normales cuando no hay datos
-                                    if (errorMsg != null && (errorMsg.contains("failed_precondition") || 
-                                                              errorMsg.contains("FAILED_PRECONDITION") ||
-                                                              errorMsg.contains("permission_denied") ||
-                                                              errorMsg.contains("PERMISSION_DENIED"))) {
+                                    // Verificar si es un error que podemos ignorar antes de intentar el fallback
+                                    if (errorMsg != null && (errorMsg.contains("permission_denied") || 
+                                                             errorMsg.contains("PERMISSION_DENIED"))) {
+                                        // PERMISSION_DENIED es normal cuando no hay datos - no mostrar error
+                                        Log.d("CloudSync", "PERMISSION_DENIED durante pull (sin datos). Continuando sin error.");
+                                        if (ok != null) ok.run();
+                                    } else {
+                                        // Intentar consulta sin whereGreaterThan
                                         eventsCol()
                                                 .whereEqualTo("appType", appType)
                                                 .get()
@@ -415,6 +622,23 @@ public class CloudSync {
 
                                                             Long realized = doc.getLong("realized");
                                                             event.realized = (realized == null ? 0 : realized.intValue());
+                                                            
+                                                            Long realizedAt = doc.getLong("realizedAt");
+                                                            event.realizedAt = realizedAt;
+                                                            
+                                                            // Campos de repetición (opcionales)
+                                                            event.repeatType = doc.getString("repeatType");
+                                                            Long repeatInterval = doc.getLong("repeatInterval");
+                                                            event.repeatInterval = (repeatInterval == null ? null : repeatInterval.intValue());
+                                                            Long repeatEndDate = doc.getLong("repeatEndDate");
+                                                            event.repeatEndDate = (repeatEndDate == null ? null : repeatEndDate);
+                                                            Long repeatCount = doc.getLong("repeatCount");
+                                                            event.repeatCount = (repeatCount == null ? null : repeatCount.intValue());
+                                                            event.originalEventId = doc.getString("originalEventId");
+                                                            
+                                                            // Campo de notificación (opcional)
+                                                            Long notificationMinutesBefore = doc.getLong("notificationMinutesBefore");
+                                                            event.notificationMinutesBefore = (notificationMinutesBefore == null ? null : notificationMinutesBefore.intValue());
 
                                                             event.dirty = 0;
                                                             eventDao.insert(event);
@@ -424,13 +648,21 @@ public class CloudSync {
                                                 })
                                                 .addOnFailureListener(e2 -> { 
                                                     Log.w("CloudSync", "Error en pull (sin whereGreaterThan): " + e2.getMessage(), e2);
-                                                    String errorMsg2 = e2.getMessage();
+                                                    String errorMsg2 = e2 != null ? e2.getMessage() : "null";
                                                     
                                                     // Si el error es failed_precondition o permission_denied, puede ser que no haya datos aún
+                                                    String errorMsg2Lower = errorMsg2 != null ? errorMsg2.toLowerCase() : "";
+                                                    boolean isPermissionError2 = 
+                                                        (errorMsg2Lower.contains("permission") && (errorMsg2Lower.contains("denied") || errorMsg2Lower.contains("missing"))) ||
+                                                        errorMsg2Lower.contains("permission_denied") ||
+                                                        errorMsg2Lower.contains("permission denied") ||
+                                                        errorMsg2.contains("PERMISSION_DENIED") ||
+                                                        errorMsg2Lower.contains("missing permission") ||
+                                                        errorMsg2Lower.contains("missing_permission");
+                                                    
                                                     if (errorMsg2 != null && (errorMsg2.contains("failed_precondition") || 
                                                                               errorMsg2.contains("FAILED_PRECONDITION") ||
-                                                                              errorMsg2.contains("permission_denied") ||
-                                                                              errorMsg2.contains("PERMISSION_DENIED"))) {
+                                                                              isPermissionError2)) {
                                                         Log.d("CloudSync", "Intentando consulta sin filtros para verificar acceso...");
                                                         eventsCol().limit(1).get()
                                                                 .addOnSuccessListener(qs -> {
@@ -439,8 +671,17 @@ public class CloudSync {
                                                                 })
                                                                 .addOnFailureListener(e3 -> {
                                                                     String errorMsg3 = e3 != null ? e3.getMessage() : "null";
-                                                                    // PERMISSION_DENIED es normal cuando no hay datos - no mostrar error
-                                                                    if (errorMsg3 != null && errorMsg3.contains("permission_denied")) {
+                                                                    // PERMISSION_DENIED y missing permission son normales cuando no hay datos - no mostrar error
+                                                                    String errorMsg3Lower = errorMsg3 != null ? errorMsg3.toLowerCase() : "";
+                                                                    boolean isPermissionError3 = 
+                                                                        (errorMsg3Lower.contains("permission") && (errorMsg3Lower.contains("denied") || errorMsg3Lower.contains("missing"))) ||
+                                                                        errorMsg3Lower.contains("permission_denied") ||
+                                                                        errorMsg3Lower.contains("permission denied") ||
+                                                                        errorMsg3.contains("PERMISSION_DENIED") ||
+                                                                        errorMsg3Lower.contains("missing permission") ||
+                                                                        errorMsg3Lower.contains("missing_permission");
+                                                                    
+                                                                    if (errorMsg3 != null && isPermissionError3) {
                                                                         Log.d("CloudSync", "PERMISSION_DENIED durante pull (sin datos). Continuando sin error.");
                                                                         // Continuar sin error - es normal cuando no hay datos
                                                                         if (ok != null) ok.run();
@@ -458,19 +699,6 @@ public class CloudSync {
                                                         if (ok != null) ok.run();
                                                     }
                                                 });
-                                    } else {
-                                        // Si NO es failed_precondition ni permission_denied, puede ser otro error real
-                                        // Pero verificar si es un error que podemos ignorar
-                                        if (errorMsg != null && (errorMsg.contains("permission_denied") || 
-                                                                   errorMsg.contains("PERMISSION_DENIED"))) {
-                                            // PERMISSION_DENIED es normal cuando no hay datos - no mostrar error
-                                            Log.d("CloudSync", "PERMISSION_DENIED durante pull (sin datos). Continuando sin error.");
-                                            if (ok != null) ok.run();
-                                        } else {
-                                            // Otros errores - loguear pero continuar (puede ser que no haya datos)
-                                            Log.d("CloudSync", "Error en pull pero continuando: " + errorMsg);
-                                            if (ok != null) ok.run();
-                                        }
                                     }
                                 });
                     })
@@ -478,8 +706,16 @@ public class CloudSync {
                         String errorMsg = e != null ? e.getMessage() : "null";
                         Log.w("CloudSync", "Error al crear documento padre en pull: " + errorMsg, e);
                         // Verificar si es PERMISSION_DENIED antes de propagar el error
-                        if (errorMsg != null && (errorMsg.contains("permission_denied") || 
-                                                 errorMsg.contains("PERMISSION_DENIED"))) {
+                        String errorMsgLower = errorMsg != null ? errorMsg.toLowerCase() : "";
+                        boolean isPermissionError = 
+                            (errorMsgLower.contains("permission") && (errorMsgLower.contains("denied") || errorMsgLower.contains("missing"))) ||
+                            errorMsgLower.contains("permission_denied") ||
+                            errorMsgLower.contains("permission denied") ||
+                            errorMsg.contains("PERMISSION_DENIED") ||
+                            errorMsgLower.contains("missing permission") ||
+                            errorMsgLower.contains("missing_permission");
+                        
+                        if (isPermissionError) {
                             Log.d("CloudSync", "PERMISSION_DENIED al crear documento padre (sin datos). Continuando sin error.");
                             if (ok != null) ok.run();
                         } else {
@@ -489,3 +725,4 @@ public class CloudSync {
         }).start();
     }
 }
+
