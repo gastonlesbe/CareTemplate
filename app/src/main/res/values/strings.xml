@@ -41,6 +41,8 @@
     <string name="odometer_label">Odómetro: %1$s</string>
     <string name="age_label">Edad: %1$s</string>
     <string name="weight_label"> · Peso: %1$s kg</string>
+    <string name="age_year_short">a</string>
+    <string name="age_month_short">m</string>
     <string name="next_event_label">Próximo: %1$s</string>
     <string name="next_event_with_title">Próximo: %1$s · %2$s</string>
     <string name="next_event_none">Próximo: —</string>
@@ -202,6 +204,7 @@
     <string name="expenses_real">Real: $%1$.2f</string>
     <string name="expenses_plan_label">Planificado: $%1$.2f</string>
     <string name="expenses_real_label">Realizado: $%1$.2f</string>
+    <string name="expenses_spent_label">Gastado: $%1$.2f</string>
     <string name="expenses_events">Eventos: %1$d</string>
     <string name="expenses_subject_title">Sujeto · Título</string>
     <string name="expenses_date_cost">Fecha · $Costo</string>

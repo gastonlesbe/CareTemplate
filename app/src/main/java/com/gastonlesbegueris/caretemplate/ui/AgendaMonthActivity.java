@@ -31,6 +31,7 @@ public class AgendaMonthActivity extends AppCompatActivity {
 
     private EventDao eventDao;
     private String appType;
+    private com.gastonlesbegueris.caretemplate.util.MenuHelper menuHelper;
 
     private androidx.recyclerview.widget.RecyclerView rv;
     private DaySummaryAdapter adapter;
@@ -43,6 +44,7 @@ public class AgendaMonthActivity extends AppCompatActivity {
 
         appType = getString(R.string.app_type);
         eventDao = AppDb.get(this).eventDao();
+        menuHelper = new com.gastonlesbegueris.caretemplate.util.MenuHelper(this, appType);
 
         MaterialToolbar toolbar = findViewById(R.id.toolbarMonth);
         setSupportActionBar(toolbar);
@@ -209,23 +211,10 @@ public class AgendaMonthActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-        if (id == R.id.action_agenda) {
-            // Already on agenda page
+        if (menuHelper.handleMenuSelection(item, AgendaMonthActivity.class)) {
             return true;
-        } else if (id == R.id.action_subjects) {
-            startActivity(new android.content.Intent(this, SubjectListActivity.class));
-            return true;
-        } else if (id == R.id.action_expenses) {
-            startActivity(new android.content.Intent(this, ExpensesActivity.class));
-            return true;
-        } else if (id == R.id.action_recovery) {
-            // Redirigir a SubjectListActivity para mostrar el código de recuperación
-            android.content.Intent intent = new android.content.Intent(this, SubjectListActivity.class);
-            intent.putExtra("show_recovery_code", true);
-            startActivity(intent);
-            return true;
-        } else if (id == android.R.id.home) {
+        }
+        if (item.getItemId() == android.R.id.home) {
             finish();
             return true;
         }

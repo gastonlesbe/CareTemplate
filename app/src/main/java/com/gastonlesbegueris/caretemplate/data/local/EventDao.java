@@ -32,10 +32,31 @@ public interface EventDao {
     // Próximos eventos de un sujeto (pendientes)
     @Query("SELECT * FROM events WHERE appType=:appType AND subjectId=:subjectId AND deleted=0 AND realized=0 ORDER BY dueAt ASC")
     LiveData<List<EventEntity>> observeSubjectUpcoming(String appType, String subjectId);
+    
+    // Obtener todos los eventos de un sujeto (para compartir)
+    @Query("SELECT * FROM events WHERE appType=:appType AND subjectId=:subjectId AND deleted=0 ORDER BY dueAt ASC")
+    List<EventEntity> listAllForSubject(String appType, String subjectId);
+
+    // Fallback para sujetos antiguos sin appType (evita perder eventos al compartir)
+    @Query("SELECT * FROM events WHERE subjectId=:subjectId AND deleted=0 ORDER BY dueAt ASC")
+    List<EventEntity> listAllForSubjectAnyApp(String subjectId);
 
     // Para header (siguiente evento)
     @Query("SELECT * FROM events WHERE appType=:appType AND deleted=0 AND (:subjectId IS NULL OR subjectId=:subjectId) AND dueAt >= :from ORDER BY dueAt ASC LIMIT 1")
     EventEntity nextEvent(String appType, String subjectId, long from);
+
+    // Obtener el próximo evento para cada sujeto (optimizado para evitar múltiples consultas)
+    @Query("""
+           SELECT e1.* FROM events e1
+           INNER JOIN (
+               SELECT subjectId, MIN(dueAt) as minDueAt
+               FROM events
+               WHERE appType = :appType AND deleted = 0 AND realized = 0 AND dueAt >= :from
+               GROUP BY subjectId
+           ) e2 ON e1.subjectId = e2.subjectId AND e1.dueAt = e2.minDueAt
+           WHERE e1.appType = :appType AND e1.deleted = 0 AND e1.realized = 0
+           """)
+    List<EventEntity> nextEventsForAllSubjects(String appType, long from);
 
     // ====== NUEVOS, usados por Agenda & Expenses ======
 // EventDao.java  (dentro de la interface)
@@ -81,13 +102,13 @@ public interface EventDao {
             String appType, long from, long to
     );
 
-    // Listado con totales por mes (pendiente vs realizado)
+    // Listado con totales por mes (solo gastos realizados, del presente hacia atrás)
     @Query("""
-           SELECT strftime('%Y-%m-01', datetime(dueAt/1000,'unixepoch')) AS monthStart,
-                  SUM(CASE WHEN realized=0 THEN COALESCE(cost,0) ELSE 0 END) AS plannedSum,
-                  SUM(CASE WHEN realized=1 THEN COALESCE(cost,0) ELSE 0 END) AS realizedSum
+           SELECT strftime('%Y-%m-01', datetime(realizedAt/1000,'unixepoch')) AS monthStart,
+                  0.0 AS plannedSum,
+                  SUM(COALESCE(cost,0)) AS realizedSum
            FROM events
-           WHERE appType = :appType AND deleted = 0
+           WHERE appType = :appType AND deleted = 0 AND realized = 1 AND realizedAt IS NOT NULL
            GROUP BY monthStart
            ORDER BY monthStart DESC
            """)

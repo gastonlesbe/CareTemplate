@@ -158,10 +158,25 @@ public class SubjectListActivity extends AppCompatActivity {
         // observar lista de sujetos
         dao.observeActive(appType).observe(this, (List<SubjectEntity> list) -> {
             new Thread(() -> {
+                // Obtener todos los próximos eventos de una vez (optimización para evitar múltiples consultas)
+                long now = System.currentTimeMillis();
+                EventDao eventDao = db.eventDao();
+                java.util.List<EventEntity> nextEvents = eventDao.nextEventsForAllSubjects(appType, now);
+                
+                // Crear mapa de subjectId -> próximo evento para acceso rápido
+                java.util.Map<String, EventEntity> nextEventMap = new java.util.HashMap<>();
+                if (nextEvents != null) {
+                    for (EventEntity event : nextEvents) {
+                        if (event.subjectId != null && !nextEventMap.containsKey(event.subjectId)) {
+                            nextEventMap.put(event.subjectId, event);
+                        }
+                    }
+                }
+                
                 java.util.List<SubjectAdapter.SubjectRow> rows = new java.util.ArrayList<>();
                 for (SubjectEntity subj : list) {
                     String info  = buildInfoLine(subj);
-                    String extra = buildExtraLine(subj);
+                    String extra = buildExtraLine(subj, nextEventMap.get(subj.id));
                     rows.add(new SubjectAdapter.SubjectRow(subj, info, extra));
                 }
                 runOnUiThread(() -> {
@@ -698,10 +713,7 @@ public class SubjectListActivity extends AppCompatActivity {
         }
     }
 
-    private String buildExtraLine(SubjectEntity subj) {
-        EventDao eventDao = db.eventDao();
-        long now = System.currentTimeMillis();
-        EventEntity next = eventDao.nextEvent(appType, subj.id, now);
+    private String buildExtraLine(SubjectEntity subj, EventEntity next) {
         if (next == null) return getString(R.string.next_event_none);
         String when = new java.text.SimpleDateFormat(getString(R.string.event_date_format)).format(new java.util.Date(next.dueAt));
         if (next.title == null || next.title.isEmpty()) {
@@ -709,6 +721,14 @@ public class SubjectListActivity extends AppCompatActivity {
         } else {
             return getString(R.string.next_event_with_title, when, next.title);
         }
+    }
+    
+    // Método sobrecargado para compatibilidad (usa consulta individual, menos eficiente)
+    private String buildExtraLine(SubjectEntity subj) {
+        EventDao eventDao = db.eventDao();
+        long now = System.currentTimeMillis();
+        EventEntity next = eventDao.nextEvent(appType, subj.id, now);
+        return buildExtraLine(subj, next);
     }
 
     private String formatAge(Long birthDate) {
@@ -719,7 +739,9 @@ public class SubjectListActivity extends AppCompatActivity {
         int years = now.get(java.util.Calendar.YEAR) - b.get(java.util.Calendar.YEAR);
         int months = now.get(java.util.Calendar.MONTH) - b.get(java.util.Calendar.MONTH);
         if (months < 0) { years--; months += 12; }
-        return years > 0 ? years + "a " + months + "m" : months + "m";
+        String yearShort = getString(R.string.age_year_short);
+        String monthShort = getString(R.string.age_month_short);
+        return years > 0 ? years + yearShort + " " + months + monthShort : months + monthShort;
     }
 
     @Override
@@ -932,10 +954,25 @@ public class SubjectListActivity extends AppCompatActivity {
     private void refreshSubjectsList() {
         dao.observeActive(appType).observe(this, (List<SubjectEntity> list) -> {
             new Thread(() -> {
+                // Obtener todos los próximos eventos de una vez (optimización para evitar múltiples consultas)
+                long now = System.currentTimeMillis();
+                EventDao eventDao = db.eventDao();
+                java.util.List<EventEntity> nextEvents = eventDao.nextEventsForAllSubjects(appType, now);
+                
+                // Crear mapa de subjectId -> próximo evento para acceso rápido
+                java.util.Map<String, EventEntity> nextEventMap = new java.util.HashMap<>();
+                if (nextEvents != null) {
+                    for (EventEntity event : nextEvents) {
+                        if (event.subjectId != null && !nextEventMap.containsKey(event.subjectId)) {
+                            nextEventMap.put(event.subjectId, event);
+                        }
+                    }
+                }
+                
                 java.util.List<SubjectAdapter.SubjectRow> rows = new java.util.ArrayList<>();
                 for (SubjectEntity subj : list) {
                     String info  = buildInfoLine(subj);
-                    String extra = buildExtraLine(subj);
+                    String extra = buildExtraLine(subj, nextEventMap.get(subj.id));
                     rows.add(new SubjectAdapter.SubjectRow(subj, info, extra));
                 }
                 runOnUiThread(() -> {
@@ -2461,12 +2498,17 @@ public class SubjectListActivity extends AppCompatActivity {
         etCode.setHint(getString(R.string.share_subject_code_hint));
         etCode.setInputType(android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
         
+        // Aplicar formateo automático (mayúsculas y guiones)
+        etCode.addTextChangedListener(new com.gastonlesbegueris.caretemplate.util.ShareCodeFormatter(etCode));
+        
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle(getString(R.string.share_subject_receive_title))
                 .setMessage(getString(R.string.share_subject_receive_message))
                 .setView(etCode)
                 .setPositiveButton(getString(R.string.button_import), (d, w) -> {
                     String code = etCode != null && etCode.getText() != null ? etCode.getText().toString().trim() : "";
+                    // Normalizar el código (quitar guiones para la búsqueda)
+                    code = code.replaceAll("[\\s-]", "").toUpperCase();
                     if (code.isEmpty()) {
                         Toast.makeText(this, getString(R.string.share_subject_invalid), Toast.LENGTH_SHORT).show();
                         return;
@@ -2485,9 +2527,26 @@ public class SubjectListActivity extends AppCompatActivity {
         
         shareManager.getSharedSubject(shareCode, new com.gastonlesbegueris.caretemplate.util.SubjectShareManager.SharedSubjectCallback() {
             @Override
-            public void onSharedSubject(String sharedSubjectId, String ownerUserId) {
-                // Importar el sujeto y sus eventos desde el usuario dueño
-                importSubjectFromUser(sharedSubjectId, ownerUserId);
+            public void onSharedSubjectData(java.util.Map<String, Object> subjectData, java.util.List<java.util.Map<String, Object>> eventsData) {
+                // Importar el sujeto y sus eventos directamente desde shared_subjects (más seguro)
+                com.gastonlesbegueris.caretemplate.util.SharedSubjectImporter importer = 
+                        new com.gastonlesbegueris.caretemplate.util.SharedSubjectImporter(SubjectListActivity.this);
+                importer.importFromSharedData(
+                        subjectData,
+                        eventsData,
+                        () -> runOnUiThread(() -> {
+                            Toast.makeText(SubjectListActivity.this, 
+                                    getString(R.string.share_subject_imported), 
+                                    Toast.LENGTH_SHORT).show();
+                            // Refrescar la lista de sujetos
+                            refreshSubjectsList();
+                        }),
+                        () -> runOnUiThread(() -> {
+                            Toast.makeText(SubjectListActivity.this, 
+                                    getString(R.string.share_subject_import_error, "Error al importar datos"), 
+                                    Toast.LENGTH_LONG).show();
+                        })
+                );
             }
             
             @Override
@@ -2502,73 +2561,114 @@ public class SubjectListActivity extends AppCompatActivity {
     }
     
     private void importSubjectFromUser(String sharedSubjectId, String ownerUserId) {
-        new Thread(() -> {
-            try {
-                // Obtener el sujeto desde Firestore del usuario dueño
-                com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
-                
-                firestore.collection("users").document(ownerUserId)
-                        .collection("apps").document("CareTemplate")
-                        .collection("subjects").document(sharedSubjectId)
-                        .get()
-                        .addOnSuccessListener(subjectDoc -> {
-                            if (!subjectDoc.exists()) {
+        // Asegurar autenticación antes de importar
+        ensureAuthenticationForImport(() -> {
+            new Thread(() -> {
+                try {
+                    // Obtener el sujeto desde Firestore del usuario dueño
+                    com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
+                    
+                    firestore.collection("users").document(ownerUserId)
+                            .collection("apps").document("CareTemplate")
+                            .collection("subjects").document(sharedSubjectId)
+                            .get()
+                            .addOnSuccessListener(subjectDoc -> {
+                                if (!subjectDoc.exists()) {
+                                    runOnUiThread(() -> {
+                                        Toast.makeText(SubjectListActivity.this, 
+                                                getString(R.string.share_subject_not_found), 
+                                                Toast.LENGTH_LONG).show();
+                                    });
+                                    return;
+                                }
+                                
+                                // Crear nuevo sujeto local con los datos del compartido
+                                SubjectEntity newSubject = new SubjectEntity();
+                                newSubject.id = java.util.UUID.randomUUID().toString(); // Nuevo ID para el usuario que recibe
+                                newSubject.appType = subjectDoc.getString("appType");
+                                newSubject.name = subjectDoc.getString("name");
+                                
+                                Long bd = subjectDoc.getLong("birthDate");
+                                newSubject.birthDate = (bd != null ? bd : null);
+                                
+                                Double cm = subjectDoc.getDouble("currentMeasure");
+                                newSubject.currentMeasure = (cm != null ? cm : null);
+                                
+                                newSubject.notes = subjectDoc.getString("notes");
+                                newSubject.iconKey = subjectDoc.getString("iconKey");
+                                newSubject.colorHex = subjectDoc.getString("colorHex");
+                                newSubject.updatedAt = System.currentTimeMillis();
+                                newSubject.deleted = 0;
+                                newSubject.dirty = 1; // Marcar para sincronizar
+                                
+                                // Insertar el sujeto
+                                dao.insert(newSubject);
+                                
+                                // Importar eventos del sujeto compartido
+                                importSubjectEvents(sharedSubjectId, ownerUserId, newSubject.id);
+                                
                                 runOnUiThread(() -> {
                                     Toast.makeText(SubjectListActivity.this, 
-                                            getString(R.string.share_subject_not_found), 
+                                            getString(R.string.share_subject_imported), 
+                                            Toast.LENGTH_SHORT).show();
+                                    // Refrescar la lista de sujetos
+                                    refreshSubjectsList();
+                                });
+                            })
+                            .addOnFailureListener(e -> {
+                                runOnUiThread(() -> {
+                                    String errorMsg = e != null ? e.getMessage() : "Error desconocido";
+                                    if (errorMsg != null && errorMsg.contains("PERMISSION_DENIED")) {
+                                        errorMsg = "Error de permisos. Por favor, verifica las reglas de Firestore. " +
+                                                  "Asegúrate de que las reglas permitan lectura de sujetos compartidos a usuarios autenticados.";
+                                    }
+                                    Toast.makeText(SubjectListActivity.this, 
+                                            getString(R.string.share_subject_import_error, errorMsg), 
                                             Toast.LENGTH_LONG).show();
                                 });
-                                return;
-                            }
-                            
-                            // Crear nuevo sujeto local con los datos del compartido
-                            SubjectEntity newSubject = new SubjectEntity();
-                            newSubject.id = java.util.UUID.randomUUID().toString(); // Nuevo ID para el usuario que recibe
-                            newSubject.appType = subjectDoc.getString("appType");
-                            newSubject.name = subjectDoc.getString("name");
-                            
-                            Long bd = subjectDoc.getLong("birthDate");
-                            newSubject.birthDate = (bd != null ? bd : null);
-                            
-                            Double cm = subjectDoc.getDouble("currentMeasure");
-                            newSubject.currentMeasure = (cm != null ? cm : null);
-                            
-                            newSubject.notes = subjectDoc.getString("notes");
-                            newSubject.iconKey = subjectDoc.getString("iconKey");
-                            newSubject.colorHex = subjectDoc.getString("colorHex");
-                            newSubject.updatedAt = System.currentTimeMillis();
-                            newSubject.deleted = 0;
-                            newSubject.dirty = 1; // Marcar para sincronizar
-                            
-                            // Insertar el sujeto
-                            dao.insert(newSubject);
-                            
-                            // Importar eventos del sujeto compartido
-                            importSubjectEvents(sharedSubjectId, ownerUserId, newSubject.id);
-                            
-                            runOnUiThread(() -> {
-                                Toast.makeText(SubjectListActivity.this, 
-                                        getString(R.string.share_subject_imported), 
-                                        Toast.LENGTH_SHORT).show();
-                                // Refrescar la lista de sujetos
-                                refreshSubjectsList();
                             });
-                        })
-                        .addOnFailureListener(e -> {
+                        } catch (Exception e) {
                             runOnUiThread(() -> {
                                 Toast.makeText(SubjectListActivity.this, 
                                         getString(R.string.share_subject_import_error, e.getMessage()), 
                                         Toast.LENGTH_LONG).show();
                             });
-                        });
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    Toast.makeText(SubjectListActivity.this, 
-                            getString(R.string.share_subject_import_error, e.getMessage()), 
-                            Toast.LENGTH_LONG).show();
+                        }
+                    }).start();
+                }, () -> {
+                    runOnUiThread(() -> {
+                        Toast.makeText(SubjectListActivity.this, 
+                                getString(R.string.share_subject_import_error, "Error al autenticar en Firebase"), 
+                                Toast.LENGTH_LONG).show();
+                    });
                 });
-            }
-        }).start();
+    }
+    
+    /**
+     * Asegura autenticación antes de importar un sujeto compartido
+     */
+    private void ensureAuthenticationForImport(Runnable onAuthenticated, Runnable onError) {
+        com.google.firebase.auth.FirebaseUser currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser != null) {
+            onAuthenticated.run();
+            return;
+        }
+        
+        com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously()
+                .addOnSuccessListener(authResult -> {
+                    if (authResult != null && authResult.getUser() != null) {
+                        onAuthenticated.run();
+                    } else {
+                        if (onError != null) {
+                            onError.run();
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (onError != null) {
+                        onError.run();
+                    }
+                });
     }
     
     private void importSubjectEvents(String originalSubjectId, String ownerUserId, String newSubjectId) {

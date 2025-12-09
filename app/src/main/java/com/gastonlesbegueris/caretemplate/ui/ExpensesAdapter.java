@@ -45,10 +45,10 @@ public class ExpensesAdapter extends RecyclerView.Adapter<ExpensesAdapter.VH> {
         } catch (Exception e) {
             h.tvMonth.setText(m.monthStart); // fallback to raw string
         }
-        double planned  = (m.plannedSum  == null) ? 0.0 : m.plannedSum;
         double realized = (m.realizedSum == null) ? 0.0 : m.realizedSum;
-        h.tvPlanned.setText(String.format(Locale.getDefault(), "Planificado: $%.2f", planned));
-        h.tvRealized.setText(String.format(Locale.getDefault(), "Realizado: $%.2f", realized));
+        h.tvPlanned.setVisibility(View.GONE); // Ocultar planificado, solo mostrar realizado
+        String spentText = h.itemView.getContext().getString(R.string.expenses_spent_label, realized);
+        h.tvRealized.setText(spentText);
     }
 
     @Override public int getItemCount() { return items.size(); }
