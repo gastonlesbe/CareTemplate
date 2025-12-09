@@ -9,7 +9,6 @@
     <string name="menu_recovery">Código de recuperación</string>
     
     <!-- Subjects -->
-    <string name="subjects_title">Sujetos</string>
     <string name="history_title">Historial</string>
     <string name="add_subject">Agregar sujeto</string>
     <string name="new_subject">Nuevo sujeto</string>
@@ -62,7 +61,7 @@
     <string name="event_time_hint">Hora</string>
     <string name="button_mark_only">Solo marcar</string>
     <string name="button_share">Compartir</string>
-    <string name="menu_import_subject">Importar sujeto</string>
+    <string name="menu_import_subject">Importar</string>
     <string name="button_import">Importar</string>
     <string name="button_ok">OK</string>
     
@@ -100,6 +99,9 @@
     <string name="share_subject_importing">Importando sujeto compartido…</string>
     <string name="share_subject_imported">Sujeto importado exitosamente ✅</string>
     <string name="share_subject_import_error">Error al importar sujeto: %1$s</string>
+    <string name="tab_history">Histórico</string>
+    <string name="tab_upcoming">Próximos</string>
+    <string name="no_events_upcoming">No hay próximos eventos</string>
     
     <!-- Recovery process -->
     <string name="recovering_data">Recuperando datos…</string>

@@ -25,9 +25,13 @@ public interface EventDao {
     @Query("SELECT * FROM events WHERE appType=:appType AND deleted=0 AND realized=0 ORDER BY dueAt ASC")
     LiveData<List<EventEntity>> observeActive(String appType);
     
-    // Historial de eventos de un sujeto (todos, realizados y no realizados)
-    @Query("SELECT * FROM events WHERE appType=:appType AND subjectId=:subjectId AND deleted=0 ORDER BY dueAt DESC")
+    // Historial de eventos de un sujeto (realizados)
+    @Query("SELECT * FROM events WHERE appType=:appType AND subjectId=:subjectId AND deleted=0 AND realized=1 ORDER BY dueAt DESC")
     LiveData<List<EventEntity>> observeSubjectHistory(String appType, String subjectId);
+
+    // Próximos eventos de un sujeto (pendientes)
+    @Query("SELECT * FROM events WHERE appType=:appType AND subjectId=:subjectId AND deleted=0 AND realized=0 ORDER BY dueAt ASC")
+    LiveData<List<EventEntity>> observeSubjectUpcoming(String appType, String subjectId);
 
     // Para header (siguiente evento)
     @Query("SELECT * FROM events WHERE appType=:appType AND deleted=0 AND (:subjectId IS NULL OR subjectId=:subjectId) AND dueAt >= :from ORDER BY dueAt ASC LIMIT 1")
@@ -90,7 +94,7 @@ public interface EventDao {
     List<com.gastonlesbegueris.caretemplate.data.model.MonthTotal> listMonthTotals(String appType);
 
     // Para ExpensesActivity (si querés listar eventos en rango)
-    @Query("SELECT * FROM events WHERE appType=:appType AND deleted=0 AND dueAt BETWEEN :from AND :to ORDER BY dueAt DESC")
+    @Query("SELECT * FROM events WHERE appType=:appType AND deleted=0 AND dueAt BETWEEN :from AND :to ORDER BY dueAt ASC")
     List<EventEntity> listInRange(String appType, long from, long to);
 
     // Sumas en rango (si son usadas en Agenda)
