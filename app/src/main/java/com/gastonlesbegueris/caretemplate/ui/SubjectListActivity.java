@@ -752,11 +752,6 @@ public class SubjectListActivity extends AppCompatActivity {
     
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        // Asegurar que el título del menú "Importar sujeto" esté correcto
-        MenuItem shareItem = menu.findItem(R.id.action_share_subject);
-        if (shareItem != null) {
-            shareItem.setTitle(getString(R.string.menu_import_subject));
-        }
         // Establecer la versión dinámicamente
         MenuItem versionItem = menu.findItem(R.id.action_version);
         if (versionItem != null) {
@@ -792,10 +787,6 @@ public class SubjectListActivity extends AppCompatActivity {
         } else if (id == R.id.action_recovery) {
             // Mostrar el código de recuperación
             showRecoveryCodeDialog();
-            return true;
-        } else if (id == R.id.action_share_subject) {
-            // Mostrar diálogo para importar sujeto compartido
-            showImportSharedSubjectDialog();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -1003,105 +994,74 @@ public class SubjectListActivity extends AppCompatActivity {
     }
     
     private void showRecoveryCodeDialog() {
-        // Mostrar diálogo informativo antes de cargar el video
+        // Mostrar diálogo informativo antes de cargar el anuncio
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle(getString(R.string.recovery_code_title))
                 .setMessage(getString(R.string.recovery_code_message))
                 .setPositiveButton(getString(R.string.button_watch_video), (d, w) -> {
-                    // Usuario acepta, cargar y mostrar rewarded ad
-                    loadAndShowRewardedAd();
+                    // Usuario acepta, mostrar interstitial ad
+                    showInterstitialAdForRecoveryCode();
                 })
                 .setNegativeButton(getString(R.string.button_cancel), null)
                 .setIcon(android.R.drawable.ic_dialog_info)
                 .show();
     }
     
-    private void loadAndShowRewardedAd() {
+    private void showInterstitialAdForRecoveryCode() {
         // Si ya hay un ad cargado, mostrarlo directamente
-        if (rewardedAd != null) {
-            showRewardedAd();
+        if (interstitialAd != null) {
+            showInterstitialAdForRecovery();
             return;
         }
         
-        // Si ya se está cargando, mostrar mensaje
-        if (isRewardedAdLoading) {
-            Toast.makeText(this, getString(R.string.loading_video), Toast.LENGTH_SHORT).show();
-            return;
+        // Si no hay ad cargado, intentar cargar uno nuevo
+        if (!isInterstitialAdLoading) {
+            loadInterstitialAd();
         }
         
-        // Mostrar mensaje de carga
-        Toast.makeText(this, "Cargando video publicitario...", Toast.LENGTH_SHORT).show();
-        
-        // Cargar nuevo rewarded ad
-        isRewardedAdLoading = true;
-        String rewardedAdId = getString(R.string.admob_rewarded_id);
-        
-        com.google.android.gms.ads.AdRequest adRequest = new com.google.android.gms.ads.AdRequest.Builder().build();
-        
-        RewardedAd.load(this, rewardedAdId, adRequest,
-                new RewardedAdLoadCallback() {
-                    @Override
-                    public void onAdFailedToLoad(LoadAdError loadAdError) {
-                        isRewardedAdLoading = false;
-                        rewardedAd = null;
-                        Log.e("SubjectListActivity", "Rewarded ad failed to load: " + loadAdError.getMessage());
-                        // Si falla cargar el ad, mostrar el código directamente
-                        runOnUiThread(() -> {
-                            Toast.makeText(SubjectListActivity.this, getString(R.string.video_load_error), Toast.LENGTH_SHORT).show();
-                            showRecoveryCodeAfterAd();
-                        });
-                    }
-                    
-                    @Override
-                    public void onAdLoaded(RewardedAd ad) {
-                        isRewardedAdLoading = false;
-                        rewardedAd = ad;
-                        Log.d("SubjectListActivity", "Rewarded ad loaded");
-                        // Mostrar el ad
-                        runOnUiThread(() -> showRewardedAd());
-                    }
-                });
+        // Esperar un poco para que cargue, si no hay ad, mostrar código directamente
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            if (interstitialAd != null) {
+                showInterstitialAdForRecovery();
+            } else {
+                // Si después de esperar no hay ad, mostrar código directamente
+                showRecoveryCodeAfterAd();
+            }
+        }, 1000);
     }
     
-    private void showRewardedAd() {
-        if (rewardedAd == null) {
+    private void showInterstitialAdForRecovery() {
+        if (interstitialAd == null) {
             // Si no hay ad, mostrar código directamente
             showRecoveryCodeAfterAd();
             return;
         }
         
-        // Configurar callback para cuando el usuario gana la recompensa
-        rewardedAd.setFullScreenContentCallback(new FullScreenContentCallback() {
-            @Override
-            public void onAdShowedFullScreenContent() {
-                Log.d("SubjectListActivity", "Rewarded ad showed full screen content");
-            }
-            
+        interstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
             @Override
             public void onAdDismissedFullScreenContent() {
-                // Ad cerrado, recargar para próxima vez
-                rewardedAd = null;
-                Log.d("SubjectListActivity", "Rewarded ad dismissed");
+                // Anuncio cerrado, mostrar código
+                interstitialAd = null;
+                loadInterstitialAd(); // Precargar siguiente anuncio
+                showRecoveryCodeAfterAd();
             }
             
             @Override
             public void onAdFailedToShowFullScreenContent(AdError adError) {
-                Log.e("SubjectListActivity", "Rewarded ad failed to show: " + adError.getMessage());
-                rewardedAd = null;
+                Log.e("SubjectListActivity", "Interstitial ad failed to show: " + adError.getMessage());
+                interstitialAd = null;
+                loadInterstitialAd();
                 // Si falla mostrar, mostrar código directamente
                 showRecoveryCodeAfterAd();
             }
-        });
-        
-        // Mostrar el ad con el listener de recompensa
-        rewardedAd.show(this, new OnUserEarnedRewardListener() {
+            
             @Override
-            public void onUserEarnedReward(RewardItem rewardItem) {
-                // Usuario completó el video, mostrar el código
-                Log.d("SubjectListActivity", "User earned reward: " + rewardItem.getAmount() + " " + rewardItem.getType());
-                showRecoveryCodeAfterAd();
+            public void onAdShowedFullScreenContent() {
+                Log.d("SubjectListActivity", "Interstitial ad showed full screen content");
             }
         });
+        
+        interstitialAd.show(this);
     }
     
     private void showRecoveryCodeAfterAd() {
@@ -1171,9 +1131,10 @@ public class SubjectListActivity extends AppCompatActivity {
             android.widget.TextView tvCode = view.findViewById(R.id.tvRecoveryCode);
             android.widget.Button btnCopy = view.findViewById(R.id.btnCopyCode);
             android.widget.Button btnRecover = view.findViewById(R.id.btnRecoverFromCode);
+            String formattedCode = com.gastonlesbegueris.caretemplate.util.UserRecoveryManager.formatRecoveryCode(recoveryCode);
             
             if (tvCode != null) {
-                tvCode.setText(recoveryCode);
+                tvCode.setText(formattedCode);
                 Log.d("SubjectListActivity", "Code set in TextView");
             } else {
                 Log.e("SubjectListActivity", "tvCode is null!");
@@ -1182,7 +1143,7 @@ public class SubjectListActivity extends AppCompatActivity {
             if (btnCopy != null) {
                 btnCopy.setOnClickListener(v -> {
                     android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(android.content.Context.CLIPBOARD_SERVICE);
-                    android.content.ClipData clip = android.content.ClipData.newPlainText(getString(R.string.recovery_code_title), recoveryCode);
+                    android.content.ClipData clip = android.content.ClipData.newPlainText(getString(R.string.recovery_code_title), formattedCode);
                     clipboard.setPrimaryClip(clip);
                     Toast.makeText(SubjectListActivity.this, getString(R.string.recovery_code_copied), Toast.LENGTH_SHORT).show();
                 });
@@ -2491,253 +2452,6 @@ public class SubjectListActivity extends AppCompatActivity {
     /**
      * Obtiene el UID del usuario actual (Firebase UID o UUID local)
      */
-    // ===== Import Shared Subject =====
-    
-    private void showImportSharedSubjectDialog() {
-        android.widget.EditText etCode = new android.widget.EditText(this);
-        etCode.setHint(getString(R.string.share_subject_code_hint));
-        etCode.setInputType(android.text.InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
-        
-        // Aplicar formateo automático (mayúsculas y guiones)
-        etCode.addTextChangedListener(new com.gastonlesbegueris.caretemplate.util.ShareCodeFormatter(etCode));
-        
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle(getString(R.string.share_subject_receive_title))
-                .setMessage(getString(R.string.share_subject_receive_message))
-                .setView(etCode)
-                .setPositiveButton(getString(R.string.button_import), (d, w) -> {
-                    String code = etCode != null && etCode.getText() != null ? etCode.getText().toString().trim() : "";
-                    // Normalizar el código (quitar guiones para la búsqueda)
-                    code = code.replaceAll("[\\s-]", "").toUpperCase();
-                    if (code.isEmpty()) {
-                        Toast.makeText(this, getString(R.string.share_subject_invalid), Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    importSharedSubject(code);
-                })
-                .setNegativeButton(getString(R.string.button_cancel), null)
-                .show();
-    }
-    
-    private void importSharedSubject(String shareCode) {
-        com.gastonlesbegueris.caretemplate.util.SubjectShareManager shareManager = 
-                new com.gastonlesbegueris.caretemplate.util.SubjectShareManager(this);
-        
-        Toast.makeText(this, getString(R.string.share_subject_importing), Toast.LENGTH_SHORT).show();
-        
-        shareManager.getSharedSubject(shareCode, new com.gastonlesbegueris.caretemplate.util.SubjectShareManager.SharedSubjectCallback() {
-            @Override
-            public void onSharedSubjectData(java.util.Map<String, Object> subjectData, java.util.List<java.util.Map<String, Object>> eventsData) {
-                // Importar el sujeto y sus eventos directamente desde shared_subjects (más seguro)
-                com.gastonlesbegueris.caretemplate.util.SharedSubjectImporter importer = 
-                        new com.gastonlesbegueris.caretemplate.util.SharedSubjectImporter(SubjectListActivity.this);
-                importer.importFromSharedData(
-                        subjectData,
-                        eventsData,
-                        () -> runOnUiThread(() -> {
-                            Toast.makeText(SubjectListActivity.this, 
-                                    getString(R.string.share_subject_imported), 
-                                    Toast.LENGTH_SHORT).show();
-                            // Refrescar la lista de sujetos
-                            refreshSubjectsList();
-                        }),
-                        () -> runOnUiThread(() -> {
-                            Toast.makeText(SubjectListActivity.this, 
-                                    getString(R.string.share_subject_import_error, "Error al importar datos"), 
-                                    Toast.LENGTH_LONG).show();
-                        })
-                );
-            }
-            
-            @Override
-            public void onError(Exception error) {
-                runOnUiThread(() -> {
-                    Toast.makeText(SubjectListActivity.this, 
-                            getString(R.string.share_subject_import_error, error.getMessage()), 
-                            Toast.LENGTH_LONG).show();
-                });
-            }
-        });
-    }
-    
-    private void importSubjectFromUser(String sharedSubjectId, String ownerUserId) {
-        // Asegurar autenticación antes de importar
-        ensureAuthenticationForImport(() -> {
-            new Thread(() -> {
-                try {
-                    // Obtener el sujeto desde Firestore del usuario dueño
-                    com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
-                    
-                    firestore.collection("users").document(ownerUserId)
-                            .collection("apps").document("CareTemplate")
-                            .collection("subjects").document(sharedSubjectId)
-                            .get()
-                            .addOnSuccessListener(subjectDoc -> {
-                                if (!subjectDoc.exists()) {
-                                    runOnUiThread(() -> {
-                                        Toast.makeText(SubjectListActivity.this, 
-                                                getString(R.string.share_subject_not_found), 
-                                                Toast.LENGTH_LONG).show();
-                                    });
-                                    return;
-                                }
-                                
-                                // Crear nuevo sujeto local con los datos del compartido
-                                SubjectEntity newSubject = new SubjectEntity();
-                                newSubject.id = java.util.UUID.randomUUID().toString(); // Nuevo ID para el usuario que recibe
-                                newSubject.appType = subjectDoc.getString("appType");
-                                newSubject.name = subjectDoc.getString("name");
-                                
-                                Long bd = subjectDoc.getLong("birthDate");
-                                newSubject.birthDate = (bd != null ? bd : null);
-                                
-                                Double cm = subjectDoc.getDouble("currentMeasure");
-                                newSubject.currentMeasure = (cm != null ? cm : null);
-                                
-                                newSubject.notes = subjectDoc.getString("notes");
-                                newSubject.iconKey = subjectDoc.getString("iconKey");
-                                newSubject.colorHex = subjectDoc.getString("colorHex");
-                                newSubject.updatedAt = System.currentTimeMillis();
-                                newSubject.deleted = 0;
-                                newSubject.dirty = 1; // Marcar para sincronizar
-                                
-                                // Insertar el sujeto
-                                dao.insert(newSubject);
-                                
-                                // Importar eventos del sujeto compartido
-                                importSubjectEvents(sharedSubjectId, ownerUserId, newSubject.id);
-                                
-                                runOnUiThread(() -> {
-                                    Toast.makeText(SubjectListActivity.this, 
-                                            getString(R.string.share_subject_imported), 
-                                            Toast.LENGTH_SHORT).show();
-                                    // Refrescar la lista de sujetos
-                                    refreshSubjectsList();
-                                });
-                            })
-                            .addOnFailureListener(e -> {
-                                runOnUiThread(() -> {
-                                    String errorMsg = e != null ? e.getMessage() : "Error desconocido";
-                                    if (errorMsg != null && errorMsg.contains("PERMISSION_DENIED")) {
-                                        errorMsg = "Error de permisos. Por favor, verifica las reglas de Firestore. " +
-                                                  "Asegúrate de que las reglas permitan lectura de sujetos compartidos a usuarios autenticados.";
-                                    }
-                                    Toast.makeText(SubjectListActivity.this, 
-                                            getString(R.string.share_subject_import_error, errorMsg), 
-                                            Toast.LENGTH_LONG).show();
-                                });
-                            });
-                        } catch (Exception e) {
-                            runOnUiThread(() -> {
-                                Toast.makeText(SubjectListActivity.this, 
-                                        getString(R.string.share_subject_import_error, e.getMessage()), 
-                                        Toast.LENGTH_LONG).show();
-                            });
-                        }
-                    }).start();
-                }, () -> {
-                    runOnUiThread(() -> {
-                        Toast.makeText(SubjectListActivity.this, 
-                                getString(R.string.share_subject_import_error, "Error al autenticar en Firebase"), 
-                                Toast.LENGTH_LONG).show();
-                    });
-                });
-    }
-    
-    /**
-     * Asegura autenticación antes de importar un sujeto compartido
-     */
-    private void ensureAuthenticationForImport(Runnable onAuthenticated, Runnable onError) {
-        com.google.firebase.auth.FirebaseUser currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser != null) {
-            onAuthenticated.run();
-            return;
-        }
-        
-        com.google.firebase.auth.FirebaseAuth.getInstance().signInAnonymously()
-                .addOnSuccessListener(authResult -> {
-                    if (authResult != null && authResult.getUser() != null) {
-                        onAuthenticated.run();
-                    } else {
-                        if (onError != null) {
-                            onError.run();
-                        }
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    if (onError != null) {
-                        onError.run();
-                    }
-                });
-    }
-    
-    private void importSubjectEvents(String originalSubjectId, String ownerUserId, String newSubjectId) {
-        com.google.firebase.firestore.FirebaseFirestore firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance();
-        String currentUserId = getCurrentUserId();
-        
-        firestore.collection("users").document(ownerUserId)
-                .collection("apps").document("CareTemplate")
-                .collection("events")
-                .whereEqualTo("subjectId", originalSubjectId)
-                .whereEqualTo("deleted", 0)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    new Thread(() -> {
-                        for (com.google.firebase.firestore.QueryDocumentSnapshot doc : querySnapshot) {
-                            EventEntity event = new EventEntity();
-                            event.id = java.util.UUID.randomUUID().toString(); // Nuevo ID
-                            event.uid = currentUserId; // ID del usuario que recibe
-                            event.appType = doc.getString("appType");
-                            event.subjectId = newSubjectId; // ID del nuevo sujeto
-                            event.title = doc.getString("title");
-                            event.note = doc.getString("note");
-                            
-                            Long due = doc.getLong("dueAt");
-                            event.dueAt = (due != null ? due : 0L);
-                            
-                            Long up = doc.getLong("updatedAt");
-                            event.updatedAt = (up != null ? up : System.currentTimeMillis());
-                            
-                            Long del = doc.getLong("deleted");
-                            event.deleted = (del != null ? del.intValue() : 0);
-                            
-                            Double cost = doc.getDouble("cost");
-                            event.cost = cost;
-                            
-                            Double km = doc.getDouble("kilometersAtEvent");
-                            event.kilometersAtEvent = km;
-                            
-                            Long realized = doc.getLong("realized");
-                            event.realized = (realized != null ? realized.intValue() : 0);
-                            
-                            // Campos de repetición
-                            event.repeatType = doc.getString("repeatType");
-                            Long repeatInterval = doc.getLong("repeatInterval");
-                            event.repeatInterval = (repeatInterval != null ? repeatInterval.intValue() : null);
-                            Long repeatEndDate = doc.getLong("repeatEndDate");
-                            event.repeatEndDate = (repeatEndDate != null ? repeatEndDate : null);
-                            Long repeatCount = doc.getLong("repeatCount");
-                            event.repeatCount = (repeatCount != null ? repeatCount.intValue() : null);
-                            event.originalEventId = doc.getString("originalEventId");
-                            
-                            // Campos de notificación
-                            Long notificationMinutesBefore = doc.getLong("notificationMinutesBefore");
-                            event.notificationMinutesBefore = (notificationMinutesBefore != null ? notificationMinutesBefore.intValue() : null);
-                            
-                            Long realizedAt = doc.getLong("realizedAt");
-                            event.realizedAt = (realizedAt != null ? realizedAt : null);
-                            
-                            event.dirty = 1; // Marcar para sincronizar
-                            
-                            eventDao.insert(event);
-                        }
-                    }).start();
-                })
-                .addOnFailureListener(e -> {
-                    Log.e("SubjectListActivity", "Error importing events", e);
-                });
-    }
-    
     private String getCurrentUserId() {
         // Intentar obtener Firebase UID primero
         com.google.firebase.auth.FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
