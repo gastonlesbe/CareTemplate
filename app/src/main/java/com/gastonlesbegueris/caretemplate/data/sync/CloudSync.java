@@ -210,6 +210,67 @@ public class CloudSync {
                     .set(Collections.singletonMap("createdAt", System.currentTimeMillis()), SetOptions.merge())
                     .addOnSuccessListener(a -> {
                         Log.d("CloudSync", "Documento padre creado/actualizado: users/" + uid + "/apps/" + app);
+                        // Si es la primera sincronización (last = 0), traer todos los sujetos sin filtro de updatedAt
+                        // para asegurar que se importen todos los datos
+                        if (last == 0L) {
+                            Log.d("CloudSync", "Primera sincronización (last=0), trayendo todos los sujetos sin filtro de updatedAt");
+                            subjectsCol()
+                                    .whereEqualTo("appType", appType)
+                                    .get()
+                                    .addOnSuccessListener(qs -> {
+                                        Log.d("CloudSync", "✅ Query exitosa: " + qs.size() + " sujetos encontrados");
+                                        new Thread(() -> {
+                                            int importedCount = 0;
+                                            for (QueryDocumentSnapshot doc : qs) {
+                                                Long del = doc.getLong("deleted");
+                                                int deleted = (del == null ? 0 : del.intValue());
+                                                
+                                                // Si el sujeto está borrado en Firebase, eliminarlo físicamente de la base local
+                                                if (deleted == 1) {
+                                                    String subjectId = doc.getString("id");
+                                                    if (subjectId != null) {
+                                                        subjectDao.deletePermanently(subjectId);
+                                                        Log.d("CloudSync", "Sujeto borrado eliminado físicamente: " + subjectId);
+                                                    }
+                                                } else {
+                                                    // Si no está borrado, actualizar/insertar normalmente
+                                                    SubjectEntity s = new SubjectEntity();
+                                                    s.id = doc.getString("id");
+                                                    s.appType = doc.getString("appType");
+                                                    s.name = doc.getString("name");
+
+                                                    Long bd = doc.getLong("birthDate");
+                                                    s.birthDate = (bd == null ? null : bd);
+
+                                                    Double cm = doc.getDouble("currentMeasure");
+                                                    s.currentMeasure = (cm == null ? null : cm);
+
+                                                    s.notes = doc.getString("notes");
+                                                    s.iconKey = doc.getString("iconKey");
+                                                    s.colorHex = doc.getString("colorHex");
+
+                                                    Long up = doc.getLong("updatedAt");
+                                                    s.updatedAt = (up == null ? 0L : up);
+
+                                                    s.deleted = 0;
+                                                    s.dirty = 0; // limpio al bajar del cloud
+                                                    subjectDao.insert(s);
+                                                    importedCount++;
+                                                    Log.d("CloudSync", "✅ Sujeto importado: " + s.name + " (ID: " + s.id + ")");
+                                                }
+                                            }
+                                            Log.d("CloudSync", "✅ Total sujetos importados: " + importedCount + " de " + qs.size());
+                                            if (ok != null) ok.run();
+                                        }).start();
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        Log.e("CloudSync", "❌ Error en pullSubjects (primera sincronización): " + e.getMessage(), e);
+                                        if (err != null) err.run(e);
+                                    });
+                            return;
+                        }
+                        
+                        // Para sincronizaciones posteriores, usar el filtro de updatedAt
                         // Ahora hacer la consulta
                         subjectsCol()
                                 .whereEqualTo("appType", appType)
@@ -513,12 +574,84 @@ public class CloudSync {
         new Thread(() -> {
             Long lastLong = eventDao.lastUpdatedForApp(appType);
             final long last = (lastLong != null ? lastLong : 0L);
+            Log.d("CloudSync", "pull events: uid=" + uid + ", app=" + app + ", appType=" + appType + ", last=" + last);
             
             // Primero, asegurar que el documento padre existe
             fs.collection("users").document(uid)
                     .collection("apps").document(app)
                     .set(Collections.singletonMap("createdAt", System.currentTimeMillis()), SetOptions.merge())
                     .addOnSuccessListener(a -> {
+                        // Si es la primera sincronización (last = 0), traer todos los eventos sin filtro de updatedAt
+                        // para asegurar que se importen todos los datos
+                        if (last == 0L) {
+                            Log.d("CloudSync", "Primera sincronización (last=0), trayendo todos los eventos sin filtro de updatedAt");
+                            eventsCol()
+                                    .whereEqualTo("appType", appType)
+                                    .get()
+                                    .addOnSuccessListener(qs -> {
+                                        Log.d("CloudSync", "✅ Query eventos exitosa: " + qs.size() + " eventos encontrados");
+                                        new Thread(() -> {
+                                            int importedCount = 0;
+                                            for (QueryDocumentSnapshot doc : qs) {
+                                                EventEntity e = new EventEntity();
+                                                e.id = doc.getString("id");
+                                                e.uid = doc.getString("uid");
+                                                e.appType = doc.getString("appType");
+                                                e.subjectId = doc.getString("subjectId");
+                                                e.title = doc.getString("title");
+                                                e.note = doc.getString("note");
+
+                                                Long due = doc.getLong("dueAt");
+                                                e.dueAt = (due == null ? 0L : due);
+
+                                                Long up = doc.getLong("updatedAt");
+                                                e.updatedAt = (up == null ? 0L : up);
+
+                                                Long del = doc.getLong("deleted");
+                                                e.deleted = (del == null ? 0 : del.intValue());
+
+                                                Double cost = doc.getDouble("cost");
+                                                e.cost = cost;
+
+                                                Double kilometersAtEvent = doc.getDouble("kilometersAtEvent");
+                                                e.kilometersAtEvent = kilometersAtEvent;
+
+                                                Long realized = doc.getLong("realized");
+                                                e.realized = (realized == null ? 0 : realized.intValue());
+                                                
+                                                Long realizedAt = doc.getLong("realizedAt");
+                                                e.realizedAt = realizedAt;
+                                                
+                                                // Campos de repetición (opcionales)
+                                                e.repeatType = doc.getString("repeatType");
+                                                Long repeatInterval = doc.getLong("repeatInterval");
+                                                e.repeatInterval = (repeatInterval == null ? null : repeatInterval.intValue());
+                                                Long repeatEndDate = doc.getLong("repeatEndDate");
+                                                e.repeatEndDate = (repeatEndDate == null ? null : repeatEndDate);
+                                                Long repeatCount = doc.getLong("repeatCount");
+                                                e.repeatCount = (repeatCount == null ? null : repeatCount.intValue());
+                                                e.originalEventId = doc.getString("originalEventId");
+                                                
+                                                // Campo de notificación (opcional)
+                                                Long notificationMinutesBefore = doc.getLong("notificationMinutesBefore");
+                                                e.notificationMinutesBefore = (notificationMinutesBefore == null ? null : notificationMinutesBefore.intValue());
+
+                                                e.dirty = 0; // limpio al bajar del cloud
+                                                eventDao.insert(e);
+                                                importedCount++;
+                                            }
+                                            Log.d("CloudSync", "✅ Total eventos importados: " + importedCount + " de " + qs.size());
+                                            if (ok != null) ok.run();
+                                        }).start();
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        Log.e("CloudSync", "❌ Error en pull events (primera sincronización): " + e.getMessage(), e);
+                                        if (err != null) err.run(e);
+                                    });
+                            return;
+                        }
+                        
+                        // Para sincronizaciones posteriores, usar el filtro de updatedAt
                         // Ahora hacer la consulta
                         eventsCol()
                                 .whereEqualTo("appType", appType)

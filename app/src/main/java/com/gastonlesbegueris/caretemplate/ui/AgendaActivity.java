@@ -17,6 +17,7 @@ import com.gastonlesbegueris.caretemplate.data.local.EventEntity;
 import com.gastonlesbegueris.caretemplate.data.local.SubjectDao;
 import com.gastonlesbegueris.caretemplate.data.local.SubjectEntity;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.gastonlesbegueris.caretemplate.util.FabHelper;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -74,8 +75,8 @@ public class AgendaActivity extends AppCompatActivity {
         observeUpcoming();
         observeSubjectsForAdapter();
 
-        // Inicializar FAB Speed Dial
-        initFabSpeedDial();
+        // Inicializar FAB Speed Dial (comportamiento consistente en todas las pantallas)
+        FabHelper.initFabSpeedDial(this, R.id.fabAdd, R.id.fabAddSubject, R.id.fabAddEvent, rv);
 
         // AdMob
         initAdMob();
@@ -118,7 +119,8 @@ public class AgendaActivity extends AppCompatActivity {
     }
 
     private void observeUpcoming() {
-        dao.observeUpcomingOrdered(appType).observe(this, new Observer<List<EventEntity>>() {
+        long now = System.currentTimeMillis();
+        dao.observeUpcomingOrdered(appType, now).observe(this, new Observer<List<EventEntity>>() {
             @Override public void onChanged(List<EventEntity> events) {
                 adapter.submit(groupByDay(events));
             }
@@ -181,7 +183,7 @@ public class AgendaActivity extends AppCompatActivity {
                 String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
                 versionItem.setTitle("v" + versionName);
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                versionItem.setTitle("v1.2");
+                versionItem.setTitle("v1.4");
             }
         }
         return super.onPrepareOptionsMenu(menu);
@@ -199,77 +201,6 @@ public class AgendaActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
     
-    // ===== FAB Speed Dial =====
-    private boolean fabMenuOpen = false;
-    
-    private void initFabSpeedDial() {
-        View fab = findViewById(R.id.fabAdd);
-        View fabSubject = findViewById(R.id.fabAddSubject);
-        View fabEvent = findViewById(R.id.fabAddEvent);
-
-        // Iconos fijos: flavor y calendario
-        ((com.google.android.material.floatingactionbutton.FloatingActionButton) fabSubject)
-                .setImageResource(R.drawable.ic_header_flavor);
-        ((com.google.android.material.floatingactionbutton.FloatingActionButton) fabEvent)
-                .setImageResource(R.drawable.ic_event);
-
-        fab.setOnClickListener(v -> toggleFabMenu());
-
-        fabSubject.setOnClickListener(v -> {
-            closeFabMenu();
-            // Redirigir a SubjectListActivity para agregar sujeto
-            android.content.Intent intent = new android.content.Intent(this, SubjectListActivity.class);
-            startActivity(intent);
-        });
-        fabEvent.setOnClickListener(v -> {
-            closeFabMenu();
-            // Redirigir a SubjectListActivity para agregar evento
-            android.content.Intent intent = new android.content.Intent(this, SubjectListActivity.class);
-            intent.putExtra("add_event", true);
-            startActivity(intent);
-        });
-
-        androidx.recyclerview.widget.RecyclerView rv = findViewById(R.id.rvAgenda);
-        if (rv != null) {
-            rv.addOnScrollListener(new androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
-                @Override public void onScrolled(androidx.recyclerview.widget.RecyclerView recyclerView, int dx, int dy) {
-                    if (fabMenuOpen && Math.abs(dy) > 6) closeFabMenu();
-                }
-            });
-        }
-    }
-
-    private void toggleFabMenu() { if (fabMenuOpen) closeFabMenu(); else openFabMenu(); }
-
-    private void openFabMenu() {
-        fabMenuOpen = true;
-        showFabWithAnim(findViewById(R.id.fabAddSubject));
-        showFabWithAnim(findViewById(R.id.fabAddEvent));
-        rotateFab(true);
-    }
-
-    private void closeFabMenu() {
-        fabMenuOpen = false;
-        hideFabWithAnim(findViewById(R.id.fabAddSubject));
-        hideFabWithAnim(findViewById(R.id.fabAddEvent));
-        rotateFab(false);
-    }
-
-    private void showFabWithAnim(View fab) {
-        fab.setVisibility(View.VISIBLE);
-        fab.setScaleX(0.9f); fab.setScaleY(0.9f); fab.setAlpha(0f);
-        fab.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(150).start();
-    }
-
-    private void hideFabWithAnim(View fab) {
-        fab.animate().alpha(0f).scaleX(0.9f).scaleY(0.9f).setDuration(120)
-                .withEndAction(() -> fab.setVisibility(View.GONE)).start();
-    }
-
-    private void rotateFab(boolean open) {
-        View main = findViewById(R.id.fabAdd);
-        main.animate().rotation(open ? 45f : 0f).setDuration(150).start();
-    }
 
     // ===== Edit Event Dialog =====
     private void showEditDialog(EventEntity e) {

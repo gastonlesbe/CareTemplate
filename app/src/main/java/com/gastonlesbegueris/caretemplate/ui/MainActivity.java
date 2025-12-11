@@ -403,7 +403,7 @@ public class MainActivity extends AppCompatActivity {
                 String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
                 versionItem.setTitle("v" + versionName);
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                versionItem.setTitle("v1.2");
+                versionItem.setTitle("v1.4");
             }
         }
         return super.onPrepareOptionsMenu(menu);
@@ -414,7 +414,7 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_agenda) {
-            startActivity(new android.content.Intent(this, AgendaMonthActivity.class));
+            startActivity(new android.content.Intent(this, com.gastonlesbegueris.caretemplate.ui.AgendaActivity.class));
             return true;
 
     } else if (id == R.id.action_sync) {

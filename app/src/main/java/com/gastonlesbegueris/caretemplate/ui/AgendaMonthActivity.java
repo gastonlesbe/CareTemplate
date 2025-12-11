@@ -17,6 +17,7 @@ import com.gastonlesbegueris.caretemplate.data.local.AppDb;
 import com.gastonlesbegueris.caretemplate.data.local.EventDao;
 import com.gastonlesbegueris.caretemplate.data.local.EventEntity;
 import com.gastonlesbegueris.caretemplate.data.model.DaySummary;
+import com.gastonlesbegueris.caretemplate.util.FabHelper;
 import com.google.android.material.appbar.MaterialToolbar;
 
 import java.text.SimpleDateFormat;
@@ -66,9 +67,8 @@ public class AgendaMonthActivity extends AppCompatActivity {
 
         tvTotals = findViewById(R.id.tvMonthTotals);
 
-        // FAB para agregar eventos
-        // Inicializar FAB Speed Dial
-        initFabSpeedDial();
+        // FAB para agregar eventos (comportamiento uniforme)
+        FabHelper.initFabSpeedDial(this, R.id.fabAdd, R.id.fabAddSubject, R.id.fabAddEvent, rv);
 
         // AdMob
         initAdMob();
@@ -203,7 +203,7 @@ public class AgendaMonthActivity extends AppCompatActivity {
                 String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
                 versionItem.setTitle("v" + versionName);
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                versionItem.setTitle("v1.2");
+                versionItem.setTitle("v1.4");
             }
         }
         return super.onPrepareOptionsMenu(menu);
@@ -219,78 +219,6 @@ public class AgendaMonthActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-    
-    // ===== FAB Speed Dial =====
-    private boolean fabMenuOpen = false;
-    
-    private void initFabSpeedDial() {
-        View fab = findViewById(R.id.fabAdd);
-        View fabSubject = findViewById(R.id.fabAddSubject);
-        View fabEvent = findViewById(R.id.fabAddEvent);
-
-        // Iconos fijos: flavor y calendario
-        ((com.google.android.material.floatingactionbutton.FloatingActionButton) fabSubject)
-                .setImageResource(R.drawable.ic_header_flavor);
-        ((com.google.android.material.floatingactionbutton.FloatingActionButton) fabEvent)
-                .setImageResource(R.drawable.ic_event);
-
-        fab.setOnClickListener(v -> toggleFabMenu());
-
-        fabSubject.setOnClickListener(v -> {
-            closeFabMenu();
-            // Redirigir a SubjectListActivity para agregar sujeto
-            android.content.Intent intent = new android.content.Intent(this, SubjectListActivity.class);
-            startActivity(intent);
-        });
-        fabEvent.setOnClickListener(v -> {
-            closeFabMenu();
-            // Redirigir a SubjectListActivity para agregar evento
-            android.content.Intent intent = new android.content.Intent(this, SubjectListActivity.class);
-            intent.putExtra("add_event", true);
-            startActivity(intent);
-        });
-
-        androidx.recyclerview.widget.RecyclerView rv = findViewById(R.id.rvEvents);
-        if (rv != null) {
-            rv.addOnScrollListener(new androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
-                @Override public void onScrolled(androidx.recyclerview.widget.RecyclerView recyclerView, int dx, int dy) {
-                    if (fabMenuOpen && Math.abs(dy) > 6) closeFabMenu();
-                }
-            });
-        }
-    }
-
-    private void toggleFabMenu() { if (fabMenuOpen) closeFabMenu(); else openFabMenu(); }
-
-    private void openFabMenu() {
-        fabMenuOpen = true;
-        showFabWithAnim(findViewById(R.id.fabAddSubject));
-        showFabWithAnim(findViewById(R.id.fabAddEvent));
-        rotateFab(true);
-    }
-
-    private void closeFabMenu() {
-        fabMenuOpen = false;
-        hideFabWithAnim(findViewById(R.id.fabAddSubject));
-        hideFabWithAnim(findViewById(R.id.fabAddEvent));
-        rotateFab(false);
-    }
-
-    private void showFabWithAnim(View fab) {
-        fab.setVisibility(View.VISIBLE);
-        fab.setScaleX(0.9f); fab.setScaleY(0.9f); fab.setAlpha(0f);
-        fab.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(150).start();
-    }
-
-    private void hideFabWithAnim(View fab) {
-        fab.animate().alpha(0f).scaleX(0.9f).scaleY(0.9f).setDuration(120)
-                .withEndAction(() -> fab.setVisibility(View.GONE)).start();
-    }
-
-    private void rotateFab(boolean open) {
-        View main = findViewById(R.id.fabAdd);
-        main.animate().rotation(open ? 45f : 0f).setDuration(150).start();
     }
 
 }

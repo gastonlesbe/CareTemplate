@@ -122,12 +122,16 @@ public class SubjectListActivity extends AppCompatActivity {
         }
         
         // Verificar si se debe agregar un evento (desde otras actividades)
-        // Como estamos en la lista de sujetos, simplemente ignoramos este intent
-        // Los eventos se agregan desde el historial de un sujeto o desde la agenda
+        // Si viene con add_event, abrir directamente el diálogo de crear evento
+        // (el diálogo permite elegir el sujeto dentro)
         if (getIntent() != null && getIntent().getBooleanExtra("add_event", false)) {
             getIntent().removeExtra("add_event");
-            // Mostrar mensaje indicando que se debe seleccionar un sujeto primero
-            Toast.makeText(this, getString(R.string.select_subject_first), Toast.LENGTH_SHORT).show();
+            // Programar para después de que la UI esté lista
+            findViewById(android.R.id.content).post(() -> {
+                if (!isFinishing() && !isDestroyed()) {
+                    showAddEventDialog();
+                }
+            });
         }
         
         // Inicializar código de recuperación
@@ -759,7 +763,7 @@ public class SubjectListActivity extends AppCompatActivity {
                 String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
                 versionItem.setTitle("v" + versionName);
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                versionItem.setTitle("v1.2");
+                versionItem.setTitle("v1.4");
             }
         }
         return super.onPrepareOptionsMenu(menu);
@@ -769,7 +773,7 @@ public class SubjectListActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_agenda) {
-            startActivity(new android.content.Intent(this, com.gastonlesbegueris.caretemplate.ui.AgendaMonthActivity.class));
+            startActivity(new android.content.Intent(this, com.gastonlesbegueris.caretemplate.ui.AgendaActivity.class));
             return true;
         } else if (id == R.id.action_subjects) {
             // Already on subjects page
@@ -2277,8 +2281,14 @@ public class SubjectListActivity extends AppCompatActivity {
                 int eventsCreated = 1; // Ya creamos el original
                 long nextDueAt = dueAt;
                 
+                // Límites para evitar exceder el límite de alarmas de Android (500)
+                final int MAX_REPEATED_EVENTS = 100; // Máximo de eventos repetidos a crear
+                final long MAX_NOTIFICATION_RANGE_MS = 60L * 24 * 60 * 60 * 1000; // 60 días en milisegundos
+                long now = System.currentTimeMillis();
+                long maxNotificationTime = now + MAX_NOTIFICATION_RANGE_MS;
+                
                 // Calcular el siguiente evento
-                while (true) {
+                while (eventsCreated < MAX_REPEATED_EVENTS) {
                     // Calcular la próxima fecha según el tipo de repetición
                     java.util.Calendar nextCal = java.util.Calendar.getInstance();
                     nextCal.setTimeInMillis(nextDueAt);
@@ -2308,10 +2318,10 @@ public class SubjectListActivity extends AppCompatActivity {
                     } else if (repeatCount != null && eventsCreated >= repeatCount) {
                         shouldStop = true;
                     } else if (repeatEndDate == null && repeatCount == null) {
-                        // Si no hay límite, crear eventos por 10 años por defecto (prácticamente sin límite)
+                        // Si no hay límite, crear eventos por 2 años por defecto (reducido de 10 años)
                         java.util.Calendar limitCal = java.util.Calendar.getInstance();
                         limitCal.setTimeInMillis(dueAt);
-                        limitCal.add(java.util.Calendar.YEAR, 10);
+                        limitCal.add(java.util.Calendar.YEAR, 2);
                         if (nextDueAt > limitCal.getTimeInMillis()) {
                             shouldStop = true;
                         }
@@ -2344,9 +2354,15 @@ public class SubjectListActivity extends AppCompatActivity {
                     eventDao.insert(repeatedEvent);
                     com.gastonlesbegueris.caretemplate.util.LimitGuard.onEventCreated(this, appType);
                     
-                    // Programar notificación para el evento repetido
-                    if (notificationMinutesBefore != null && notificationMinutesBefore > 0) {
+                    // Solo programar notificación si el evento está dentro del rango permitido (próximos 60 días)
+                    // Esto evita exceder el límite de alarmas de Android
+                    if (notificationMinutesBefore != null && notificationMinutesBefore > 0 && nextDueAt <= maxNotificationTime) {
+                        try {
                         com.gastonlesbegueris.caretemplate.util.NotificationHelper.scheduleNotification(this, repeatedEvent);
+                        } catch (Exception e) {
+                            // Si falla por límite de alarmas, continuar creando eventos pero sin notificaciones
+                            android.util.Log.w("SubjectListActivity", "No se pudo programar notificación para evento repetido (puede ser límite de alarmas): " + e.getMessage());
+                        }
                     }
                     
                     eventsCreated++;
