@@ -25,6 +25,10 @@ public interface EventDao {
     @Query("SELECT * FROM events WHERE appType=:appType AND deleted=0 AND realized=0 ORDER BY dueAt ASC")
     LiveData<List<EventEntity>> observeActive(String appType);
     
+    // Próximos eventos de todos los sujetos (sin filtro de fecha) ordenados del más cercano al más lejano
+    @Query("SELECT * FROM events WHERE appType=:appType AND deleted=0 AND realized=0 ORDER BY dueAt ASC")
+    LiveData<List<EventEntity>> observeUpcomingOrdered(String appType);
+    
     // Historial de eventos de un sujeto (realizados)
     @Query("SELECT * FROM events WHERE appType=:appType AND subjectId=:subjectId AND deleted=0 AND realized=1 ORDER BY dueAt DESC")
     LiveData<List<EventEntity>> observeSubjectHistory(String appType, String subjectId);

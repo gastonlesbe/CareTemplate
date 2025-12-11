@@ -1,15 +1,11 @@
 package com.gastonlesbegueris.caretemplate.ui;
 
-import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
-import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.app.AppCompatDelegate;
 import androidx.lifecycle.Observer;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -18,23 +14,25 @@ import com.gastonlesbegueris.caretemplate.R;
 import com.gastonlesbegueris.caretemplate.data.local.AppDb;
 import com.gastonlesbegueris.caretemplate.data.local.EventDao;
 import com.gastonlesbegueris.caretemplate.data.local.EventEntity;
+import com.gastonlesbegueris.caretemplate.data.local.SubjectDao;
+import com.gastonlesbegueris.caretemplate.data.local.SubjectEntity;
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.datepicker.MaterialDatePicker;
 
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
+import java.util.Calendar;
+import java.util.ArrayList;
 import java.util.Locale;
+import java.text.SimpleDateFormat;
 
 public class AgendaActivity extends AppCompatActivity {
 
     private String appType;
     private EventDao dao;
-    private EventAdapter adapter; // o LocalEventAdapter
-    private long dayStart, dayEnd;
+    private SubjectDao subjectDao;
+    private AgendaAdapter adapter;
     private com.gastonlesbegueris.caretemplate.util.MenuHelper menuHelper;
-
     private final SimpleDateFormat dayFmt = new SimpleDateFormat("EEE dd/MM", Locale.getDefault());
 
     @Override protected void onCreate(Bundle s) {
@@ -42,7 +40,9 @@ public class AgendaActivity extends AppCompatActivity {
         setContentView(R.layout.activity_agenda);
 
         appType = getString(R.string.app_type);
-        dao = AppDb.get(this).eventDao();
+        AppDb db = AppDb.get(this);
+        dao = db.eventDao();
+        subjectDao = db.subjectDao();
         menuHelper = new com.gastonlesbegueris.caretemplate.util.MenuHelper(this, appType);
 
         MaterialToolbar tb = findViewById(R.id.toolbarAgenda);
@@ -57,9 +57,9 @@ public class AgendaActivity extends AppCompatActivity {
         tb.setTitle(appName + " - " + sectionName);
 
         // Recycler
-        RecyclerView rv = findViewById(R.id.rvDay);
+        RecyclerView rv = findViewById(R.id.rvAgenda);
         rv.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new EventAdapter(new EventAdapter.OnEventClick() {
+        adapter = new AgendaAdapter(new AgendaAdapter.OnEventClick() {
             @Override public void onEdit(EventEntity e) { showEditDialog(e); }
             @Override public void onDelete(EventEntity e) { softDelete(e.id); }
             
@@ -71,13 +71,8 @@ public class AgendaActivity extends AppCompatActivity {
         adapter.setAppType(appType); // Pasar el appType para mostrar kilómetros si es un auto
         rv.setAdapter(adapter);
 
-        // Día por defecto = hoy
-        setDay(System.currentTimeMillis());
-        observeDay();
-
-        // Picker de día
-        Button btnPick = findViewById(R.id.btnPickDay);
-        btnPick.setOnClickListener(v -> showDayPicker());
+        observeUpcoming();
+        observeSubjectsForAdapter();
 
         // Inicializar FAB Speed Dial
         initFabSpeedDial();
@@ -122,55 +117,53 @@ public class AgendaActivity extends AppCompatActivity {
         super.onDestroy();
     }
 
-    private void setDay(long millis) {
-        Calendar c = Calendar.getInstance();
-        c.setTimeInMillis(millis);
-        c.set(Calendar.HOUR_OF_DAY, 0);
-        c.set(Calendar.MINUTE, 0);
-        c.set(Calendar.SECOND, 0);
-        c.set(Calendar.MILLISECOND, 0);
-        dayStart = c.getTimeInMillis();
-        c.add(Calendar.DAY_OF_MONTH, 1);
-        dayEnd = c.getTimeInMillis();
-
-        MaterialToolbar tb = findViewById(R.id.toolbarAgenda);
-        tb.setSubtitle(dayFmt.format(new Date(dayStart)));
-
-        updateTotals();
-    }
-
-    private void observeDay() {
-        dao.observeByDay(appType, dayStart, dayEnd).observe(this, new Observer<List<EventEntity>>() {
+    private void observeUpcoming() {
+        dao.observeUpcomingOrdered(appType).observe(this, new Observer<List<EventEntity>>() {
             @Override public void onChanged(List<EventEntity> events) {
-                adapter.submit(events);
+                adapter.submit(groupByDay(events));
             }
         });
     }
 
-    private void updateTotals() {
-        new Thread(() -> {
-            double planned = dao.sumPlannedCostInRange(appType, dayStart, dayEnd);
-            double realized = dao.sumRealizedCostInRange(appType, dayStart, dayEnd);
-            runOnUiThread(() -> {
-                TextView tv = findViewById(R.id.tvTotals);
-                tv.setText(getString(R.string.expenses_plan_real, planned, realized));
-            });
-        }).start();
+    private void observeSubjectsForAdapter() {
+        if (subjectDao == null) return;
+        subjectDao.observeActive(appType).observe(this, subjects -> {
+            Map<String, String> nameMap = new HashMap<>();
+            Map<String, String> iconKeyMap = new HashMap<>();
+            Map<String, String> colorHexMap = new HashMap<>();
+            if (subjects != null) {
+                for (SubjectEntity s : subjects) {
+                    nameMap.put(s.id, s.name);
+                    if (s.iconKey != null) iconKeyMap.put(s.id, s.iconKey);
+                    if (s.colorHex != null) colorHexMap.put(s.id, s.colorHex);
+                }
+            }
+            adapter.setSubjectsMap(nameMap);
+            adapter.setSubjectIconKeys(iconKeyMap);
+            adapter.setSubjectColorHex(colorHexMap);
+        });
     }
 
-    private void showDayPicker() {
-        MaterialDatePicker<Long> picker = MaterialDatePicker.Builder.datePicker()
-                .setTitleText(getString(R.string.choose_day))
-                .setSelection(dayStart)
-                .build();
+    private List<AgendaAdapter.Row> groupByDay(List<EventEntity> events) {
+        List<AgendaAdapter.Row> rows = new ArrayList<>();
+        if (events == null || events.isEmpty()) return rows;
 
-        picker.addOnPositiveButtonClickListener(selection -> {
-            setDay(selection);
-            // renovar el observer para el nuevo rango
-            observeDay();
-        });
-
-        picker.show(getSupportFragmentManager(), "DAY_PICKER");
+        Calendar cal = Calendar.getInstance();
+        long currentDayStart = -1;
+        for (EventEntity e : events) {
+            cal.setTimeInMillis(e.dueAt);
+            cal.set(Calendar.HOUR_OF_DAY, 0);
+            cal.set(Calendar.MINUTE, 0);
+            cal.set(Calendar.SECOND, 0);
+            cal.set(Calendar.MILLISECOND, 0);
+            long dayStart = cal.getTimeInMillis();
+            if (dayStart != currentDayStart) {
+                currentDayStart = dayStart;
+                rows.add(AgendaAdapter.Row.header(dayFmt.format(cal.getTime())));
+            }
+            rows.add(AgendaAdapter.Row.event(e));
+        }
+        return rows;
     }
 
     @Override
@@ -236,7 +229,7 @@ public class AgendaActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-        androidx.recyclerview.widget.RecyclerView rv = findViewById(R.id.rvEvents);
+        androidx.recyclerview.widget.RecyclerView rv = findViewById(R.id.rvAgenda);
         if (rv != null) {
             rv.addOnScrollListener(new androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
                 @Override public void onScrolled(androidx.recyclerview.widget.RecyclerView recyclerView, int dx, int dy) {

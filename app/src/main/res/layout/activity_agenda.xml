@@ -22,47 +22,17 @@
             app:title="@string/menu_agenda" />
     </com.google.android.material.appbar.AppBarLayout>
 
-    <LinearLayout
-        android:orientation="vertical"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvAgenda"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
-
-        <LinearLayout
-            android:orientation="horizontal"
-            android:padding="12dp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="?android:attr/colorBackground">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnPickDay"
-                android:text="@string/choose_day"
-                style="@style/AppButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-
-            <Space android:layout_width="12dp" android:layout_height="1dp"/>
-
-            <TextView
-                android:id="@+id/tvTotals"
-                android:text="@string/expenses_plan_real"
-                android:layout_gravity="center_vertical"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
-        </LinearLayout>
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvDay"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="60dp"/>
-    </LinearLayout>
+        android:clipToPadding="false"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="60dp"
+        android:background="?android:attr/colorBackground"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
     <!-- Mini FAB: SUJETO (usa el icono del flavor) -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
