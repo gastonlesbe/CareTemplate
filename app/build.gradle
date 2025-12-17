@@ -13,8 +13,8 @@ android {
         applicationId "com.gastonlesbegueris.caretemplate"
         minSdk 24
         targetSdk 35   // 👈 igual o menor a compileSdk
-        versionCode 5
-        versionName "1.4"
+        versionCode 6
+        versionName "1.5"
         vectorDrawables.useSupportLibrary = true
 
     }
@@ -88,9 +88,13 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
-            minifyEnabled false
-            shrinkResources false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Generar símbolos nativos para depuración
+            ndk {
+                debugSymbolLevel 'FULL'
+            }
         }
         debug {
             signingConfig signingConfigs.debug
@@ -134,7 +138,10 @@ dependencies {
     annotationProcessor 'androidx.room:room-compiler:2.8.4'
 
     // Ads - Appodeal SDK (replaces AdMob)
-    implementation 'com.appodeal.ads:sdk:3.8.0.0'
+    implementation 'com.appodeal.ads:sdk:3.12.0.0'
    // implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
+
+    // Google Play In-App Review
+    implementation 'com.google.android.play:review:2.0.2'
 
 }

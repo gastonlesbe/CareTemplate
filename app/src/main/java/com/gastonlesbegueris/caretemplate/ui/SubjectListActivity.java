@@ -904,7 +904,7 @@ public class SubjectListActivity extends AppCompatActivity {
                 String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
                 versionItem.setTitle("v" + versionName);
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                versionItem.setTitle("v1.4");
+                versionItem.setTitle("v1.5");
             }
         }
         return super.onPrepareOptionsMenu(menu);
@@ -923,15 +923,22 @@ public class SubjectListActivity extends AppCompatActivity {
             startActivity(new android.content.Intent(this, com.gastonlesbegueris.caretemplate.ui.ExpensesActivity.class));
             return true;
         } else if (id == R.id.action_sync) {
-            // Mostrar anuncio intersticial antes de sincronizar
-            showInterstitialAdAndSync(() -> {
-                // Este callback se ejecutará después de que se cierre el anuncio
-                runOnUiThread(() -> doSync());
-            });
+            // Sincronizar directamente sin mostrar anuncio intersticial
+            doSync();
             return true;
         } else if (id == R.id.action_recovery) {
             // Mostrar el código de recuperación
             showRecoveryCodeDialog();
+            return true;
+        } else if (id == R.id.action_share_subject) {
+            // Redirigir a MainActivity para compartir sujeto con flag para abrir diálogo
+            android.content.Intent intent = new android.content.Intent(this, com.gastonlesbegueris.caretemplate.ui.MainActivity.class);
+            intent.putExtra("show_share_dialog", true);
+            startActivity(intent);
+            return true;
+        } else if (id == R.id.action_import_subject) {
+            // Mostrar diálogo para importar sujeto compartido
+            showImportSubjectDialog();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -1076,9 +1083,9 @@ public class SubjectListActivity extends AppCompatActivity {
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle(getString(R.string.recovery_code_title))
                 .setMessage(getString(R.string.recovery_code_message))
-                .setPositiveButton(getString(R.string.button_watch_video), (d, w) -> {
-                    // Usuario acepta, mostrar interstitial ad
-                    showInterstitialAdForRecoveryCode();
+                .setPositiveButton(getString(R.string.button_ok), (d, w) -> {
+                    // Mostrar código directamente sin intersticial
+                    showRecoveryCodeAfterAd();
                 })
                 .setNegativeButton(getString(R.string.button_cancel), null)
                 .setIcon(android.R.drawable.ic_dialog_info)
@@ -1086,8 +1093,8 @@ public class SubjectListActivity extends AppCompatActivity {
     }
     
     private void showInterstitialAdForRecoveryCode() {
-        // Appodeal handles ad loading automatically
-        AppodealHelper.showInterstitial(this, () -> showRecoveryCodeAfterAd());
+        // Intersticial removido - mostrar código directamente
+        showRecoveryCodeAfterAd();
     }
     
     private void showRecoveryCodeAfterAd() {
@@ -1393,12 +1400,18 @@ public class SubjectListActivity extends AppCompatActivity {
         isSilentRecoveryMode = true;
         Log.d("SubjectListActivity", "Iniciando recuperación con código, isSilentRecoveryMode=" + isSilentRecoveryMode);
         
+        // Normalizar el código antes de buscarlo
+        String normalizedCode = recoveryCode.replaceAll("[\\s-]", "").toUpperCase().trim();
+        Log.d("SubjectListActivity", "Código original: " + recoveryCode);
+        Log.d("SubjectListActivity", "Código normalizado: " + normalizedCode);
+        
         com.gastonlesbegueris.caretemplate.util.UserRecoveryManager recoveryManager = 
                 new com.gastonlesbegueris.caretemplate.util.UserRecoveryManager(this);
         
         Toast.makeText(this, getString(R.string.recovering_data), Toast.LENGTH_SHORT).show();
         
-        recoveryManager.recoverUserIdFromCode(recoveryCode, new com.gastonlesbegueris.caretemplate.util.UserRecoveryManager.RecoverUserIdCallback() {
+        // Pasar el código normalizado
+        recoveryManager.recoverUserIdFromCode(normalizedCode, new com.gastonlesbegueris.caretemplate.util.UserRecoveryManager.RecoverUserIdCallback() {
             @Override
             public void onUserIdRecovered(String userId) {
                 runOnUiThread(() -> {
@@ -2407,6 +2420,11 @@ public class SubjectListActivity extends AppCompatActivity {
                     message += " (con repetición)";
                 }
                 Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+                
+                // Verificar si se debe solicitar reseña (después del primer evento o gasto)
+                boolean isExpense = (cost != null && cost > 0);
+                String appName = getString(R.string.app_name);
+                com.gastonlesbegueris.caretemplate.util.ReviewHelper.checkAndRequestReview(this, appName, isExpense);
             });
         }).start();
     }
@@ -2531,7 +2549,24 @@ public class SubjectListActivity extends AppCompatActivity {
             return;
         }
         
-        etCode.setHint(getString(R.string.share_subject_code_hint));
+        // Buscar el TextInputLayout padre del EditText
+        com.google.android.material.textfield.TextInputLayout tilCode = null;
+        android.view.ViewParent parent = etCode.getParent();
+        while (parent != null) {
+            if (parent instanceof com.google.android.material.textfield.TextInputLayout) {
+                tilCode = (com.google.android.material.textfield.TextInputLayout) parent;
+                break;
+            }
+            parent = parent.getParent();
+        }
+        
+        // Dejar el hint en blanco para que sea legible
+        if (tilCode != null) {
+            tilCode.setHint("");
+        }
+        
+        // Agregar formateo automático del código mientras se escribe (mayúsculas y guiones)
+        etCode.addTextChangedListener(new RecoveryCodeFormatter(etCode));
         
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle(getString(R.string.share_subject_receive_title))
@@ -2558,12 +2593,24 @@ public class SubjectListActivity extends AppCompatActivity {
             return;
         }
         
+        // Normalizar el código antes de buscarlo (quitar guiones y espacios, convertir a mayúsculas)
+        String normalizedCode = shareCode.replaceAll("[\\s-]", "").toUpperCase().trim();
+        Log.d("SubjectListActivity", "Código original: " + shareCode);
+        Log.d("SubjectListActivity", "Código normalizado: " + normalizedCode);
+        Log.d("SubjectListActivity", "Longitud: " + normalizedCode.length());
+        
+        if (normalizedCode.length() != 12) {
+            Toast.makeText(this, "El código debe tener 12 caracteres. Código ingresado: " + normalizedCode.length() + " caracteres", Toast.LENGTH_LONG).show();
+            return;
+        }
+        
         Toast.makeText(this, getString(R.string.share_subject_importing), Toast.LENGTH_SHORT).show();
         
         com.gastonlesbegueris.caretemplate.util.SubjectShareManager shareManager = 
             new com.gastonlesbegueris.caretemplate.util.SubjectShareManager(this);
         
-        shareManager.getSharedSubject(shareCode, new com.gastonlesbegueris.caretemplate.util.SubjectShareManager.SharedSubjectCallback() {
+        // Pasar el código normalizado
+        shareManager.getSharedSubject(normalizedCode, new com.gastonlesbegueris.caretemplate.util.SubjectShareManager.SharedSubjectCallback() {
             @Override
             public void onSharedSubjectData(java.util.Map<String, Object> subjectData, java.util.List<java.util.Map<String, Object>> eventsData) {
                 com.gastonlesbegueris.caretemplate.util.SharedSubjectImporter importer = 
@@ -2572,7 +2619,20 @@ public class SubjectListActivity extends AppCompatActivity {
                 importer.importFromSharedData(subjectData, eventsData, 
                     () -> runOnUiThread(() -> {
                         Toast.makeText(SubjectListActivity.this, getString(R.string.share_subject_imported), Toast.LENGTH_SHORT).show();
+                        // Sincronizar automáticamente después de importar
+                        Log.d("SubjectListActivity", "Iniciando sincronización automática después de importar sujeto");
+                        // Obtener userId y sincronizar
+                        com.gastonlesbegueris.caretemplate.util.UserManager userManager = 
+                            new com.gastonlesbegueris.caretemplate.util.UserManager(SubjectListActivity.this);
+                        String userId = userManager.getUserIdSync();
+                        if (userId != null) {
+                            performSyncWithUserId(userId, true); // true = silenciar errores de permisos
+                        } else {
+                            // Si no hay userId, intentar sincronizar de todas formas
+                            doSync();
+                        }
                         refreshSubjectsList();
+                        // Intersticial removido
                     }),
                     () -> runOnUiThread(() -> {
                         Toast.makeText(SubjectListActivity.this, getString(R.string.share_subject_import_error, "Error desconocido"), Toast.LENGTH_LONG).show();

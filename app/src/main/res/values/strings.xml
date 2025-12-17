@@ -70,7 +70,7 @@
     
     <!-- Recovery code -->
     <string name="recovery_code_title">Código de recuperación</string>
-    <string name="recovery_code_message">Para ver tu código de recuperación, necesitas ver un video publicitario. ¿Deseas continuar?</string>
+    <string name="recovery_code_message">Tu código de recuperación te permitirá restaurar tus datos si reinstalas la app o cambias de dispositivo.</string>
     <string name="recovery_code_your_code">Tu código de recuperación:</string>
     <string name="recovery_code_save_message">Guarda este código en un lugar seguro. Lo necesitarás si reinstalas la app o cambias de dispositivo.</string>
     <string name="recovery_code_format">XXXX-XXXX-XXXX</string>
@@ -102,6 +102,7 @@
     <string name="share_subject_importing">Importando…</string>
     <string name="share_subject_imported">Importado exitosamente ✅</string>
     <string name="share_subject_import_error">Error al importar: %1$s</string>
+    <string name="share_subject_select_one">Selecciona uno</string>
     <string name="tab_history">Histórico</string>
     <string name="tab_upcoming">Próximos</string>
     <string name="no_events_upcoming">No hay próximos eventos</string>

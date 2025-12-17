@@ -150,6 +150,16 @@ public class MainActivity extends AppCompatActivity {
                 showRecoveryCodeDialog();
             });
         }
+        
+        // 11) Verificar si se debe abrir el diálogo de compartir sujeto
+        if (getIntent() != null && getIntent().getBooleanExtra("show_share_dialog", false)) {
+            // Limpiar el flag para que no se abra cada vez que se rote la pantalla
+            getIntent().removeExtra("show_share_dialog");
+            // Abrir el diálogo después de que la UI esté lista
+            findViewById(R.id.fabAdd).post(() -> {
+                showSelectSubjectToShareDialog();
+            });
+        }
 
         // 9) Appodeal Banner
         initAppodeal();
@@ -293,7 +303,7 @@ public class MainActivity extends AppCompatActivity {
                 String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
                 versionItem.setTitle("v" + versionName);
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                versionItem.setTitle("v1.4");
+                versionItem.setTitle("v1.5");
             }
         }
         return super.onPrepareOptionsMenu(menu);
@@ -303,51 +313,48 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
+        Log.d("MainActivity", "Menu item clicked, id: " + id + ", action_share_subject: " + R.id.action_share_subject);
+        
         if (id == R.id.action_agenda) {
+            Log.d("MainActivity", "Opening AgendaActivity");
             startActivity(new android.content.Intent(this, com.gastonlesbegueris.caretemplate.ui.AgendaActivity.class));
             return true;
-
-    } else if (id == R.id.action_sync) {
-            // Mostrar anuncio intersticial antes de sincronizar
-            showInterstitialAdAndSync(() -> {
-                // Este callback se ejecutará después de que se cierre el anuncio
+        } else if (id == R.id.action_sync) {
+            // Sincronizar directamente sin mostrar anuncio intersticial
+            startSyncIconAnimation();
+            try {
+                if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+                    FirebaseAuth.getInstance().signInAnonymously()
+                            .addOnSuccessListener(authResult -> {
+                                if (authResult != null && authResult.getUser() != null) {
+                                    doSync();
+                                } else {
+                                    stopSyncIconAnimation();
+                                    Toast.makeText(this, "Error: No se pudo autenticar", Toast.LENGTH_LONG).show();
+                                }
+                            })
+                            .addOnFailureListener(e -> {
+                                stopSyncIconAnimation();
+                                String errorMsg = e != null ? e.getMessage() : "null";
+                                // Verificar si es error de permisos antes de mostrar
+                                if (isPermissionError(errorMsg)) {
+                                    Log.d("MainActivity", "Error de permisos SILENCIADO en auth failure");
+                                    Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                                } else if (errorMsg != null && errorMsg.contains("SecurityException")) {
+                                    Toast.makeText(this, getString(R.string.sync_config_error), Toast.LENGTH_LONG).show();
+                                } else {
+                                    Toast.makeText(this, getString(R.string.auth_error_message, errorMsg), Toast.LENGTH_LONG).show();
+                                }
+                            });
+                } else {
+                    doSync();
+                }
+            } catch (Exception e) {
                 runOnUiThread(() -> {
-                    startSyncIconAnimation();
-                    try {
-                        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
-                            FirebaseAuth.getInstance().signInAnonymously()
-                                    .addOnSuccessListener(authResult -> {
-                                        if (authResult != null && authResult.getUser() != null) {
-                                            doSync();
-                                        } else {
-                                            stopSyncIconAnimation();
-                                            Toast.makeText(this, "Error: No se pudo autenticar", Toast.LENGTH_LONG).show();
-                                        }
-                                    })
-                                    .addOnFailureListener(e -> {
-                                        stopSyncIconAnimation();
-                                        String errorMsg = e != null ? e.getMessage() : "null";
-                                        // Verificar si es error de permisos antes de mostrar
-                                        if (isPermissionError(errorMsg)) {
-                                            Log.d("MainActivity", "Error de permisos SILENCIADO en auth failure");
-                                            Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
-                                        } else if (errorMsg != null && errorMsg.contains("SecurityException")) {
-                                            Toast.makeText(this, getString(R.string.sync_config_error), Toast.LENGTH_LONG).show();
-                                        } else {
-                                            Toast.makeText(this, getString(R.string.auth_error_message, errorMsg), Toast.LENGTH_LONG).show();
-                                        }
-                                    });
-                        } else {
-                            doSync();
-                        }
-                    } catch (Exception e) {
-                        runOnUiThread(() -> {
-                            stopSyncIconAnimation();
-                            showSyncError("Error al iniciar sync", e);
-                        });
-                    }
+                    stopSyncIconAnimation();
+                    showSyncError("Error al iniciar sync", e);
                 });
-            });
+            }
             return true;
         } else if (id == R.id.action_subjects) {
             startActivity(new android.content.Intent(this, SubjectListActivity.class));
@@ -358,8 +365,19 @@ public class MainActivity extends AppCompatActivity {
         } else if (id == R.id.action_recovery) {
             showRecoveryCodeDialog();
             return true;
+        } else if (id == R.id.action_share_subject) {
+            // Mostrar diálogo para elegir sujeto a compartir
+            Log.d("MainActivity", "action_share_subject selected");
+            showSelectSubjectToShareDialog();
+            return true;
+        } else if (id == R.id.action_import_subject) {
+            // Mostrar diálogo para importar sujeto compartido
+            Log.d("MainActivity", "action_import_subject selected");
+            showImportSubjectDialog();
+            return true;
         }
 
+        Log.d("MainActivity", "Menu item not handled, id: " + id);
         return super.onOptionsItemSelected(item);
     }
     
@@ -368,9 +386,9 @@ public class MainActivity extends AppCompatActivity {
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle(getString(R.string.recovery_code_title))
                 .setMessage(getString(R.string.recovery_code_message))
-                .setPositiveButton(getString(R.string.button_watch_video), (d, w) -> {
-                    // Usuario acepta, mostrar interstitial ad
-                    showInterstitialAdForRecoveryCode();
+                .setPositiveButton(getString(R.string.button_ok), (d, w) -> {
+                    // Mostrar código directamente sin intersticial
+                    showRecoveryCodeAfterAd();
                 })
                 .setNegativeButton(getString(R.string.button_cancel), null)
                 .setIcon(android.R.drawable.ic_dialog_info)
@@ -378,8 +396,8 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void showInterstitialAdForRecoveryCode() {
-        // Appodeal handles ad loading automatically
-        AppodealHelper.showInterstitial(this, () -> showRecoveryCodeAfterAd());
+        // Intersticial removido - mostrar código directamente
+        showRecoveryCodeAfterAd();
     }
     
     private void showRecoveryCodeAfterAd() {
@@ -508,6 +526,7 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private androidx.appcompat.app.AlertDialog recoverDialog; // Referencia al diálogo de recuperación
+    private androidx.appcompat.app.AlertDialog shareDialog; // Referencia al diálogo de compartir
     
     private void showRecoverFromCodeDialog() {
         android.view.View view = getLayoutInflater().inflate(R.layout.dialog_recover_code, null);
@@ -1258,6 +1277,8 @@ public class MainActivity extends AppCompatActivity {
         new Thread(() -> {
             long now = System.currentTimeMillis();
             if (realized) {
+                // Cancelar todas las alarmas programadas para este evento
+                com.gastonlesbegueris.caretemplate.util.NotificationHelper.cancelNotification(this, id);
                 if (costOrNull != null) eventDao.setCost(id, costOrNull, now);
                 eventDao.markRealizedOne(id, now);
             } else {
@@ -1713,7 +1734,13 @@ public class MainActivity extends AppCompatActivity {
             eventDao.insert(e);
             com.gastonlesbegueris.caretemplate.util.LimitGuard.onEventCreated(this, appType);
 
-            runOnUiThread(() -> Toast.makeText(this, getString(R.string.event_saved), Toast.LENGTH_SHORT).show());
+            // Verificar si se debe solicitar reseña (después del primer evento o gasto)
+            boolean isExpense = (cost != null && cost > 0);
+            String appName = getString(R.string.app_name);
+            runOnUiThread(() -> {
+                Toast.makeText(this, getString(R.string.event_saved), Toast.LENGTH_SHORT).show();
+                com.gastonlesbegueris.caretemplate.util.ReviewHelper.checkAndRequestReview(this, appName, isExpense);
+            });
         }).start();
     }
     
@@ -2216,6 +2243,271 @@ public class MainActivity extends AppCompatActivity {
         }, y, m, d).show();
     }
 
+    // ===== Compartir e Importar Sujetos =====
+    /**
+     * Muestra un diálogo para elegir el sujeto a compartir
+     */
+    private void showSelectSubjectToShareDialog() {
+        // Cargar sujetos en background
+        new Thread(() -> {
+            final java.util.List<SubjectEntity> subjects = subjectDao.listActiveNow(appType);
+            runOnUiThread(() -> {
+                if (subjects == null || subjects.isEmpty()) {
+                    Toast.makeText(this, "No hay sujetos para compartir", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                
+                // Verificar que la actividad aún está activa
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+                
+                try {
+                    // Crear layout personalizado para el diálogo
+                    android.view.View dialogView = getLayoutInflater().inflate(R.layout.dialog_select_subject, null);
+                    android.widget.ListView listView = dialogView.findViewById(R.id.lvSubjects);
+                    android.widget.TextView tvMessage = dialogView.findViewById(R.id.tvMessage);
+                    
+                    if (tvMessage != null) {
+                        tvMessage.setText(getString(R.string.share_subject_select_one));
+                    }
+                    
+                    // Crear array de nombres para el adaptador
+                    java.util.List<String> subjectNames = new java.util.ArrayList<>();
+                    for (SubjectEntity s : subjects) {
+                        subjectNames.add(s.name);
+                    }
+                    
+                    // Crear adaptador para la lista
+                    android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
+                        this,
+                        android.R.layout.simple_list_item_1,
+                        subjectNames
+                    );
+                    
+                    if (listView != null) {
+                        listView.setAdapter(adapter);
+                        listView.setOnItemClickListener((parent, view, position, id) -> {
+                            if (position >= 0 && position < subjects.size()) {
+                                SubjectEntity selectedSubject = subjects.get(position);
+                                // Cerrar el diálogo primero
+                                if (shareDialog != null && shareDialog.isShowing()) {
+                                    shareDialog.dismiss();
+                                }
+                                // Generar código directamente sin intersticial
+                                generateShareCode(selectedSubject.id);
+                            }
+                        });
+                    }
+                    
+                    // Crear y mostrar el diálogo
+                    shareDialog = new androidx.appcompat.app.AlertDialog.Builder(this)
+                            .setTitle(getString(R.string.share_subject_title))
+                            .setView(dialogView)
+                            .setNegativeButton(getString(R.string.button_cancel), null)
+                            .create();
+                    shareDialog.show();
+                } catch (Exception e) {
+                    android.util.Log.e("MainActivity", "Error al mostrar diálogo de selección", e);
+                    Toast.makeText(this, "Error al mostrar diálogo: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            });
+        }).start();
+    }
+    
+    /**
+     * Muestra intersticial y luego genera el código de compartir
+     */
+    private void showInterstitialAdAndShare(String subjectId) {
+        // Intersticial removido - generar código directamente
+        if (!isFinishing() && !isDestroyed()) {
+            generateShareCode(subjectId);
+        }
+    }
+    
+    /**
+     * Genera el código de compartir para un sujeto
+     */
+    private void generateShareCode(String subjectId) {
+        String userId = getCurrentUserId();
+        if (userId == null) {
+            Toast.makeText(this, "Error: No se pudo obtener ID de usuario", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        com.gastonlesbegueris.caretemplate.util.SubjectShareManager shareManager = 
+            new com.gastonlesbegueris.caretemplate.util.SubjectShareManager(this);
+        
+        shareManager.generateShareCode(subjectId, userId, new com.gastonlesbegueris.caretemplate.util.SubjectShareManager.ShareCodeCallback() {
+            @Override
+            public void onShareCode(String shareCode) {
+                runOnUiThread(() -> {
+                    // Verificar que la actividad aún está activa
+                    if (isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    
+                    try {
+                        // Mostrar diálogo con el código de compartir
+                        android.view.View view = getLayoutInflater().inflate(R.layout.dialog_recover_code, null);
+                        com.google.android.material.textfield.TextInputEditText etCode = view.findViewById(R.id.etRecoveryCode);
+                        if (etCode != null) {
+                            etCode.setText(shareCode);
+                            etCode.setEnabled(false);
+                        }
+                        
+                        new androidx.appcompat.app.AlertDialog.Builder(MainActivity.this)
+                                .setTitle(getString(R.string.share_subject_code_title))
+                                .setMessage(getString(R.string.share_subject_code_message))
+                                .setView(view)
+                                .setPositiveButton(getString(R.string.button_ok), null)
+                                .setNeutralButton("Copiar", (dialog, which) -> {
+                                    android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                                    android.content.ClipData clip = android.content.ClipData.newPlainText("Código de compartir", shareCode);
+                                    clipboard.setPrimaryClip(clip);
+                                    Toast.makeText(MainActivity.this, getString(R.string.share_subject_code_copied), Toast.LENGTH_SHORT).show();
+                                })
+                                .show();
+                    } catch (Exception e) {
+                        android.util.Log.e("MainActivity", "Error al mostrar diálogo de compartir", e);
+                        Toast.makeText(MainActivity.this, "Error al mostrar código: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+            
+            @Override
+            public void onError(Exception error) {
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    String errorMsg = error != null ? error.getMessage() : "Error desconocido";
+                    Toast.makeText(MainActivity.this, getString(R.string.share_subject_error, errorMsg), Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+    }
+    
+    /**
+     * Muestra el diálogo para importar un sujeto compartido
+     */
+    private void showImportSubjectDialog() {
+        android.view.View view = getLayoutInflater().inflate(R.layout.dialog_recover_code, null);
+        com.google.android.material.textfield.TextInputEditText etCode = view.findViewById(R.id.etRecoveryCode);
+        
+        if (etCode == null) {
+            Toast.makeText(this, "Error al cargar el diálogo", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Buscar el TextInputLayout padre del EditText
+        com.google.android.material.textfield.TextInputLayout tilCode = null;
+        android.view.ViewParent parent = etCode.getParent();
+        while (parent != null) {
+            if (parent instanceof com.google.android.material.textfield.TextInputLayout) {
+                tilCode = (com.google.android.material.textfield.TextInputLayout) parent;
+                break;
+            }
+            parent = parent.getParent();
+        }
+        
+        // Dejar el hint en blanco para que sea legible
+        if (tilCode != null) {
+            tilCode.setHint("");
+        }
+        
+        // Agregar formateo automático del código mientras se escribe (mayúsculas y guiones)
+        etCode.addTextChangedListener(new RecoveryCodeFormatter(etCode));
+        
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(getString(R.string.share_subject_receive_title))
+                .setMessage(getString(R.string.share_subject_receive_message))
+                .setView(view)
+                .setPositiveButton(getString(R.string.button_ok), (dialog, which) -> {
+                    String code = etCode.getText() != null ? etCode.getText().toString().trim() : "";
+                    if (code.isEmpty()) {
+                        Toast.makeText(this, getString(R.string.share_subject_invalid), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    importSharedSubject(code);
+                })
+                .setNegativeButton(getString(R.string.button_cancel), null)
+                .show();
+    }
+    
+    /**
+     * Importa un sujeto compartido usando el código proporcionado
+     */
+    private void importSharedSubject(String shareCode) {
+        if (shareCode == null || shareCode.isEmpty()) {
+            Toast.makeText(this, getString(R.string.share_subject_invalid), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Normalizar el código antes de buscarlo (quitar guiones y espacios, convertir a mayúsculas)
+        String normalizedCode = shareCode.replaceAll("[\\s-]", "").toUpperCase().trim();
+        Log.d("MainActivity", "Código original: " + shareCode);
+        Log.d("MainActivity", "Código normalizado: " + normalizedCode);
+        Log.d("MainActivity", "Longitud: " + normalizedCode.length());
+        
+        if (normalizedCode.length() != 12) {
+            Toast.makeText(this, "El código debe tener 12 caracteres. Código ingresado: " + normalizedCode.length() + " caracteres", Toast.LENGTH_LONG).show();
+            return;
+        }
+        
+        Toast.makeText(this, getString(R.string.share_subject_importing), Toast.LENGTH_SHORT).show();
+        
+        com.gastonlesbegueris.caretemplate.util.SubjectShareManager shareManager = 
+            new com.gastonlesbegueris.caretemplate.util.SubjectShareManager(this);
+        
+        // Pasar el código normalizado
+        shareManager.getSharedSubject(normalizedCode, new com.gastonlesbegueris.caretemplate.util.SubjectShareManager.SharedSubjectCallback() {
+            @Override
+            public void onSharedSubjectData(java.util.Map<String, Object> subjectData, java.util.List<java.util.Map<String, Object>> eventsData) {
+                com.gastonlesbegueris.caretemplate.util.SharedSubjectImporter importer = 
+                    new com.gastonlesbegueris.caretemplate.util.SharedSubjectImporter(MainActivity.this);
+                
+                importer.importFromSharedData(subjectData, eventsData, 
+                    () -> runOnUiThread(() -> {
+                        Toast.makeText(MainActivity.this, getString(R.string.share_subject_imported), Toast.LENGTH_SHORT).show();
+                        // Sincronizar automáticamente después de importar (en hilo de fondo)
+                        Log.d("MainActivity", "Iniciando sincronización automática después de importar sujeto");
+                        new Thread(() -> {
+                            // Obtener userId y sincronizar en hilo de fondo
+                            String userId = getCurrentUserId();
+                            if (userId != null) {
+                                performSyncWithUserId(userId, true); // true = silenciar errores de permisos
+                            } else {
+                                // Si no hay userId, intentar sincronizar de todas formas
+                                doSync();
+                            }
+                        }).start();
+                        // Intersticial removido - refrescar lista directamente
+                        runOnUiThread(() -> {
+                            // Refrescar la lista de eventos
+                            observeLocal();
+                        });
+                    }),
+                    () -> runOnUiThread(() -> {
+                        Toast.makeText(MainActivity.this, getString(R.string.share_subject_import_error, "Error desconocido"), Toast.LENGTH_LONG).show();
+                    })
+                );
+            }
+            
+            @Override
+            public void onError(Exception error) {
+                runOnUiThread(() -> {
+                    String errorMsg = error != null ? error.getMessage() : "Error desconocido";
+                    if (errorMsg != null && errorMsg.contains("no encontrado")) {
+                        Toast.makeText(MainActivity.this, getString(R.string.share_subject_not_found), Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(MainActivity.this, getString(R.string.share_subject_import_error, errorMsg), Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        });
+    }
+    
     private String defaultIconForFlavor() {
         if ("pets".equals(appType))   return "dog";
         if ("cars".equals(appType))   return "car";

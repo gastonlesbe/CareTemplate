@@ -19,8 +19,8 @@
         android:name=".CareTemplateApplication"
         android:allowBackup="true"
         android:label="@string/app_name"
-        android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:icon="@mipmap/ic_header_flavor"
+        android:roundIcon="@mipmap/ic_header_flavor_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.CareTemplate">
         <provider
@@ -69,6 +69,9 @@
             android:configChanges="orientation|screenSize" />
         <activity 
             android:name=".ui.AgendaMonthActivity"
+            android:configChanges="orientation|screenSize" />
+        <activity 
+            android:name=".ui.MainActivity"
             android:configChanges="orientation|screenSize" />
 
         <!-- BroadcastReceiver para notificaciones de eventos -->
