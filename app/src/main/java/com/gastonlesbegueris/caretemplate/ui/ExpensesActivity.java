@@ -18,9 +18,7 @@ import com.gastonlesbegueris.caretemplate.data.local.EventDao;
 import com.gastonlesbegueris.caretemplate.data.model.MonthTotal;
 import com.gastonlesbegueris.caretemplate.util.FabHelper;
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.AdView;
-import com.google.android.gms.ads.MobileAds;
+import com.gastonlesbegueris.caretemplate.util.AppodealHelper;
 
 import java.util.List;
 import java.util.Locale;
@@ -62,8 +60,8 @@ public class ExpensesActivity extends AppCompatActivity {
         adapter = new ExpensesAdapter();
         rv.setAdapter(adapter);
 
-        // AdMob Banner
-        initAdMob();
+        // Appodeal Banner
+        initAppodeal();
 
         // FAB para agregar eventos (comportamiento uniforme)
         FabHelper.initFabSpeedDial(this, R.id.fabAdd, R.id.fabAddSubject, R.id.fabAddEvent, rv);
@@ -71,37 +69,29 @@ public class ExpensesActivity extends AppCompatActivity {
         loadData();
     }
 
-    private void initAdMob() {
-        MobileAds.initialize(this, initializationStatus -> {});
-        AdView adView = findViewById(R.id.adView);
-        AdRequest adRequest = new AdRequest.Builder().build();
-        adView.loadAd(adRequest);
+    private void initAppodeal() {
+        String appKey = getString(R.string.appodeal_app_key);
+        AppodealHelper.initialize(this, appKey);
+        AppodealHelper.showBanner(this, R.id.adView);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        AdView adView = findViewById(R.id.adView);
-        if (adView != null) {
-            adView.pause();
-        }
+        AppodealHelper.hideBanner(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        AdView adView = findViewById(R.id.adView);
-        if (adView != null) {
-            adView.resume();
-        }
+        String appKey = getString(R.string.appodeal_app_key);
+        AppodealHelper.initialize(this, appKey);
+        AppodealHelper.showBanner(this, R.id.adView);
     }
 
     @Override
     protected void onDestroy() {
-        AdView adView = findViewById(R.id.adView);
-        if (adView != null) {
-            adView.destroy();
-        }
+        AppodealHelper.hideBanner(this);
         super.onDestroy();
     }
 

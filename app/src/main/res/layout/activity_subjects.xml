@@ -70,14 +70,13 @@
         android:contentDescription="@string/add_subject"
         app:srcCompat="@drawable/ic_add" />
 
-    <!-- AdMob Banner -->
-    <com.google.android.gms.ads.AdView
+    <!-- Appodeal Banner Container -->
+    <FrameLayout
         android:id="@+id/adView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
         android:layout_marginBottom="0dp"
-        app:adSize="BANNER"
-        app:adUnitId="@string/admob_banner_id" />
+        android:minHeight="50dp" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

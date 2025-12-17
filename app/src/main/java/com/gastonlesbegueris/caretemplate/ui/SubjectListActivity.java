@@ -28,18 +28,7 @@ import com.gastonlesbegueris.caretemplate.data.local.SubjectDao;
 import com.gastonlesbegueris.caretemplate.data.local.SubjectEntity;
 import com.gastonlesbegueris.caretemplate.data.sync.CloudSync;
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.AdView;
-import com.google.android.gms.ads.MobileAds;
-import com.google.android.gms.ads.rewarded.RewardedAd;
-import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
-import com.google.android.gms.ads.rewarded.RewardItem;
-import com.google.android.gms.ads.OnUserEarnedRewardListener;
-import com.google.android.gms.ads.FullScreenContentCallback;
-import com.google.android.gms.ads.LoadAdError;
-import com.google.android.gms.ads.AdError;
-import com.google.android.gms.ads.interstitial.InterstitialAd;
-import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
+import com.gastonlesbegueris.caretemplate.util.AppodealHelper;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import android.util.Log;
@@ -57,13 +46,7 @@ public class SubjectListActivity extends AppCompatActivity {
     private SubjectAdapter adapter;
     private String appType;
     
-    // Rewarded Ad para código de recuperación
-    private RewardedAd rewardedAd;
-    private boolean isRewardedAdLoading = false;
-    
-    // Interstitial Ad para sincronización
-    private InterstitialAd interstitialAd;
-    private boolean isInterstitialAdLoading = false;
+    // Appodeal handles interstitial and rewarded ads automatically
     private Runnable syncCallback = null; // Callback para ejecutar después del anuncio
     
     // Flag para indicar que estamos en modo de recuperación silenciosa
@@ -156,8 +139,8 @@ public class SubjectListActivity extends AppCompatActivity {
         // Inicializar FAB Speed Dial
         initFabSpeedDial();
 
-        // AdMob Banner
-        initAdMob();
+        // Appodeal Banner
+        initAppodeal();
 
         // observar lista de sujetos
         dao.observeActive(appType).observe(this, (List<SubjectEntity> list) -> {
@@ -177,11 +160,52 @@ public class SubjectListActivity extends AppCompatActivity {
                     }
                 }
                 
+                // Obtener todos los eventos pendientes (no realizados) para verificar vencidos y de hoy
+                java.util.List<EventEntity> allPendingEvents = new java.util.ArrayList<>();
+                for (SubjectEntity subj : list) {
+                    java.util.List<EventEntity> subjectEvents = eventDao.listAllForSubject(appType, subj.id);
+                    if (subjectEvents != null) {
+                        for (EventEntity event : subjectEvents) {
+                            if (event.realized == 0 && event.deleted == 0) {
+                                allPendingEvents.add(event);
+                            }
+                        }
+                    }
+                }
+                
+                // Crear mapas para verificar estado de eventos por sujeto
+                java.util.Map<String, Boolean> hasDefeatedEventMap = new java.util.HashMap<>();
+                java.util.Map<String, Boolean> hasEventDueTodayMap = new java.util.HashMap<>();
+                
+                java.util.Calendar todayCal = java.util.Calendar.getInstance();
+                todayCal.setTimeInMillis(now);
+                int todayYear = todayCal.get(java.util.Calendar.YEAR);
+                int todayDayOfYear = todayCal.get(java.util.Calendar.DAY_OF_YEAR);
+                
+                for (EventEntity event : allPendingEvents) {
+                    if (event.subjectId == null) continue;
+                    
+                    // Check if defeated (past due)
+                    if (event.dueAt < now) {
+                        hasDefeatedEventMap.put(event.subjectId, true);
+                    }
+                    
+                    // Check if due today
+                    java.util.Calendar eventCal = java.util.Calendar.getInstance();
+                    eventCal.setTimeInMillis(event.dueAt);
+                    if (eventCal.get(java.util.Calendar.YEAR) == todayYear &&
+                        eventCal.get(java.util.Calendar.DAY_OF_YEAR) == todayDayOfYear) {
+                        hasEventDueTodayMap.put(event.subjectId, true);
+                    }
+                }
+                
                 java.util.List<SubjectAdapter.SubjectRow> rows = new java.util.ArrayList<>();
                 for (SubjectEntity subj : list) {
                     String info  = buildInfoLine(subj);
                     String extra = buildExtraLine(subj, nextEventMap.get(subj.id));
-                    rows.add(new SubjectAdapter.SubjectRow(subj, info, extra));
+                    boolean hasDefeated = hasDefeatedEventMap.getOrDefault(subj.id, false);
+                    boolean hasDueToday = hasEventDueTodayMap.getOrDefault(subj.id, false);
+                    rows.add(new SubjectAdapter.SubjectRow(subj, info, extra, hasDefeated, hasDueToday));
                 }
                 runOnUiThread(() -> {
                     adapter.submitRows(rows);
@@ -796,116 +820,15 @@ public class SubjectListActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void initAdMob() {
-        MobileAds.initialize(this, initializationStatus -> {});
-        AdView adView = findViewById(R.id.adView);
-        AdRequest adRequest = new AdRequest.Builder().build();
-        adView.loadAd(adRequest);
-        
-        // Precargar anuncio intersticial
-        loadInterstitialAd();
-    }
-    
-    private void loadInterstitialAd() {
-        if (isInterstitialAdLoading || interstitialAd != null) {
-            return; // Ya está cargando o ya está cargado
-        }
-        
-        isInterstitialAdLoading = true;
-        String interstitialAdId = getString(R.string.admob_interstitial_id);
-        AdRequest adRequest = new AdRequest.Builder().build();
-        
-        InterstitialAd.load(this, interstitialAdId, adRequest,
-                new InterstitialAdLoadCallback() {
-                    @Override
-                    public void onAdLoaded(InterstitialAd ad) {
-                        isInterstitialAdLoading = false;
-                        interstitialAd = ad;
-                        Log.d("SubjectListActivity", "Interstitial ad loaded");
-                    }
-                    
-                    @Override
-                    public void onAdFailedToLoad(LoadAdError loadAdError) {
-                        isInterstitialAdLoading = false;
-                        interstitialAd = null;
-                        Log.e("SubjectListActivity", "Interstitial ad failed to load: " + loadAdError.getMessage());
-                    }
-                });
+    private void initAppodeal() {
+        String appKey = getString(R.string.appodeal_app_key);
+        AppodealHelper.initialize(this, appKey);
+        AppodealHelper.showBanner(this, R.id.adView);
     }
     
     private void showInterstitialAdAndSync(Runnable onAdClosed) {
-        syncCallback = onAdClosed;
-        
-        // Si ya hay un ad cargado, mostrarlo directamente
-        if (interstitialAd != null) {
-            showInterstitialAd();
-            return;
-        }
-        
-        // Si no hay ad cargado, intentar cargar uno nuevo
-        if (!isInterstitialAdLoading) {
-            loadInterstitialAd();
-        }
-        
-        // Si después de intentar cargar aún no hay ad, ejecutar la sincronización directamente
-        if (interstitialAd == null) {
-            if (syncCallback != null) {
-                syncCallback.run();
-                syncCallback = null;
-            }
-            return;
-        }
-        
-        // Esperar un poco y mostrar el ad si se cargó
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-            if (interstitialAd != null) {
-                showInterstitialAd();
-            } else if (syncCallback != null) {
-                // Si después de esperar no hay ad, ejecutar sincronización directamente
-                syncCallback.run();
-                syncCallback = null;
-            }
-        }, 500);
-    }
-    
-    private void showInterstitialAd() {
-        if (interstitialAd == null) {
-            // Si no hay ad, ejecutar sincronización directamente
-            if (syncCallback != null) {
-                syncCallback.run();
-                syncCallback = null;
-            }
-            return;
-        }
-        
-        interstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
-            @Override
-            public void onAdDismissedFullScreenContent() {
-                // Anuncio cerrado, ejecutar sincronización
-                interstitialAd = null;
-                loadInterstitialAd(); // Precargar siguiente anuncio
-                
-                // Ejecutar sincronización (el popup se mostrará cuando termine)
-                if (syncCallback != null) {
-                    syncCallback.run();
-                    syncCallback = null;
-                }
-            }
-            
-            @Override
-            public void onAdFailedToShowFullScreenContent(AdError adError) {
-                // Si falla mostrar el ad, ejecutar sincronización directamente
-                interstitialAd = null;
-                loadInterstitialAd();
-                
-                if (syncCallback != null) {
-                    syncCallback.run();
-                    syncCallback = null;
-                }
-            }
-        });
-        
-        interstitialAd.show(this);
+        // Appodeal handles ad loading automatically, just show it
+        AppodealHelper.showInterstitial(this, onAdClosed);
     }
     
     private void showSyncCompletedDialog() {
@@ -920,27 +843,20 @@ public class SubjectListActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        AdView adView = findViewById(R.id.adView);
-        if (adView != null) {
-            adView.pause();
-        }
+        AppodealHelper.hideBanner(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        AdView adView = findViewById(R.id.adView);
-        if (adView != null) {
-            adView.resume();
-        }
+        String appKey = getString(R.string.appodeal_app_key);
+        AppodealHelper.initialize(this, appKey);
+        AppodealHelper.showBanner(this, R.id.adView);
     }
 
     @Override
     protected void onDestroy() {
-        AdView adView = findViewById(R.id.adView);
-        if (adView != null) {
-            adView.destroy();
-        }
+        AppodealHelper.hideBanner(this);
         super.onDestroy();
     }
     
@@ -964,11 +880,52 @@ public class SubjectListActivity extends AppCompatActivity {
                     }
                 }
                 
+                // Obtener todos los eventos pendientes para verificar vencidos y de hoy
+                java.util.List<EventEntity> allPendingEvents2 = new java.util.ArrayList<>();
+                for (SubjectEntity subj : list) {
+                    java.util.List<EventEntity> subjectEvents = eventDao.listAllForSubject(appType, subj.id);
+                    if (subjectEvents != null) {
+                        for (EventEntity event : subjectEvents) {
+                            if (event.realized == 0 && event.deleted == 0) {
+                                allPendingEvents2.add(event);
+                            }
+                        }
+                    }
+                }
+                
+                // Crear mapas para verificar estado de eventos por sujeto
+                java.util.Map<String, Boolean> hasDefeatedEventMap2 = new java.util.HashMap<>();
+                java.util.Map<String, Boolean> hasEventDueTodayMap2 = new java.util.HashMap<>();
+                
+                java.util.Calendar todayCal2 = java.util.Calendar.getInstance();
+                todayCal2.setTimeInMillis(now);
+                int todayYear2 = todayCal2.get(java.util.Calendar.YEAR);
+                int todayDayOfYear2 = todayCal2.get(java.util.Calendar.DAY_OF_YEAR);
+                
+                for (EventEntity event : allPendingEvents2) {
+                    if (event.subjectId == null) continue;
+                    
+                    // Check if defeated (past due)
+                    if (event.dueAt < now) {
+                        hasDefeatedEventMap2.put(event.subjectId, true);
+                    }
+                    
+                    // Check if due today
+                    java.util.Calendar eventCal = java.util.Calendar.getInstance();
+                    eventCal.setTimeInMillis(event.dueAt);
+                    if (eventCal.get(java.util.Calendar.YEAR) == todayYear2 &&
+                        eventCal.get(java.util.Calendar.DAY_OF_YEAR) == todayDayOfYear2) {
+                        hasEventDueTodayMap2.put(event.subjectId, true);
+                    }
+                }
+                
                 java.util.List<SubjectAdapter.SubjectRow> rows = new java.util.ArrayList<>();
                 for (SubjectEntity subj : list) {
                     String info  = buildInfoLine(subj);
                     String extra = buildExtraLine(subj, nextEventMap.get(subj.id));
-                    rows.add(new SubjectAdapter.SubjectRow(subj, info, extra));
+                    boolean hasDefeated = hasDefeatedEventMap2.getOrDefault(subj.id, false);
+                    boolean hasDueToday = hasEventDueTodayMap2.getOrDefault(subj.id, false);
+                    rows.add(new SubjectAdapter.SubjectRow(subj, info, extra, hasDefeated, hasDueToday));
                 }
                 runOnUiThread(() -> {
                     adapter.submitRows(rows);
@@ -1012,60 +969,8 @@ public class SubjectListActivity extends AppCompatActivity {
     }
     
     private void showInterstitialAdForRecoveryCode() {
-        // Si ya hay un ad cargado, mostrarlo directamente
-        if (interstitialAd != null) {
-            showInterstitialAdForRecovery();
-            return;
-        }
-        
-        // Si no hay ad cargado, intentar cargar uno nuevo
-        if (!isInterstitialAdLoading) {
-            loadInterstitialAd();
-        }
-        
-        // Esperar un poco para que cargue, si no hay ad, mostrar código directamente
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-            if (interstitialAd != null) {
-                showInterstitialAdForRecovery();
-            } else {
-                // Si después de esperar no hay ad, mostrar código directamente
-                showRecoveryCodeAfterAd();
-            }
-        }, 1000);
-    }
-    
-    private void showInterstitialAdForRecovery() {
-        if (interstitialAd == null) {
-            // Si no hay ad, mostrar código directamente
-            showRecoveryCodeAfterAd();
-            return;
-        }
-        
-        interstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
-            @Override
-            public void onAdDismissedFullScreenContent() {
-                // Anuncio cerrado, mostrar código
-                interstitialAd = null;
-                loadInterstitialAd(); // Precargar siguiente anuncio
-                showRecoveryCodeAfterAd();
-            }
-            
-            @Override
-            public void onAdFailedToShowFullScreenContent(AdError adError) {
-                Log.e("SubjectListActivity", "Interstitial ad failed to show: " + adError.getMessage());
-                interstitialAd = null;
-                loadInterstitialAd();
-                // Si falla mostrar, mostrar código directamente
-                showRecoveryCodeAfterAd();
-            }
-            
-            @Override
-            public void onAdShowedFullScreenContent() {
-                Log.d("SubjectListActivity", "Interstitial ad showed full screen content");
-            }
-        });
-        
-        interstitialAd.show(this);
+        // Appodeal handles ad loading automatically
+        AppodealHelper.showInterstitial(this, () -> showRecoveryCodeAfterAd());
     }
     
     private void showRecoveryCodeAfterAd() {

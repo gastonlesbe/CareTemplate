@@ -3,8 +3,11 @@
     <string name="subjects_title">Autos</string>
     <!-- AdMob IDs para CarPal -->
     <string name="admob_app_id">ca-app-pub-9841764898906750~1020196913</string>
+    <!-- Appodeal App Key -->
+    <string name="appodeal_app_key">3241651304ced785543b7d67248a52c72dd9c90d36f698ca</string>
+    
+    <!-- Legacy AdMob IDs (kept for reference, can be removed later) -->
     <string name="admob_banner_id">ca-app-pub-9841764898906750/2106866114</string>
-    <!-- Rewarded Ad ID para código de recuperación -->
     <string name="admob_rewarded_id">ca-app-pub-9841764898906750/9935354864</string>
 </resources>
 

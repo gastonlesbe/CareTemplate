@@ -31,8 +31,20 @@ public class SubjectAdapter extends RecyclerView.Adapter<SubjectAdapter.VH> {
         public final SubjectEntity subject;
         public final String info;   // edad/peso o km
         public final String extra;  // próximo evento
+        public final boolean hasDefeatedEvent;  // tiene evento vencido
+        public final boolean hasEventDueToday;  // tiene evento hoy
+        
+        public SubjectRow(SubjectEntity s, String info, String extra, boolean hasDefeatedEvent, boolean hasEventDueToday) {
+            this.subject = s; 
+            this.info = info; 
+            this.extra = extra;
+            this.hasDefeatedEvent = hasDefeatedEvent;
+            this.hasEventDueToday = hasEventDueToday;
+        }
+        
+        // Constructor legacy para compatibilidad
         public SubjectRow(SubjectEntity s, String info, String extra) {
-            this.subject = s; this.info = info; this.extra = extra;
+            this(s, info, extra, false, false);
         }
     }
 
@@ -88,6 +100,9 @@ public class SubjectAdapter extends RecyclerView.Adapter<SubjectAdapter.VH> {
         h.tvInfo.setText(row.info == null ? "" : row.info);
         h.tvExtra.setText(row.extra == null ? "" : row.extra);
 
+        // Set background color based on event status
+        setSubjectBackgroundColor(h.itemView, row.hasDefeatedEvent, row.hasEventDueToday);
+
         // Click simple en el item: ver historial
         h.itemView.setOnClickListener(v -> {
             if (listener != null) {
@@ -115,6 +130,45 @@ public class SubjectAdapter extends RecyclerView.Adapter<SubjectAdapter.VH> {
     }
 
     @Override public int getItemCount() { return rows.size(); }
+
+    /**
+     * Sets border color for subject item:
+     * - Red border: has defeated event (priority)
+     * - Yellow border: has event due today (if no defeated event)
+     * - Green border: has future events (if no defeated/today events)
+     * - Default: no border
+     */
+    private void setSubjectBackgroundColor(View itemView, boolean hasDefeatedEvent, boolean hasEventDueToday) {
+        int borderColor;
+        int borderWidth;
+        if (hasDefeatedEvent) {
+            // Red border for subjects with defeated events
+            borderColor = Color.parseColor("#F44336"); // Red
+            borderWidth = 4; // dp
+        } else if (hasEventDueToday) {
+            // Yellow border for subjects with events due today
+            borderColor = Color.parseColor("#FFEB3B"); // Yellow
+            borderWidth = 4; // dp
+        } else {
+            // Green border for subjects with future events (optional - you can remove this if not needed)
+            // For now, no border if no special status
+            borderColor = Color.TRANSPARENT;
+            borderWidth = 0;
+        }
+
+        // Create a drawable with border for LinearLayout
+        android.graphics.drawable.GradientDrawable drawable = new android.graphics.drawable.GradientDrawable();
+        drawable.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+        drawable.setColor(Color.TRANSPARENT); // Transparent background
+        
+        float density = itemView.getContext().getResources().getDisplayMetrics().density;
+        int borderWidthPx = (int) (borderWidth * density);
+        
+        drawable.setStroke(borderWidthPx, borderColor);
+        drawable.setCornerRadius(8 * density); // Slight corner radius
+        
+        itemView.setBackground(drawable);
+    }
 
     /**
      * Ajusta el color del icono según el tema actual (claro/oscuro).

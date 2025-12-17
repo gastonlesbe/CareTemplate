@@ -78,43 +78,33 @@ public class AgendaActivity extends AppCompatActivity {
         // Inicializar FAB Speed Dial (comportamiento consistente en todas las pantallas)
         FabHelper.initFabSpeedDial(this, R.id.fabAdd, R.id.fabAddSubject, R.id.fabAddEvent, rv);
 
-        // AdMob
-        initAdMob();
+        // Appodeal
+        initAppodeal();
     }
 
-    private void initAdMob() {
-        com.google.android.gms.ads.MobileAds.initialize(this, initializationStatus -> {});
-        com.google.android.gms.ads.AdView adView = findViewById(R.id.adView);
-        if (adView != null) {
-            com.google.android.gms.ads.AdRequest adRequest = new com.google.android.gms.ads.AdRequest.Builder().build();
-            adView.loadAd(adRequest);
-        }
+    private void initAppodeal() {
+        String appKey = getString(R.string.appodeal_app_key);
+        com.gastonlesbegueris.caretemplate.util.AppodealHelper.initialize(this, appKey);
+        com.gastonlesbegueris.caretemplate.util.AppodealHelper.showBanner(this, R.id.adView);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        com.google.android.gms.ads.AdView adView = findViewById(R.id.adView);
-        if (adView != null) {
-            adView.pause();
-        }
+        com.gastonlesbegueris.caretemplate.util.AppodealHelper.hideBanner(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        com.google.android.gms.ads.AdView adView = findViewById(R.id.adView);
-        if (adView != null) {
-            adView.resume();
-        }
+        String appKey = getString(R.string.appodeal_app_key);
+        com.gastonlesbegueris.caretemplate.util.AppodealHelper.initialize(this, appKey);
+        com.gastonlesbegueris.caretemplate.util.AppodealHelper.showBanner(this, R.id.adView);
     }
 
     @Override
     protected void onDestroy() {
-        com.google.android.gms.ads.AdView adView = findViewById(R.id.adView);
-        if (adView != null) {
-            adView.destroy();
-        }
+        com.gastonlesbegueris.caretemplate.util.AppodealHelper.hideBanner(this);
         super.onDestroy();
     }
 

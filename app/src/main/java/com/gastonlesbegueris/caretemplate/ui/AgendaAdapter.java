@@ -190,6 +190,78 @@ public class AgendaAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             }
             return true;
         });
+
+        // Set background color based on event status
+        setEventBackgroundColor(h.itemView, e);
+    }
+
+    /**
+     * Sets border color for event item:
+     * - Red border: defeated (past due and not realized)
+     * - Yellow border: due today (not realized)
+     * - Green border: future events (not realized)
+     * - Default: no border
+     */
+    private void setEventBackgroundColor(View itemView, EventEntity e) {
+        long now = System.currentTimeMillis();
+        boolean isDefeated = e.dueAt < now && e.realized == 0;
+        boolean isDueToday = isDueToday(e.dueAt, now) && e.realized == 0;
+        boolean isFuture = e.dueAt > now && e.realized == 0;
+
+        int borderColor;
+        int borderWidth;
+        if (isDefeated) {
+            // Red border for defeated events
+            borderColor = Color.parseColor("#F44336"); // Red
+            borderWidth = 4; // dp
+        } else if (isDueToday) {
+            // Yellow border for events due today
+            borderColor = Color.parseColor("#FFEB3B"); // Yellow
+            borderWidth = 4; // dp
+        } else if (isFuture) {
+            // Green border for future events
+            borderColor = Color.parseColor("#4CAF50"); // Green
+            borderWidth = 2; // dp (thinner for future events)
+        } else {
+            // No border
+            borderColor = Color.TRANSPARENT;
+            borderWidth = 0;
+        }
+
+        // Apply border to the CardView using a drawable
+        if (itemView instanceof androidx.cardview.widget.CardView) {
+            androidx.cardview.widget.CardView cardView = (androidx.cardview.widget.CardView) itemView;
+            float density = itemView.getContext().getResources().getDisplayMetrics().density;
+            int borderWidthPx = (int) (borderWidth * density);
+            
+            if (borderWidth > 0) {
+                // Create a drawable with border
+                android.graphics.drawable.GradientDrawable drawable = new android.graphics.drawable.GradientDrawable();
+                drawable.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+                drawable.setColor(Color.TRANSPARENT); // Transparent background
+                drawable.setStroke(borderWidthPx, borderColor);
+                drawable.setCornerRadius(8 * density); // Match CardView corner radius
+                
+                // Set the drawable as background
+                cardView.setBackground(drawable);
+            } else {
+                // Reset to default if no border
+                cardView.setBackground(null);
+            }
+        }
+    }
+
+    /**
+     * Checks if the event is due today (same calendar day)
+     */
+    private boolean isDueToday(long eventDueAt, long now) {
+        java.util.Calendar eventCal = java.util.Calendar.getInstance();
+        eventCal.setTimeInMillis(eventDueAt);
+        java.util.Calendar todayCal = java.util.Calendar.getInstance();
+        todayCal.setTimeInMillis(now);
+
+        return eventCal.get(java.util.Calendar.YEAR) == todayCal.get(java.util.Calendar.YEAR) &&
+               eventCal.get(java.util.Calendar.DAY_OF_YEAR) == todayCal.get(java.util.Calendar.DAY_OF_YEAR);
     }
 
     @Override public int getItemCount() { return rows.size(); }

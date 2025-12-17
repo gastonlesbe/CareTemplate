@@ -27,18 +27,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.gastonlesbegueris.caretemplate.util.LimitGuard;
 import com.gastonlesbegueris.caretemplate.util.UserManager;
-import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.AdView;
-import com.google.android.gms.ads.MobileAds;
-import com.google.android.gms.ads.rewarded.RewardedAd;
-import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
-import com.google.android.gms.ads.rewarded.RewardItem;
-import com.google.android.gms.ads.OnUserEarnedRewardListener;
-import com.google.android.gms.ads.FullScreenContentCallback;
-import com.google.android.gms.ads.LoadAdError;
-import com.google.android.gms.ads.AdError;
-import com.google.android.gms.ads.interstitial.InterstitialAd;
-import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
+import com.gastonlesbegueris.caretemplate.util.AppodealHelper;
 
 
 import java.util.List;
@@ -59,13 +48,7 @@ public class MainActivity extends AppCompatActivity {
     private MenuItem menuItemSync;
     private boolean fabMenuOpen = false;
     
-    // Rewarded Ad para código de recuperación
-    private RewardedAd rewardedAd;
-    private boolean isRewardedAdLoading = false;
-    
-    // Interstitial Ad para sincronización
-    private InterstitialAd interstitialAd;
-    private boolean isInterstitialAdLoading = false;
+    // Appodeal handles interstitial and rewarded ads automatically
     private Runnable syncCallback = null; // Callback para ejecutar después del anuncio
     
     // Flag para indicar que estamos en modo de recuperación silenciosa
@@ -154,8 +137,8 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        // 9) AdMob Banner
-        initAdMob();
+        // 9) Appodeal Banner
+        initAppodeal();
         
         // 10) Inicializar UserManager y autenticación (ID único para suscripciones y sincronización)
         initializeUserManager();
@@ -229,116 +212,15 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void initAdMob() {
-        MobileAds.initialize(this, initializationStatus -> {});
-        AdView adView = findViewById(R.id.adView);
-        AdRequest adRequest = new AdRequest.Builder().build();
-        adView.loadAd(adRequest);
-        
-        // Precargar anuncio intersticial
-        loadInterstitialAd();
-    }
-    
-    private void loadInterstitialAd() {
-        if (isInterstitialAdLoading || interstitialAd != null) {
-            return; // Ya está cargando o ya está cargado
-        }
-        
-        isInterstitialAdLoading = true;
-        String interstitialAdId = getString(R.string.admob_interstitial_id);
-        AdRequest adRequest = new AdRequest.Builder().build();
-        
-        InterstitialAd.load(this, interstitialAdId, adRequest,
-                new InterstitialAdLoadCallback() {
-                    @Override
-                    public void onAdLoaded(InterstitialAd ad) {
-                        isInterstitialAdLoading = false;
-                        interstitialAd = ad;
-                        Log.d("MainActivity", "Interstitial ad loaded");
-                    }
-                    
-                    @Override
-                    public void onAdFailedToLoad(LoadAdError loadAdError) {
-                        isInterstitialAdLoading = false;
-                        interstitialAd = null;
-                        Log.e("MainActivity", "Interstitial ad failed to load: " + loadAdError.getMessage());
-                    }
-                });
+    private void initAppodeal() {
+        String appKey = getString(R.string.appodeal_app_key);
+        AppodealHelper.initialize(this, appKey);
+        AppodealHelper.showBanner(this, R.id.adView);
     }
     
     private void showInterstitialAdAndSync(Runnable onAdClosed) {
-        syncCallback = onAdClosed;
-        
-        // Si ya hay un ad cargado, mostrarlo directamente
-        if (interstitialAd != null) {
-            showInterstitialAd();
-            return;
-        }
-        
-        // Si no hay ad cargado, intentar cargar uno nuevo
-        if (!isInterstitialAdLoading) {
-            loadInterstitialAd();
-        }
-        
-        // Si después de intentar cargar aún no hay ad, ejecutar la sincronización directamente
-        if (interstitialAd == null) {
-            if (syncCallback != null) {
-                syncCallback.run();
-                syncCallback = null;
-            }
-            return;
-        }
-        
-        // Esperar un poco y mostrar el ad si se cargó
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-            if (interstitialAd != null) {
-                showInterstitialAd();
-            } else if (syncCallback != null) {
-                // Si después de esperar no hay ad, ejecutar sincronización directamente
-                syncCallback.run();
-                syncCallback = null;
-            }
-        }, 500);
-    }
-    
-    private void showInterstitialAd() {
-        if (interstitialAd == null) {
-            // Si no hay ad, ejecutar sincronización directamente
-            if (syncCallback != null) {
-                syncCallback.run();
-                syncCallback = null;
-            }
-            return;
-        }
-        
-        interstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
-            @Override
-            public void onAdDismissedFullScreenContent() {
-                // Anuncio cerrado, ejecutar sincronización
-                interstitialAd = null;
-                loadInterstitialAd(); // Precargar siguiente anuncio
-                
-                // Ejecutar sincronización (el popup se mostrará cuando termine)
-                if (syncCallback != null) {
-                    syncCallback.run();
-                    syncCallback = null;
-                }
-            }
-            
-            @Override
-            public void onAdFailedToShowFullScreenContent(AdError adError) {
-                // Si falla mostrar el ad, ejecutar sincronización directamente
-                interstitialAd = null;
-                loadInterstitialAd();
-                
-                if (syncCallback != null) {
-                    syncCallback.run();
-                    syncCallback = null;
-                }
-            }
-        });
-        
-        interstitialAd.show(this);
+        // Appodeal handles ad loading automatically, just show it
+        AppodealHelper.showInterstitial(this, onAdClosed);
     }
     
     private void showSyncCompletedDialog() {
@@ -353,19 +235,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        AdView adView = findViewById(R.id.adView);
-        if (adView != null) {
-            adView.pause();
-        }
+        AppodealHelper.hideBanner(this);
     }
 
 
     @Override
     protected void onDestroy() {
-        AdView adView = findViewById(R.id.adView);
-        if (adView != null) {
-            adView.destroy();
-        }
+        AppodealHelper.hideBanner(this);
         super.onDestroy();
     }
 
@@ -488,60 +364,8 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void showInterstitialAdForRecoveryCode() {
-        // Si ya hay un ad cargado, mostrarlo directamente
-        if (interstitialAd != null) {
-            showInterstitialAdForRecovery();
-            return;
-        }
-        
-        // Si no hay ad cargado, intentar cargar uno nuevo
-        if (!isInterstitialAdLoading) {
-            loadInterstitialAd();
-        }
-        
-        // Esperar un poco para que cargue, si no hay ad, mostrar código directamente
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-            if (interstitialAd != null) {
-                showInterstitialAdForRecovery();
-            } else {
-                // Si después de esperar no hay ad, mostrar código directamente
-                showRecoveryCodeAfterAd();
-            }
-        }, 1000);
-    }
-    
-    private void showInterstitialAdForRecovery() {
-        if (interstitialAd == null) {
-            // Si no hay ad, mostrar código directamente
-            showRecoveryCodeAfterAd();
-            return;
-        }
-        
-        interstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
-            @Override
-            public void onAdDismissedFullScreenContent() {
-                // Anuncio cerrado, mostrar código
-                interstitialAd = null;
-                loadInterstitialAd(); // Precargar siguiente anuncio
-                showRecoveryCodeAfterAd();
-            }
-            
-            @Override
-            public void onAdFailedToShowFullScreenContent(AdError adError) {
-                android.util.Log.e("MainActivity", "Interstitial ad failed to show: " + adError.getMessage());
-                interstitialAd = null;
-                loadInterstitialAd();
-                // Si falla mostrar, mostrar código directamente
-                showRecoveryCodeAfterAd();
-            }
-            
-            @Override
-            public void onAdShowedFullScreenContent() {
-                android.util.Log.d("MainActivity", "Interstitial ad showed full screen content");
-            }
-        });
-        
-        interstitialAd.show(this);
+        // Appodeal handles ad loading automatically
+        AppodealHelper.showInterstitial(this, () -> showRecoveryCodeAfterAd());
     }
     
     private void showRecoveryCodeAfterAd() {
@@ -2136,10 +1960,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        AdView adView = findViewById(R.id.adView);
-        if (adView != null) {
-            adView.resume();
-        }
+        String appKey = getString(R.string.appodeal_app_key);
+        AppodealHelper.initialize(this, appKey);
+        AppodealHelper.showBanner(this, R.id.adView);
         autoRealizePastEvents();
     }
 

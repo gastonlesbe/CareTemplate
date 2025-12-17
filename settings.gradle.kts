@@ -19,6 +19,8 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven(url = "https://jitpack.io") // necesario para MPAndroidChart
+        maven(url = "https://artifactory.appodeal.com/appodeal") // Appodeal SDK
+        maven(url = "https://artifactory.appodeal.com/appodeal-public/") // Appodeal SDK (alternative)
     }
 }
 

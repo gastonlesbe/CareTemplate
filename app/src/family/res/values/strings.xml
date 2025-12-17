@@ -1,8 +1,9 @@
 <resources>
     <string name="app_name">FamilyPal</string>
     <string name="subjects_title">Sujetos</string>
-    <!-- AdMob IDs para FamilyPal -->
-    <!-- TODO: Agregar App ID y Banner ID cuando estén disponibles -->
-    <!-- Rewarded Ad ID - Reemplazar con el ID real cuando esté disponible -->
+    <!-- Appodeal App Key - Replace with your actual Appodeal app key -->
+    <string name="appodeal_app_key">YOUR_APPODEAL_APP_KEY</string>
+    
+    <!-- Legacy AdMob IDs (kept for reference, can be removed later) -->
     <string name="admob_rewarded_id">ca-app-pub-3940256099942544/5224354917</string>
 </resources>
