@@ -33,6 +33,18 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_import_subject"
+        android:title="@string/share_subject_receive_title"
+        android:icon="@drawable/ic_sync"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_share_subject"
+        android:title="@string/share_subject"
+        android:icon="@drawable/ic_sync"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_version"
         android:title="v1.2"
         app:showAsAction="never"

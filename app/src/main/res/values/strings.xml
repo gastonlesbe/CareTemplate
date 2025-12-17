@@ -28,6 +28,7 @@
     <string name="field_weight">Peso (kg)</string>
     <string name="field_measure">Medida</string>
     <string name="field_notes">Notas</string>
+    <string name="field_address">Dirección</string>
     <string name="field_date">Fecha (dd/MM/aaaa)</string>
     
     <!-- Subject validation -->
@@ -86,21 +87,21 @@
     <string name="error_security_sha1">Error de seguridad. Verifica SHA-1 en Firebase Console</string>
     
     <!-- Share subject -->
-    <string name="share_subject">Compartir sujeto</string>
-    <string name="share_subject_title">Compartir sujeto</string>
-    <string name="share_subject_message">Genera un código para compartir este sujeto con otra persona</string>
+    <string name="share_subject">Compartir</string>
+    <string name="share_subject_title">Compartir</string>
+    <string name="share_subject_message">Genera un código para compartir con otra persona</string>
     <string name="share_subject_code_title">Código de compartir</string>
-    <string name="share_subject_code_message">Comparte este código con la persona que quieres que tenga este sujeto:</string>
+    <string name="share_subject_code_message">Comparte este código con la persona que quieres que lo tenga:</string>
     <string name="share_subject_code_copied">Código copiado al portapapeles</string>
-    <string name="share_subject_receive_title">Recibir sujeto compartido</string>
+    <string name="share_subject_receive_title">Importar</string>
     <string name="share_subject_receive_message">Ingresa el código de compartir que te enviaron</string>
     <string name="share_subject_code_hint">Código de compartir (formato: XXXX-XXXX-XXXX)</string>
     <string name="share_subject_invalid">Ingresa un código válido</string>
     <string name="share_subject_not_found">Código de compartir no encontrado</string>
     <string name="share_subject_error">Error al compartir: %1$s</string>
-    <string name="share_subject_importing">Importando sujeto compartido…</string>
-    <string name="share_subject_imported">Sujeto importado exitosamente ✅</string>
-    <string name="share_subject_import_error">Error al importar sujeto: %1$s</string>
+    <string name="share_subject_importing">Importando…</string>
+    <string name="share_subject_imported">Importado exitosamente ✅</string>
+    <string name="share_subject_import_error">Error al importar: %1$s</string>
     <string name="tab_history">Histórico</string>
     <string name="tab_upcoming">Próximos</string>
     <string name="no_events_upcoming">No hay próximos eventos</string>
@@ -184,6 +185,7 @@
     
     <!-- Event validation -->
     <string name="error_create_subject_first">Primero creá un sujeto</string>
+    <string name="error_create_subject">Error al crear el sujeto</string>
     <string name="error_select_subject">Seleccioná un sujeto</string>
     <string name="error_no_subjects">Primero creá un sujeto 🐶🚗👨‍👩‍👧🏠</string>
     

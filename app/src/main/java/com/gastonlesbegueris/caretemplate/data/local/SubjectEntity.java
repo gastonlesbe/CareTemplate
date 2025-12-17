@@ -9,6 +9,7 @@ import androidx.room.PrimaryKey;
 public class SubjectEntity {
     @PrimaryKey @NonNull public String id;
 
+    @ColumnInfo(name = "uid") public String uid; // ID del usuario propietario del sujeto
     @ColumnInfo(name = "appType") public String appType;
     @ColumnInfo(name = "name")    public String name;
 

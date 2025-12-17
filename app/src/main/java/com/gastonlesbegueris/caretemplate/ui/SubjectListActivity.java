@@ -117,6 +117,14 @@ public class SubjectListActivity extends AppCompatActivity {
             });
         }
         
+        // Verificar si se debe abrir el diálogo de importar sujeto compartido
+        if (getIntent() != null && getIntent().getBooleanExtra("show_import_dialog", false)) {
+            getIntent().removeExtra("show_import_dialog");
+            findViewById(R.id.fabAddSubject).post(() -> {
+                showImportSubjectDialog();
+            });
+        }
+        
         // Inicializar código de recuperación
         initializeRecoveryCode();
 
@@ -254,8 +262,19 @@ public class SubjectListActivity extends AppCompatActivity {
                 ? (com.google.android.material.textfield.TextInputLayout) parentBirth : null;
 
         // Configurar UI según flavor
-        if ("cars".equals(appType) || "house".equals(appType)) {
-            // Para cars/house: ocultar fecha de nacimiento, mostrar odómetro
+        if ("house".equals(appType)) {
+            // Para house: ocultar fecha de nacimiento y odómetro, mostrar dirección
+            if (tilBirth != null) tilBirth.setVisibility(View.GONE);
+            if (tilMeasure != null) {
+                tilMeasure.setHint(getString(R.string.field_address));
+                tilMeasure.setVisibility(View.VISIBLE);
+                // Cambiar inputType a texto para dirección
+                if (etMeasure != null) {
+                    etMeasure.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+                }
+            }
+        } else if ("cars".equals(appType)) {
+            // Para cars: ocultar fecha de nacimiento, mostrar odómetro
             if (tilBirth != null) tilBirth.setVisibility(View.GONE);
             if (tilMeasure != null) {
                 tilMeasure.setHint(getString(R.string.field_odometer));
@@ -264,8 +283,17 @@ public class SubjectListActivity extends AppCompatActivity {
             if (etMeasure != null) {
                 etMeasure.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
             }
+        } else if ("family".equals(appType)) {
+            // Para family: mostrar fecha de nacimiento, ocultar peso
+            if (tilBirth != null) {
+                tilBirth.setHint(getString(R.string.field_birth_date));
+                tilBirth.setVisibility(View.VISIBLE);
+            }
+            if (tilMeasure != null) {
+                tilMeasure.setVisibility(View.GONE);
+            }
         } else {
-            // Para pets/family: mostrar fecha de nacimiento y peso
+            // Para pets: mostrar fecha de nacimiento y peso
             if (tilBirth != null) {
                 tilBirth.setHint(getString(R.string.field_birth_date));
                 tilBirth.setVisibility(View.VISIBLE);
@@ -281,10 +309,20 @@ public class SubjectListActivity extends AppCompatActivity {
         
         etBirth.setOnClickListener(v -> pickDateInto(etBirth));
 
-        // Setup icon selection
-        final android.widget.GridLayout gridIcons = view.findViewById(R.id.gridIcons);
+        // Ocultar selector de iconos - usar icono por defecto automáticamente
+        // Ocultar el contenedor completo del selector de iconos (incluye el TextView "Seleccionar tipo")
+        final android.view.View llIconSelection = view.findViewById(R.id.llIconSelection);
+        if (llIconSelection != null) {
+            llIconSelection.setVisibility(View.GONE);
+        }
+        // Usar icono por defecto sin mostrar selector
         final String[] selectedIconKey = {defaultIconForFlavor()};
-        populateIconGrid(gridIcons, selectedIconKey);
+        
+        // Asegurar que el campo de notas esté visible
+        android.view.View tilNotes = view.findViewById(R.id.tilNotes);
+        if (tilNotes != null) {
+            tilNotes.setVisibility(View.VISIBLE);
+        }
 
         // Configurar barra de título personalizada
         final android.view.View llDialogTitleBar = view.findViewById(R.id.llDialogTitleBar);
@@ -293,7 +331,12 @@ public class SubjectListActivity extends AppCompatActivity {
         final android.widget.ImageButton ibClose = view.findViewById(R.id.ibClose);
         
         if (tvDialogTitle != null) {
-            tvDialogTitle.setText(getString(R.string.new_subject));
+            // Para house: solo "Nuevo", para otros: "Nuevo sujeto"
+            if ("house".equals(appType)) {
+                tvDialogTitle.setText("Nuevo");
+            } else {
+                tvDialogTitle.setText(getString(R.string.new_subject));
+            }
         }
         
         androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
@@ -341,11 +384,30 @@ public class SubjectListActivity extends AppCompatActivity {
                     }
                 }
                 
-                // Obtener medida: kilómetros para cars/house, peso para pets/family
-                String measureStr = etMeasure.getText() != null ? etMeasure.getText().toString().trim() : "";
-                Double measure = measureStr.isEmpty() ? null : safeParseDouble(measureStr);
+                // Obtener medida: kilómetros para cars, dirección para house (guardada en notes), peso para pets (no para family)
+                Double measure = null;
+                String notes = "";
+                if ("house".equals(appType)) {
+                    // Para house: medida es la dirección (se guarda en notes), y notes son las notas adicionales
+                    String address = etMeasure.getText() != null ? etMeasure.getText().toString().trim() : "";
+                    String additionalNotes = etNotes.getText() != null ? etNotes.getText().toString().trim() : "";
+                    // Combinar dirección y notas
+                    if (!address.isEmpty() && !additionalNotes.isEmpty()) {
+                        notes = address + "\n\n" + additionalNotes;
+                    } else if (!address.isEmpty()) {
+                        notes = address;
+                    } else if (!additionalNotes.isEmpty()) {
+                        notes = additionalNotes;
+                    }
+                } else {
+                    // Para otros flavors: medida numérica y notes normal
+                    if (!"family".equals(appType)) {
+                        String measureStr = etMeasure.getText() != null ? etMeasure.getText().toString().trim() : "";
+                        measure = measureStr.isEmpty() ? null : safeParseDouble(measureStr);
+                    }
+                    notes = etNotes.getText() != null ? etNotes.getText().toString().trim() : "";
+                }
                 
-                String notes = etNotes.getText() != null ? etNotes.getText().toString().trim() : "";
                 dialog.dismiss();
                 insertSubjectFull(name, birthMillis, measure, notes, selectedIconKey[0]);
             });
@@ -363,7 +425,8 @@ public class SubjectListActivity extends AppCompatActivity {
         if ("pets".equals(appType))   return "dog";
         if ("cars".equals(appType))   return "car";
         if ("house".equals(appType))  return "house";
-        return "user"; // family u otros
+        if ("family".equals(appType)) return "man";
+        return "user"; // otros
     }
 
     // Obtiene los iconos disponibles según el tipo de app
@@ -446,27 +509,49 @@ public class SubjectListActivity extends AppCompatActivity {
     }
 
     private void insertSubjectFull(String name, Long birthMillis, Double measure, String notes, String iconKey) {
-        new Thread(() -> {
-            SubjectEntity subj = new SubjectEntity();
-            subj.id = UUID.randomUUID().toString();
-            subj.appType = appType;
-            subj.name = name;
-            // Para cars/house: no hay fecha de nacimiento, solo kilómetros
-            // Para pets/family: guardar fecha de nacimiento si se proporcionó
-            subj.birthDate = ("cars".equals(appType) || "house".equals(appType)) ? null : birthMillis;
-            // Guardar medida: kilómetros para cars/house, peso para pets/family
-            subj.currentMeasure = measure;
+        // Obtener userId del usuario actual (puede generar uno nuevo si no existe)
+        com.gastonlesbegueris.caretemplate.util.UserManager userManager = 
+            new com.gastonlesbegueris.caretemplate.util.UserManager(this);
+        userManager.getUserId(new com.gastonlesbegueris.caretemplate.util.UserManager.UserIdCallback() {
+            @Override
+            public void onUserId(String userId) {
+                // Ejecutar inserción en un hilo separado
+                new Thread(() -> {
+                    SubjectEntity subj = new SubjectEntity();
+                    // Generar ID único por usuario: {userId}_{timestamp}
+                    subj.id = userId + "_" + System.currentTimeMillis();
+                    subj.uid = userId; // Asignar uid del usuario propietario
+                    subj.appType = appType;
+                    subj.name = name;
+                    // Para cars/house: no hay fecha de nacimiento, solo kilómetros
+                    // Para pets/family: guardar fecha de nacimiento si se proporcionó
+                    subj.birthDate = ("cars".equals(appType) || "house".equals(appType)) ? null : birthMillis;
+                    // Guardar medida: kilómetros para cars/house, peso para pets/family
+                    subj.currentMeasure = measure;
 
-            subj.notes = notes == null ? "" : notes;
-            subj.updatedAt = System.currentTimeMillis();
-            subj.deleted = 0;
-            subj.dirty = 1;
-            subj.iconKey = (iconKey == null || iconKey.isEmpty()) ? defaultIconForFlavor() : iconKey;
-            subj.colorHex = (subj.colorHex == null || subj.colorHex.isEmpty()) ? "#03DAC5" : subj.colorHex;
+                    subj.notes = notes == null ? "" : notes;
+                    subj.updatedAt = System.currentTimeMillis();
+                    subj.deleted = 0;
+                    subj.dirty = 1;
+                    subj.iconKey = (iconKey == null || iconKey.isEmpty()) ? defaultIconForFlavor() : iconKey;
+                    subj.colorHex = (subj.colorHex == null || subj.colorHex.isEmpty()) ? "#03DAC5" : subj.colorHex;
 
-            dao.insert(subj);
-            runOnUiThread(() -> Toast.makeText(this, getString(R.string.subject_created), Toast.LENGTH_SHORT).show());
-        }).start();
+                    dao.insert(subj);
+                    runOnUiThread(() -> Toast.makeText(SubjectListActivity.this, getString(R.string.subject_created), Toast.LENGTH_SHORT).show());
+                }).start();
+            }
+            
+            @Override
+            public void onError(Exception error) {
+                runOnUiThread(() -> {
+                    String errorMsg = getString(R.string.error_create_subject);
+                    if (error != null && error.getMessage() != null) {
+                        errorMsg += ": " + error.getMessage();
+                    }
+                    Toast.makeText(SubjectListActivity.this, errorMsg, Toast.LENGTH_LONG).show();
+                });
+            }
+        });
     }
     private void showEditDialog(SubjectEntity subj) {
         View view = getLayoutInflater().inflate(R.layout.dialog_subject, null);
@@ -607,23 +692,36 @@ public class SubjectListActivity extends AppCompatActivity {
 
                 final Long finalBirthMillis = birthMillis;
                 final String finalName = name;
+                final String subjectId = subj.id; // Guardar ID para obtener copia fresca
                 dialog.dismiss();
                 
                 // actualizar en background
                 new Thread(() -> {
-                    subj.name = finalName;
-                    subj.currentMeasure = finalMeasure;
-                    subj.notes = notes;
-                    if ("pets".equals(appType)) {
-                        subj.birthDate = finalBirthMillis;
+                    // Obtener una copia fresca del sujeto desde la base de datos
+                    SubjectEntity subjectToUpdate = AppDb.get(this).subjectDao().findOne(subjectId);
+                    if (subjectToUpdate == null) {
+                        runOnUiThread(() -> {
+                            android.widget.Toast.makeText(this, "Error: No se pudo encontrar el sujeto", android.widget.Toast.LENGTH_SHORT).show();
+                        });
+                        return;
                     }
-                    subj.updatedAt = System.currentTimeMillis();
-                    subj.dirty = 1;
-                    AppDb.get(this).subjectDao().update(subj);
+                    
+                    // Actualizar campos
+                    subjectToUpdate.name = finalName;
+                    subjectToUpdate.currentMeasure = finalMeasure;
+                    subjectToUpdate.notes = notes;
+                    // Guardar birthDate para pets y family
+                    if ("pets".equals(appType) || "family".equals(appType)) {
+                        subjectToUpdate.birthDate = finalBirthMillis;
+                    }
+                    subjectToUpdate.updatedAt = System.currentTimeMillis();
+                    subjectToUpdate.dirty = 1;
+                    
+                    // Guardar en base de datos
+                    AppDb.get(this).subjectDao().update(subjectToUpdate);
 
                     runOnUiThread(() -> {
                         android.widget.Toast.makeText(this, getString(R.string.subject_updated), android.widget.Toast.LENGTH_SHORT).show();
-                        dialog.dismiss();
                     });
                 }).start();
             });
@@ -665,7 +763,11 @@ public class SubjectListActivity extends AppCompatActivity {
                         .setPositiveButton(getString(R.string.button_delete), (d, w) -> {
                             // Confirmar eliminación
                             new Thread(() -> {
-                                dao.softDelete(id, System.currentTimeMillis());
+                                long now = System.currentTimeMillis();
+                                // Eliminar el sujeto
+                                dao.softDelete(id, now);
+                                // Eliminar todos los eventos relacionados con este sujeto
+                                eventDao.softDeleteEventsBySubjectId(id, now);
                                 runOnUiThread(() -> Toast.makeText(this, getString(R.string.subject_deleted), Toast.LENGTH_SHORT).show());
                             }).start();
                         })
@@ -731,7 +833,22 @@ public class SubjectListActivity extends AppCompatActivity {
 
     // ---------- Helpers para la lista ----------
     private String buildInfoLine(SubjectEntity subj) {
-        if ("cars".equals(appType) || "house".equals(appType)) {
+        if ("house".equals(appType)) {
+            // Para house: mostrar dirección (extraída de notes, primera parte antes de "\n\n")
+            String address = "";
+            if (subj.notes != null && !subj.notes.isEmpty()) {
+                // Si hay "\n\n", tomar solo la primera parte (dirección)
+                // Si no hay "\n\n", usar todo (asumiendo que es solo dirección)
+                int separatorIndex = subj.notes.indexOf("\n\n");
+                if (separatorIndex > 0) {
+                    address = subj.notes.substring(0, separatorIndex).trim();
+                } else {
+                    address = subj.notes.trim();
+                }
+            }
+            // Si no hay dirección, mostrar "-"
+            return address.isEmpty() ? "-" : address;
+        } else if ("cars".equals(appType)) {
             String km = (subj.currentMeasure == null) ? "-" : (Math.round(subj.currentMeasure) + " km");
             return getString(R.string.odometer_label, km);
         } else {
@@ -1383,6 +1500,16 @@ public class SubjectListActivity extends AppCompatActivity {
     private void performSyncSilent(String uid, boolean silentErrors) {
         Log.d("SubjectListActivity", "performSyncSilent: uid=" + uid + ", appType=" + appType + ", silentErrors=" + silentErrors);
         try {
+            // Primero, asignar uid a todos los sujetos existentes que no lo tengan
+            new Thread(() -> {
+                int countWithoutUid = dao.countSubjectsWithoutUid(appType);
+                if (countWithoutUid > 0) {
+                    Log.d("SubjectListActivity", "Asignando uid a " + countWithoutUid + " sujetos existentes sin uid");
+                    dao.assignUidToSubjectsWithoutUid(uid, appType);
+                    Log.d("SubjectListActivity", "✅ Uid asignado a " + countWithoutUid + " sujetos existentes");
+                }
+            }).start();
+            
             CloudSync sync = new CloudSync(
                     eventDao,
                     dao,
@@ -2390,6 +2517,81 @@ public class SubjectListActivity extends AppCompatActivity {
         
         // Fallback: generar UUID temporal (se actualizará en la próxima sincronización)
         return java.util.UUID.randomUUID().toString();
+    }
+    
+    /**
+     * Muestra el diálogo para importar un sujeto compartido
+     */
+    public void showImportSubjectDialog() {
+        android.view.View view = getLayoutInflater().inflate(R.layout.dialog_recover_code, null);
+        com.google.android.material.textfield.TextInputEditText etCode = view.findViewById(R.id.etRecoveryCode);
+        
+        if (etCode == null) {
+            Toast.makeText(this, "Error al cargar el diálogo", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        etCode.setHint(getString(R.string.share_subject_code_hint));
+        
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(getString(R.string.share_subject_receive_title))
+                .setMessage(getString(R.string.share_subject_receive_message))
+                .setView(view)
+                .setPositiveButton(getString(R.string.button_ok), (dialog, which) -> {
+                    String code = etCode.getText() != null ? etCode.getText().toString().trim() : "";
+                    if (code.isEmpty()) {
+                        Toast.makeText(this, getString(R.string.share_subject_invalid), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    importSharedSubject(code);
+                })
+                .setNegativeButton(getString(R.string.button_cancel), null)
+                .show();
+    }
+    
+    /**
+     * Importa un sujeto compartido usando el código proporcionado
+     */
+    private void importSharedSubject(String shareCode) {
+        if (shareCode == null || shareCode.isEmpty()) {
+            Toast.makeText(this, getString(R.string.share_subject_invalid), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        Toast.makeText(this, getString(R.string.share_subject_importing), Toast.LENGTH_SHORT).show();
+        
+        com.gastonlesbegueris.caretemplate.util.SubjectShareManager shareManager = 
+            new com.gastonlesbegueris.caretemplate.util.SubjectShareManager(this);
+        
+        shareManager.getSharedSubject(shareCode, new com.gastonlesbegueris.caretemplate.util.SubjectShareManager.SharedSubjectCallback() {
+            @Override
+            public void onSharedSubjectData(java.util.Map<String, Object> subjectData, java.util.List<java.util.Map<String, Object>> eventsData) {
+                com.gastonlesbegueris.caretemplate.util.SharedSubjectImporter importer = 
+                    new com.gastonlesbegueris.caretemplate.util.SharedSubjectImporter(SubjectListActivity.this);
+                
+                importer.importFromSharedData(subjectData, eventsData, 
+                    () -> runOnUiThread(() -> {
+                        Toast.makeText(SubjectListActivity.this, getString(R.string.share_subject_imported), Toast.LENGTH_SHORT).show();
+                        refreshSubjectsList();
+                    }),
+                    () -> runOnUiThread(() -> {
+                        Toast.makeText(SubjectListActivity.this, getString(R.string.share_subject_import_error, "Error desconocido"), Toast.LENGTH_LONG).show();
+                    })
+                );
+            }
+            
+            @Override
+            public void onError(Exception error) {
+                runOnUiThread(() -> {
+                    String errorMsg = error != null ? error.getMessage() : "Error desconocido";
+                    if (errorMsg != null && errorMsg.contains("no encontrado")) {
+                        Toast.makeText(SubjectListActivity.this, getString(R.string.share_subject_not_found), Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(SubjectListActivity.this, getString(R.string.share_subject_import_error, errorMsg), Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        });
     }
 
 }

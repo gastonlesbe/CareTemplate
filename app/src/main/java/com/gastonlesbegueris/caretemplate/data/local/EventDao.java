@@ -129,6 +129,19 @@ public interface EventDao {
     @Query("SELECT SUM(COALESCE(cost,0)) FROM events WHERE appType=:appType AND deleted=0 AND realized=1 AND realizedAt BETWEEN :from AND :to")
     Double sumRealizedCostInRange(String appType, long from, long to);
 
+    /**
+     * Eventos realizados en rango [from,to] filtrados por realizedAt (para detalles de mes)
+     */
+    @Query(
+            "SELECT * FROM events " +
+                    "WHERE appType = :appType AND deleted = 0 AND realized = 1 " +
+                    "AND realizedAt IS NOT NULL AND realizedAt BETWEEN :from AND :to " +
+                    "ORDER BY realizedAt DESC"
+    )
+    java.util.List<com.gastonlesbegueris.caretemplate.data.local.EventEntity> listRealizedByRealizedAtInRange(
+            String appType, long from, long to
+    );
+
     // Observación por día (si la pantalla Agenda la pide). Agrupás por inicio de día.
     @Query("""
            SELECT * FROM events
@@ -179,6 +192,14 @@ public interface EventDao {
     // 8) eliminar (soft delete) todos los eventos repetidos de un original
     @Query("UPDATE events SET deleted=1, updatedAt=:now, dirty=1 WHERE originalEventId=:originalEventId AND deleted=0")
     void softDeleteRepeatedEvents(String originalEventId, long now);
+
+    // 9) eliminar (soft delete) todos los eventos de un sujeto
+    @Query("UPDATE events SET deleted=1, updatedAt=:now, dirty=1 WHERE subjectId=:subjectId AND deleted=0")
+    void softDeleteEventsBySubjectId(String subjectId, long now);
+
+    // 10) eliminar permanentemente todos los eventos de un sujeto
+    @Query("DELETE FROM events WHERE subjectId=:subjectId")
+    void deletePermanentlyEventsBySubjectId(String subjectId);
 
 }
 

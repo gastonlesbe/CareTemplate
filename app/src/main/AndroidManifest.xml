@@ -62,6 +62,9 @@
             android:name=".ui.ExpensesActivity"
             android:configChanges="orientation|screenSize" />
         <activity 
+            android:name=".ui.MonthExpensesDetailActivity"
+            android:configChanges="orientation|screenSize" />
+        <activity 
             android:name=".ui.AgendaActivity"
             android:configChanges="orientation|screenSize" />
         <activity 

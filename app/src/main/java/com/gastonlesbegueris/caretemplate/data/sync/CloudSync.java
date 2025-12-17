@@ -82,8 +82,15 @@ public class CloudSync {
                 final List<String> toDelete = Collections.synchronizedList(new ArrayList<>());
                 
                 for (final SubjectEntity s : dirty) {
+                    // Si el sujeto no tiene uid, asignarle el uid del usuario actual
+                    if (s.uid == null || s.uid.isEmpty()) {
+                        s.uid = uid;
+                        s.dirty = 1; // Mantener dirty para que se sincronice
+                        subjectDao.update(s);
+                    }
                     final Map<String, Object> data = new HashMap<>();
                     data.put("id", s.id);
+                    data.put("uid", s.uid != null ? s.uid : uid); // Incluir uid del sujeto
                     data.put("appType", s.appType);
                     data.put("name", s.name);
                     data.put("birthDate", s.birthDate);
@@ -107,8 +114,10 @@ public class CloudSync {
                                         subjectDao.markClean(cleaned);
                                         // Eliminar físicamente los sujetos borrados después de sincronizar exitosamente
                                         for (String idToDelete : toDelete) {
+                                            // Eliminar también los eventos relacionados
+                                            eventDao.deletePermanentlyEventsBySubjectId(idToDelete);
                                             subjectDao.deletePermanently(idToDelete);
-                                            Log.d("CloudSync", "Sujeto borrado eliminado físicamente después de sync: " + idToDelete);
+                                            Log.d("CloudSync", "Sujeto y eventos relacionados eliminados físicamente después de sync: " + idToDelete);
                                         }
                                         if (ok != null) ok.run();
                                     }).start();
@@ -136,8 +145,10 @@ public class CloudSync {
                                                 subjectDao.markClean(cleaned);
                                                 // Eliminar físicamente los sujetos borrados después de sincronizar exitosamente
                                                 for (String idToDelete : toDelete) {
+                                                    // Eliminar también los eventos relacionados
+                                                    eventDao.deletePermanentlyEventsBySubjectId(idToDelete);
                                                     subjectDao.deletePermanently(idToDelete);
-                                                    Log.d("CloudSync", "Sujeto borrado eliminado físicamente después de sync: " + idToDelete);
+                                                    Log.d("CloudSync", "Sujeto y eventos relacionados eliminados físicamente después de sync: " + idToDelete);
                                                 }
                                                 if (ok != null) ok.run();
                                             }).start();
@@ -164,8 +175,10 @@ public class CloudSync {
                                         new Thread(() -> {
                                             subjectDao.markClean(cleaned);
                                             for (String idToDelete : toDelete) {
+                                                // Eliminar también los eventos relacionados
+                                                eventDao.deletePermanentlyEventsBySubjectId(idToDelete);
                                                 subjectDao.deletePermanently(idToDelete);
-                                                Log.d("CloudSync", "Sujeto borrado eliminado físicamente después de sync: " + idToDelete);
+                                                Log.d("CloudSync", "Sujeto y eventos relacionados eliminados físicamente después de sync: " + idToDelete);
                                             }
                                             if (ok != null) ok.run();
                                         }).start();
@@ -229,13 +242,18 @@ public class CloudSync {
                                                 if (deleted == 1) {
                                                     String subjectId = doc.getString("id");
                                                     if (subjectId != null) {
+                                                        // Eliminar también los eventos relacionados
+                                                        eventDao.deletePermanentlyEventsBySubjectId(subjectId);
                                                         subjectDao.deletePermanently(subjectId);
-                                                        Log.d("CloudSync", "Sujeto borrado eliminado físicamente: " + subjectId);
+                                                        Log.d("CloudSync", "Sujeto y eventos relacionados eliminados físicamente: " + subjectId);
                                                     }
                                                 } else {
                                                     // Si no está borrado, actualizar/insertar normalmente
                                                     SubjectEntity s = new SubjectEntity();
                                                     s.id = doc.getString("id");
+                                                    // Leer uid del documento, si no existe usar el uid del sync
+                                                    String subjectUid = doc.getString("uid");
+                                                    s.uid = (subjectUid != null && !subjectUid.isEmpty()) ? subjectUid : uid;
                                                     s.appType = doc.getString("appType");
                                                     s.name = doc.getString("name");
 
@@ -286,13 +304,18 @@ public class CloudSync {
                                             if (deleted == 1) {
                                                 String subjectId = doc.getString("id");
                                                 if (subjectId != null) {
+                                                    // Eliminar también los eventos relacionados
+                                                    eventDao.deletePermanentlyEventsBySubjectId(subjectId);
                                                     subjectDao.deletePermanently(subjectId);
-                                                    Log.d("CloudSync", "Sujeto borrado eliminado físicamente: " + subjectId);
+                                                    Log.d("CloudSync", "Sujeto y eventos relacionados eliminados físicamente: " + subjectId);
                                                 }
                                             } else {
                                                 // Si no está borrado, actualizar/insertar normalmente
                                                 SubjectEntity s = new SubjectEntity();
                                                 s.id = doc.getString("id");
+                                                // Leer uid del documento, si no existe usar el uid del sync
+                                                String subjectUid = doc.getString("uid");
+                                                s.uid = (subjectUid != null && !subjectUid.isEmpty()) ? subjectUid : uid;
                                                 s.appType = doc.getString("appType");
                                                 s.name = doc.getString("name");
 
@@ -341,13 +364,18 @@ public class CloudSync {
                                                             if (deleted == 1) {
                                                                 String subjectId = doc.getString("id");
                                                                 if (subjectId != null) {
+                                                                    // Eliminar también los eventos relacionados
+                                                                    eventDao.deletePermanentlyEventsBySubjectId(subjectId);
                                                                     subjectDao.deletePermanently(subjectId);
-                                                                    Log.d("CloudSync", "Sujeto borrado eliminado físicamente (fallback): " + subjectId);
+                                                                    Log.d("CloudSync", "Sujeto y eventos relacionados eliminados físicamente (fallback): " + subjectId);
                                                                 }
                                                             } else {
                                                                 // Si no está borrado, actualizar/insertar normalmente
                                                                 SubjectEntity s = new SubjectEntity();
                                                                 s.id = doc.getString("id");
+                                                                // Leer uid del documento, si no existe usar el uid del sync
+                                                                String subjectUid = doc.getString("uid");
+                                                                s.uid = (subjectUid != null && !subjectUid.isEmpty()) ? subjectUid : uid;
                                                                 s.appType = doc.getString("appType");
                                                                 s.name = doc.getString("name");
 

@@ -47,4 +47,12 @@ public interface SubjectDao {
 
     @Query("SELECT MAX(updatedAt) FROM subjects WHERE appType = :appType")
     Long lastUpdatedForApp(String appType);
+    
+    // Asignar uid a sujetos existentes que no lo tengan
+    @Query("UPDATE subjects SET uid = :uid, dirty = 1 WHERE (uid IS NULL OR uid = '') AND appType = :appType")
+    void assignUidToSubjectsWithoutUid(String uid, String appType);
+    
+    // Contar sujetos sin uid
+    @Query("SELECT COUNT(*) FROM subjects WHERE (uid IS NULL OR uid = '') AND appType = :appType AND deleted = 0")
+    int countSubjectsWithoutUid(String appType);
 }

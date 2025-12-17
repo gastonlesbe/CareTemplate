@@ -1,8 +1,8 @@
 <resources>
     <string name="app_name">FamilyPal</string>
     <string name="subjects_title">Sujetos</string>
-    <!-- Appodeal App Key - Replace with your actual Appodeal app key -->
-    <string name="appodeal_app_key">YOUR_APPODEAL_APP_KEY</string>
+    <!-- Appodeal App Key -->
+    <string name="appodeal_app_key">6fa8b7398b35115a560cd591b1c5ac04119aafe691a1a028</string>
     
     <!-- Legacy AdMob IDs (kept for reference, can be removed later) -->
     <string name="admob_rewarded_id">ca-app-pub-3940256099942544/5224354917</string>

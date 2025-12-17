@@ -19,8 +19,17 @@ import java.util.Locale;
 
 public class ExpensesAdapter extends RecyclerView.Adapter<ExpensesAdapter.VH> {
 
+    public interface OnMonthClick {
+        void onMonthClick(MonthTotal month);
+    }
+
     private final List<MonthTotal> items = new ArrayList<>();
     private final SimpleDateFormat fmt = new SimpleDateFormat("MMMM yyyy", Locale.getDefault());
+    private OnMonthClick listener;
+
+    public void setOnMonthClickListener(OnMonthClick listener) {
+        this.listener = listener;
+    }
 
     public void submit(List<MonthTotal> data) {
         items.clear();
@@ -49,6 +58,13 @@ public class ExpensesAdapter extends RecyclerView.Adapter<ExpensesAdapter.VH> {
         h.tvPlanned.setVisibility(View.GONE); // Ocultar planificado, solo mostrar realizado
         String spentText = h.itemView.getContext().getString(R.string.expenses_spent_label, realized);
         h.tvRealized.setText(spentText);
+        
+        // Configurar click listener
+        h.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onMonthClick(m);
+            }
+        });
     }
 
     @Override public int getItemCount() { return items.size(); }
