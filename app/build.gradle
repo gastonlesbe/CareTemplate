@@ -96,6 +96,18 @@ android {
             signingConfig signingConfigs.debug
         }
     }
+    
+    // Disable baseline profile to avoid INSTALL_BASELINE_PROFILE_FAILED errors
+    // This prevents issues when installing on some devices
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+        // Exclude baseline profile files that can cause installation issues
+        resources {
+            excludes += ['**/baseline.prof', '**/*.prof']
+        }
+    }
 
     // No hace falta fijar buildToolsVersion manualmente; lo elige AGP
     // buildToolsVersion '36.1.0'

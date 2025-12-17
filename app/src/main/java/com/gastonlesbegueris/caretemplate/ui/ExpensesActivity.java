@@ -58,6 +58,12 @@ public class ExpensesActivity extends AppCompatActivity {
         rv = findViewById(R.id.rvExpenses);
         rv.setLayoutManager(new LinearLayoutManager(this));
         adapter = new ExpensesAdapter();
+        adapter.setOnMonthClickListener(month -> {
+            // Abrir actividad de detalles del mes
+            android.content.Intent intent = new android.content.Intent(ExpensesActivity.this, MonthExpensesDetailActivity.class);
+            intent.putExtra("monthStart", month.monthStart);
+            startActivity(intent);
+        });
         rv.setAdapter(adapter);
 
         // Appodeal Banner

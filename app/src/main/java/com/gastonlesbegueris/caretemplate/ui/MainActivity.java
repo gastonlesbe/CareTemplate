@@ -99,7 +99,21 @@ public class MainActivity extends AppCompatActivity {
                 .getString("currentSubjectId_" + appType, null);
 
         // 7) Redirigir a Sujetos si es primera vez / no hay sujetos
+        // También asignar uid a sujetos existentes que no lo tengan
         new Thread(() -> {
+            // Asignar uid a sujetos existentes sin uid
+            com.gastonlesbegueris.caretemplate.util.UserManager userManager = 
+                new com.gastonlesbegueris.caretemplate.util.UserManager(this);
+            String userId = userManager.getUserIdSync();
+            if (userId != null) {
+                int countWithoutUid = subjectDao.countSubjectsWithoutUid(appType);
+                if (countWithoutUid > 0) {
+                    android.util.Log.d("MainActivity", "Asignando uid a " + countWithoutUid + " sujetos existentes sin uid");
+                    subjectDao.assignUidToSubjectsWithoutUid(userId, appType);
+                    android.util.Log.d("MainActivity", "✅ Uid asignado a " + countWithoutUid + " sujetos existentes");
+                }
+            }
+            
             int count = subjectDao.countForApp(appType);
             boolean firstRunDone = getSharedPreferences("prefs", MODE_PRIVATE)
                     .getBoolean("first_run_done_" + appType, false);
@@ -2027,8 +2041,20 @@ public class MainActivity extends AppCompatActivity {
             if (etMeasure != null) {
                 etMeasure.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
             }
+        } else if ("family".equals(appType)) {
+            // Para family: mostrar fecha de nacimiento, ocultar peso
+            if (tilBirth != null) {
+                tilBirth.setHint("Fecha de nacimiento (dd/MM/aaaa)");
+                tilBirth.setVisibility(android.view.View.VISIBLE);
+            }
+            if (tilMeasure != null) {
+                tilMeasure.setVisibility(android.view.View.GONE);
+            }
+            if (etBirth != null) {
+                etBirth.setOnClickListener(v -> pickDateInto(etBirth));
+            }
         } else {
-            // Para pets/family: mostrar fecha de nacimiento y peso
+            // Para pets: mostrar fecha de nacimiento y peso
             if (tilBirth != null) {
                 tilBirth.setHint("Fecha de nacimiento (dd/MM/aaaa)");
                 tilBirth.setVisibility(android.view.View.VISIBLE);
@@ -2045,14 +2071,17 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         
-        // Ocultar notas para quick add
+        // Mostrar notas (ya no ocultar)
         android.view.View tilNotes = view.findViewById(R.id.tilNotes);
-        if (tilNotes != null) tilNotes.setVisibility(android.view.View.GONE);
+        if (tilNotes != null) tilNotes.setVisibility(android.view.View.VISIBLE);
 
-        // Setup icon selection
+        // Ocultar selector de iconos - usar icono por defecto automáticamente
         final android.widget.GridLayout gridIcons = view.findViewById(R.id.gridIcons);
+        if (gridIcons != null) {
+            gridIcons.setVisibility(android.view.View.GONE);
+        }
+        // Usar icono por defecto sin mostrar selector
         final String[] selectedIconKey = {defaultIconForFlavor()};
-        populateIconGrid(gridIcons, selectedIconKey);
 
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Nuevo sujeto")
@@ -2091,9 +2120,12 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                     
-                    // Obtener medida: kilómetros para cars/house, peso para pets/family
-                    String measureStr = etMeasure.getText() != null ? etMeasure.getText().toString().trim() : "";
-                    Double measure = measureStr.isEmpty() ? null : safeParseDouble(measureStr);
+                    // Obtener medida: kilómetros para cars/house, peso para pets (no para family)
+                    Double measure = null;
+                    if (!"family".equals(appType)) {
+                        String measureStr = etMeasure.getText() != null ? etMeasure.getText().toString().trim() : "";
+                        measure = measureStr.isEmpty() ? null : safeParseDouble(measureStr);
+                    }
                     
                     insertSubjectMinimal(name, selectedIconKey[0], birthMillis, measure);
                 })
@@ -2132,7 +2164,9 @@ public class MainActivity extends AppCompatActivity {
     private void createSubjectWithUserId(String name, String iconKey, Long birthDate, Double currentMeasure, String userId) {
         new Thread(() -> {
             SubjectEntity s = new SubjectEntity();
-            s.id = UUID.randomUUID().toString();
+            // Generar ID único por usuario: {userId}_{timestamp}
+            s.id = userId + "_" + System.currentTimeMillis();
+            s.uid = userId; // Asignar uid del usuario propietario
             s.appType = appType;
             s.name = name;
             s.birthDate = birthDate; // Fecha de nacimiento para pets/family
@@ -2186,6 +2220,7 @@ public class MainActivity extends AppCompatActivity {
         if ("pets".equals(appType))   return "dog";
         if ("cars".equals(appType))   return "car";
         if ("house".equals(appType))  return "house";
+        if ("family".equals(appType)) return "man";
         return "user";
     }
 }
