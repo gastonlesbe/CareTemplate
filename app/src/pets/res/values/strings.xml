@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">PetPal</string>
+    <string name="app_name">CarePal: Pets</string>
     <string name="subjects_title">Mascotas</string>
     <!-- Appodeal App Key -->
     <string name="appodeal_app_key">6816c9cac0c2ad9737e03dcfbe54da50740950c8c543d0e4</string>

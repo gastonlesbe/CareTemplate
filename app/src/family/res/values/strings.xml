@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">FamilyPal</string>
+    <string name="app_name">CarePal: Family</string>
     <string name="subjects_title">Sujetos</string>
     <!-- Appodeal App Key -->
     <string name="appodeal_app_key">6fa8b7398b35115a560cd591b1c5ac04119aafe691a1a028</string>

@@ -13,8 +13,8 @@ android {
         applicationId "com.gastonlesbegueris.caretemplate"
         minSdk 24
         targetSdk 35   // 👈 igual o menor a compileSdk
-        versionCode 6
-        versionName "1.5"
+        versionCode 7
+        versionName "1.6"
         vectorDrawables.useSupportLibrary = true
 
     }
@@ -31,7 +31,7 @@ android {
         pets {
             dimension "vertical"
             applicationIdSuffix ".pets"
-            resValue "string", "app_name", "PetPal"
+            resValue "string", "app_name", "CarePal: Pets"
             resValue "string", "app_type", "pets"     // 👈 para reemplazar BuildConfig.FLAVOR
             resValue "string", "admob_app_id", "ca-app-pub-9841764898906750~2089158049"
             resValue "string", "admob_interstitial_id", "ca-app-pub-9841764898906750/6449521527"
@@ -39,7 +39,7 @@ android {
         cars {
             dimension "vertical"
             applicationIdSuffix ".cars"
-            resValue "string", "app_name", "CarPal"
+            resValue "string", "app_name", "CarePal: Cars"
             resValue "string", "app_type", "cars"
             // TODO: Agregar IDs de AdMob para CarPal cuando estén disponibles
             resValue "string", "admob_app_id", "ca-app-pub-9841764898906750~2089158049"
@@ -48,7 +48,7 @@ android {
         family {
             dimension "vertical"
             applicationIdSuffix ".family"
-            resValue "string", "app_name", "FamilyPal"
+            resValue "string", "app_name", "CarePal: Family"
             resValue "string", "app_type", "family"
             // TODO: Agregar IDs de AdMob para FamilyPal cuando estén disponibles
             resValue "string", "admob_app_id", "ca-app-pub-9841764898906750~2089158049"
@@ -57,7 +57,7 @@ android {
         house {
             dimension "vertical"
             applicationIdSuffix ".house"
-            resValue "string", "app_name", "HousePal"
+            resValue "string", "app_name", "CarePal: Houses"
             resValue "string", "app_type", "house"
             // TODO: Agregar IDs de AdMob para HousePal cuando estén disponibles
             resValue "string", "admob_app_id", "ca-app-pub-9841764898906750~2089158049"
