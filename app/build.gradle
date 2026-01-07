@@ -41,27 +41,24 @@ android {
             applicationIdSuffix ".cars"
             resValue "string", "app_name", "CarePal: Cars"
             resValue "string", "app_type", "cars"
-            // TODO: Agregar IDs de AdMob para CarPal cuando estén disponibles
             resValue "string", "admob_app_id", "ca-app-pub-9841764898906750~2089158049"
-            resValue "string", "admob_interstitial_id", "ca-app-pub-9841764898906750/6449521527"
+            resValue "string", "admob_interstitial_id", "ca-app-pub-9841764898906750/7520553240"
         }
         family {
             dimension "vertical"
             applicationIdSuffix ".family"
-            resValue "string", "app_name", "CarePal: Family"
+            resValue "string", "app_name", "CarePal Family"
             resValue "string", "app_type", "family"
-            // TODO: Agregar IDs de AdMob para FamilyPal cuando estén disponibles
-            resValue "string", "admob_app_id", "ca-app-pub-9841764898906750~2089158049"
-            resValue "string", "admob_interstitial_id", "ca-app-pub-9841764898906750/6449521527"
+            resValue "string", "admob_app_id", "ca-app-pub-9841764898906750~9388593714"
+            resValue "string", "admob_interstitial_id", "ca-app-pub-9841764898906750/6799440463"
         }
         house {
             dimension "vertical"
             applicationIdSuffix ".house"
             resValue "string", "app_name", "CarePal: Houses"
             resValue "string", "app_type", "house"
-            // TODO: Agregar IDs de AdMob para HousePal cuando estén disponibles
             resValue "string", "admob_app_id", "ca-app-pub-9841764898906750~2089158049"
-            resValue "string", "admob_interstitial_id", "ca-app-pub-9841764898906750/6449521527"
+            resValue "string", "admob_interstitial_id", "ca-app-pub-9841764898906750/9832458605"
         }
     }
 
@@ -139,6 +136,9 @@ dependencies {
 
     // Ads - Appodeal SDK (replaces AdMob)
     implementation 'com.appodeal.ads:sdk:3.12.0.0'
+    
+    // AdMob SDK for interstitial ads
+    implementation 'com.google.android.gms:play-services-ads:23.0.0'
    // implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
 
     // Google Play In-App Review

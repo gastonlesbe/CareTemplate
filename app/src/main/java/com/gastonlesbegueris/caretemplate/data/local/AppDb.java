@@ -17,6 +17,7 @@ public abstract class AppDb extends RoomDatabase {
     public abstract EventDao eventDao();
     public abstract SubjectDao subjectDao();
 
+    @SuppressWarnings("deprecation")
     public static AppDb get(Context c) {
         if (I == null) {
             synchronized (AppDb.class) {

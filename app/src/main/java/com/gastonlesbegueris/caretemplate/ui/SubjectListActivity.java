@@ -29,6 +29,7 @@ import com.gastonlesbegueris.caretemplate.data.local.SubjectEntity;
 import com.gastonlesbegueris.caretemplate.data.sync.CloudSync;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.gastonlesbegueris.caretemplate.util.AppodealHelper;
+import com.gastonlesbegueris.caretemplate.util.AdMobHelper;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import android.util.Log;
@@ -127,6 +128,11 @@ public class SubjectListActivity extends AppCompatActivity {
         
         // Inicializar código de recuperación
         initializeRecoveryCode();
+        
+        // Verificar si se debe solicitar reseña (después de 5 aperturas de la app)
+        findViewById(android.R.id.content).postDelayed(() -> {
+            com.gastonlesbegueris.caretemplate.util.ReviewHelper.checkAndRequestReviewOnAppOpen(this, appName);
+        }, 3000); // Esperar 3 segundos después de que la app se abra completamente
 
         adapter = new SubjectAdapter(new SubjectAdapter.OnClick() {
             @Override public void onEdit(SubjectEntity subj) { showEditDialog(subj); }
@@ -1258,10 +1264,14 @@ public class SubjectListActivity extends AppCompatActivity {
                         public void onResult(boolean exists, String message) {
                             runOnUiThread(() -> {
                                 if (exists) {
-                                    // Si existe, proceder con la recuperación
-                                    isSilentRecoveryMode = true;
-                                    Log.d("SubjectListActivity", "Código verificado, iniciando recuperación");
-                                    recoverUserFromCode(code);
+                                    // Mostrar intersticial de AdMob antes de recuperar
+                                    String interstitialId = getString(R.string.admob_interstitial_id);
+                                    AdMobHelper.showInterstitial(SubjectListActivity.this, interstitialId, () -> {
+                                        // Si existe, proceder con la recuperación
+                                        isSilentRecoveryMode = true;
+                                        Log.d("SubjectListActivity", "Código verificado, iniciando recuperación");
+                                        recoverUserFromCode(code);
+                                    });
                                 } else {
                                     // Si no existe, mostrar mensaje detallado
                                     new androidx.appcompat.app.AlertDialog.Builder(SubjectListActivity.this)
@@ -1657,6 +1667,28 @@ public class SubjectListActivity extends AppCompatActivity {
     }
     
     private void doSync() {
+        try {
+            // Mostrar intersticial de AdMob antes de sincronizar
+            String interstitialId = getString(R.string.admob_interstitial_id);
+            AdMobHelper.showInterstitial(this, interstitialId, () -> {
+                performSyncAfterAd();
+            });
+        } catch (Exception e) {
+            runOnUiThread(() -> {
+                // SILENCIAR CUALQUIER error de permisos
+                String errorMsg = e != null ? e.getMessage() : "null";
+                if (isPermissionError(errorMsg)) {
+                    Log.d("SubjectListActivity", "Error de permisos SILENCIADO en doSync catch");
+                    Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
+                    refreshSubjectsList();
+                } else {
+                    Toast.makeText(this, getString(R.string.sync_error, errorMsg), Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+    }
+    
+    private void performSyncAfterAd() {
         try {
             com.google.firebase.auth.FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
             if (user == null) {
@@ -2423,8 +2455,8 @@ public class SubjectListActivity extends AppCompatActivity {
                 
                 // Verificar si se debe solicitar reseña (después del primer evento o gasto)
                 boolean isExpense = (cost != null && cost > 0);
-                String appName = getString(R.string.app_name);
-                com.gastonlesbegueris.caretemplate.util.ReviewHelper.checkAndRequestReview(this, appName, isExpense);
+                String reviewAppName = getString(R.string.app_name);
+                com.gastonlesbegueris.caretemplate.util.ReviewHelper.checkAndRequestReview(this, reviewAppName, isExpense);
             });
         }).start();
     }
@@ -2578,7 +2610,11 @@ public class SubjectListActivity extends AppCompatActivity {
                         Toast.makeText(this, getString(R.string.share_subject_invalid), Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    importSharedSubject(code);
+                    // Mostrar intersticial de AdMob antes de importar
+                    String interstitialId = getString(R.string.admob_interstitial_id);
+                    AdMobHelper.showInterstitial(SubjectListActivity.this, interstitialId, () -> {
+                        importSharedSubject(code);
+                    });
                 })
                 .setNegativeButton(getString(R.string.button_cancel), null)
                 .show();

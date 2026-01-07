@@ -1,22 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <!-- Persona 1 (izquierda) -->
-    <path
-        android:fillColor="#03DAC5"
-        android:pathData="M9,11c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM9,13c-1.5,0 -4,0.75 -4,2.5v1.5h8v-1.5c0,-1.75 -2.5,-2.5 -4,-2.5z"/>
-    <!-- Persona 2 (centro) -->
-    <path
-        android:fillColor="#03DAC5"
-        android:pathData="M12,11c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM12,13c-1.5,0 -4,0.75 -4,2.5v1.5h8v-1.5c0,-1.75 -2.5,-2.5 -4,-2.5z"/>
-    <!-- Persona 3 (derecha) -->
-    <path
-        android:fillColor="#03DAC5"
-        android:pathData="M15,11c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM15,13c-1.5,0 -4,0.75 -4,2.5v1.5h8v-1.5c0,-1.75 -2.5,-2.5 -4,-2.5z"/>
-</vector>
-
-
-
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:width="20dp"
+        android:height="20dp"
+        android:gravity="center">
+        <bitmap
+            android:src="@drawable/ic_header_family_foreground"
+            android:gravity="center" />
+    </item>
+</layer-list>

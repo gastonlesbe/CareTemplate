@@ -28,6 +28,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.gastonlesbegueris.caretemplate.util.LimitGuard;
 import com.gastonlesbegueris.caretemplate.util.UserManager;
 import com.gastonlesbegueris.caretemplate.util.AppodealHelper;
+import com.gastonlesbegueris.caretemplate.util.AdMobHelper;
 
 
 import java.util.List;
@@ -240,6 +241,10 @@ public class MainActivity extends AppCompatActivity {
         String appKey = getString(R.string.appodeal_app_key);
         AppodealHelper.initialize(this, appKey);
         AppodealHelper.showBanner(this, R.id.adView);
+        
+        // Precargar intersticial de AdMob
+        String interstitialId = getString(R.string.admob_interstitial_id);
+        AdMobHelper.loadInterstitial(this, interstitialId);
     }
     
     private void showInterstitialAdAndSync(Runnable onAdClosed) {
@@ -557,11 +562,15 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                     
-                    // Activar modo silencioso ANTES de iniciar la recuperación
-                    isSilentRecoveryMode = true;
-                    Log.d("MainActivity", "Modo de recuperación silenciosa activado");
-                    
-                    recoverUserFromCode(code);
+                    // Mostrar intersticial de AdMob antes de recuperar
+                    String interstitialId = getString(R.string.admob_interstitial_id);
+                    AdMobHelper.showInterstitial(MainActivity.this, interstitialId, () -> {
+                        // Activar modo silencioso ANTES de iniciar la recuperación
+                        isSilentRecoveryMode = true;
+                        Log.d("MainActivity", "Modo de recuperación silenciosa activado");
+                        
+                        recoverUserFromCode(code);
+                    });
                 })
                 .setNegativeButton(getString(R.string.button_cancel), null)
                 .setCancelable(true)
@@ -1095,6 +1104,22 @@ public class MainActivity extends AppCompatActivity {
 
     // ===== Sync Cloud <-> Local =====
     private void doSync() {
+        try {
+            // Mostrar intersticial de AdMob antes de sincronizar
+            String interstitialId = getString(R.string.admob_interstitial_id);
+            AdMobHelper.showInterstitial(this, interstitialId, () -> {
+                // Continuar con sincronización después del anuncio
+                performSyncAfterAd();
+            });
+        } catch (Exception e) {
+            runOnUiThread(() -> {
+                stopSyncIconAnimation();
+                showSyncError("Error al iniciar sync", e);
+            });
+        }
+    }
+    
+    private void performSyncAfterAd() {
         try {
             // Asegurar autenticación antes de sincronizar
             com.google.firebase.auth.FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
@@ -2329,6 +2354,14 @@ public class MainActivity extends AppCompatActivity {
      * Genera el código de compartir para un sujeto
      */
     private void generateShareCode(String subjectId) {
+        // Mostrar intersticial de AdMob antes de generar código
+        String interstitialId = getString(R.string.admob_interstitial_id);
+        AdMobHelper.showInterstitial(this, interstitialId, () -> {
+            generateShareCodeAfterAd(subjectId);
+        });
+    }
+    
+    private void generateShareCodeAfterAd(String subjectId) {
         String userId = getCurrentUserId();
         if (userId == null) {
             Toast.makeText(this, "Error: No se pudo obtener ID de usuario", Toast.LENGTH_SHORT).show();
@@ -2429,7 +2462,11 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(this, getString(R.string.share_subject_invalid), Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    importSharedSubject(code);
+                    // Mostrar intersticial de AdMob antes de importar
+                    String interstitialId = getString(R.string.admob_interstitial_id);
+                    AdMobHelper.showInterstitial(MainActivity.this, interstitialId, () -> {
+                        importSharedSubject(code);
+                    });
                 })
                 .setNegativeButton(getString(R.string.button_cancel), null)
                 .show();
