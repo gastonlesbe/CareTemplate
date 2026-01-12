@@ -7,6 +7,7 @@
     <string name="menu_sync">Sincronizar</string>
     <string name="menu_expenses">Gastos</string>
     <string name="menu_recovery">Código de recuperación</string>
+    <string name="menu_tutorial">Ver tutorial</string>
     
     <!-- Subjects -->
     <string name="history_title">Historial</string>

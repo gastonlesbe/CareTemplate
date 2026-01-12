@@ -155,9 +155,27 @@ public class SubjectListActivity extends AppCompatActivity {
 
         // Appodeal Banner
         initAppodeal();
+        
+        // Precargar intersticial de AdMob
+        String interstitialId = getString(R.string.admob_interstitial_id);
+        AdMobHelper.loadInterstitial(this, interstitialId);
+        
+        // Verificar si se debe mostrar el tutorial (primera vez)
+        // Aumentar delay para asegurar que la base de datos esté lista
+        findViewById(android.R.id.content).postDelayed(() -> {
+            android.util.Log.d("SubjectListActivity", "Llamando a checkAndShowTutorial con appType: " + appType);
+            com.gastonlesbegueris.caretemplate.util.TutorialHelper.checkAndShowTutorial(this, appType);
+        }, 2000); // Esperar 2 segundos para que la UI y la base de datos estén completamente listas
 
         // observar lista de sujetos
         dao.observeActive(appType).observe(this, (List<SubjectEntity> list) -> {
+            // Verificar si se debe mostrar el tutorial cuando la lista está vacía
+            if (list == null || list.isEmpty()) {
+                // Esperar un poco para asegurar que la base de datos esté actualizada
+                findViewById(android.R.id.content).postDelayed(() -> {
+                    com.gastonlesbegueris.caretemplate.util.TutorialHelper.checkAndShowTutorial(this, appType);
+                }, 500);
+            }
             new Thread(() -> {
                 // Obtener todos los próximos eventos de una vez (optimización para evitar múltiples consultas)
                 long now = System.currentTimeMillis();
@@ -523,6 +541,10 @@ public class SubjectListActivity extends AppCompatActivity {
             public void onUserId(String userId) {
                 // Ejecutar inserción en un hilo separado
                 new Thread(() -> {
+                    // Verificar si es el primer sujeto antes de insertar
+                    int currentCount = dao.countForApp(appType);
+                    boolean isFirstSubject = (currentCount == 0);
+                    
                     SubjectEntity subj = new SubjectEntity();
                     // Generar ID único por usuario: {userId}_{timestamp}
                     subj.id = userId + "_" + System.currentTimeMillis();
@@ -543,7 +565,21 @@ public class SubjectListActivity extends AppCompatActivity {
                     subj.colorHex = (subj.colorHex == null || subj.colorHex.isEmpty()) ? "#03DAC5" : subj.colorHex;
 
                     dao.insert(subj);
-                    runOnUiThread(() -> Toast.makeText(SubjectListActivity.this, getString(R.string.subject_created), Toast.LENGTH_SHORT).show());
+                    final boolean firstSubject = isFirstSubject;
+                    runOnUiThread(() -> {
+                        Toast.makeText(SubjectListActivity.this, getString(R.string.subject_created), Toast.LENGTH_SHORT).show();
+                        // Marcar tutorial como completado cuando se crea el primer sujeto
+                        com.gastonlesbegueris.caretemplate.util.TutorialHelper.markTutorialCompleted(SubjectListActivity.this);
+                        
+                        // Si es el primer sujeto, mostrar celebración e invitar a crear evento
+                        if (firstSubject) {
+                            com.gastonlesbegueris.caretemplate.util.FirstSubjectCelebrationHelper.checkAndShowCelebration(
+                                SubjectListActivity.this, 
+                                appType,
+                                () -> showAddEventDialog() // Callback para crear el primer evento
+                            );
+                        }
+                    });
                 }).start();
             }
             
@@ -945,6 +981,11 @@ public class SubjectListActivity extends AppCompatActivity {
         } else if (id == R.id.action_import_subject) {
             // Mostrar diálogo para importar sujeto compartido
             showImportSubjectDialog();
+            return true;
+        } else if (id == R.id.action_tutorial) {
+            // Resetear y mostrar tutorial (forzar visualización incluso si hay sujetos y eventos)
+            com.gastonlesbegueris.caretemplate.util.TutorialHelper.resetTutorial(this);
+            com.gastonlesbegueris.caretemplate.util.TutorialHelper.checkAndShowTutorial(this, appType, true);
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -1913,8 +1954,12 @@ public class SubjectListActivity extends AppCompatActivity {
         View fabEvent = findViewById(R.id.fabAddEvent);
 
         // Iconos fijos: flavor y calendario
+        // Para family usar ic_person_add, para otros flavors usar ic_header_flavor
+        int fabIconRes = "family".equals(appType) 
+            ? R.drawable.ic_fab_family 
+            : R.drawable.ic_header_flavor;
         ((com.google.android.material.floatingactionbutton.FloatingActionButton) fabSubject)
-                .setImageResource(R.drawable.ic_header_flavor);
+                .setImageResource(fabIconRes);
         ((com.google.android.material.floatingactionbutton.FloatingActionButton) fabEvent)
                 .setImageResource(R.drawable.ic_event);
 
@@ -2316,6 +2361,10 @@ public class SubjectListActivity extends AppCompatActivity {
                                        String repeatType, Integer repeatInterval, Long repeatEndDate, Integer repeatCount,
                                        Integer notificationMinutesBefore) {
         new Thread(() -> {
+            // Verificar si es el primer evento ANTES de insertar
+            int eventCountBefore = eventDao.countEventsForApp(appType);
+            boolean isFirstEvent = (eventCountBefore == 0);
+            
             // Obtener UID del usuario actual
             String uid = getCurrentUserId();
             String originalEventId = UUID.randomUUID().toString();
@@ -2343,6 +2392,16 @@ public class SubjectListActivity extends AppCompatActivity {
             originalEvent.notificationMinutesBefore = notificationMinutesBefore;
             
             eventDao.insert(originalEvent);
+            
+            // Marcar tutorial de eventos como completado cuando se crea el primer evento
+            runOnUiThread(() -> {
+                com.gastonlesbegueris.caretemplate.util.TutorialHelper.markEventTutorialCompleted(SubjectListActivity.this);
+                
+                // Mostrar celebración si es el primer evento
+                if (isFirstEvent) {
+                    com.gastonlesbegueris.caretemplate.util.FirstEventCelebrationHelper.checkAndShowCelebration(SubjectListActivity.this, appType);
+                }
+            });
             com.gastonlesbegueris.caretemplate.util.LimitGuard.onEventCreated(this, appType);
             
             // Programar notificación para el evento original

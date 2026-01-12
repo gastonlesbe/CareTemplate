@@ -711,14 +711,40 @@ public class AgendaActivity extends AppCompatActivity {
                     updateEventWithRepeat(originalEvent, title, cost, dueAt, repeatType, repeatInterval, 
                                         repeatEndDate, repeatCount, notificationMinutesBefore);
                 } else {
-                    // Solo actualizar el evento individual (o el original si no hay repetición)
-                    if (isRepeatedEvent) {
-                        // Actualizar solo el evento repetido que se editó
-                        updateSingleEvent(e, title, cost, dueAt, null, null, null, null, notificationMinutesBefore);
-                    } else {
+                    // Si el evento original tiene repetición, actualizar todas las repeticiones
+                    if (originalEvent.repeatType != null) {
                         // Actualizar el evento original
                         updateSingleEvent(originalEvent, title, cost, dueAt, repeatType, repeatInterval, 
                                         repeatEndDate, repeatCount, notificationMinutesBefore);
+                        
+                        // Actualizar todas las repeticiones (título y notificación, pero mantener fechas y costo)
+                        List<EventEntity> repeatedEvents = dao.findRepeatedEvents(originalEvent.id);
+                        if (repeatedEvents != null) {
+                            for (EventEntity repeated : repeatedEvents) {
+                                repeated.title = title;
+                                // No actualizar costo de repetidos (se actualiza cuando se realizan)
+                                // No actualizar dueAt de repetidos (mantienen su fecha calculada)
+                                repeated.notificationMinutesBefore = notificationMinutesBefore;
+                                repeated.updatedAt = System.currentTimeMillis();
+                                repeated.dirty = 1;
+                                dao.update(repeated);
+                            }
+                        }
+                        runOnUiThread(() -> {
+                            if (!isFinishing() && !isDestroyed()) {
+                                android.widget.Toast.makeText(this, "Evento y todas sus repeticiones actualizadas ✅", android.widget.Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    } else {
+                        // No tiene repetición, actualizar solo el evento individual
+                        if (isRepeatedEvent) {
+                            // Actualizar solo el evento repetido que se editó
+                            updateSingleEvent(e, title, cost, dueAt, null, null, null, null, notificationMinutesBefore);
+                        } else {
+                            // Actualizar el evento original
+                            updateSingleEvent(originalEvent, title, cost, dueAt, repeatType, repeatInterval, 
+                                            repeatEndDate, repeatCount, notificationMinutesBefore);
+                        }
                     }
                 }
             } catch (Exception ex) {

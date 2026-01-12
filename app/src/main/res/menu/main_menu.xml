@@ -45,6 +45,12 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_tutorial"
+        android:title="@string/menu_tutorial"
+        android:icon="@drawable/ic_event"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_version"
         android:title="v1.2"
         app:showAsAction="never"

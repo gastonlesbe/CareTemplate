@@ -1496,8 +1496,12 @@ public class MainActivity extends AppCompatActivity {
         View fabEvent = findViewById(R.id.fabAddEvent);
 
         // Iconos fijos: flavor y calendario
+        // Para family usar ic_person_add, para otros flavors usar ic_header_flavor
+        int fabIconRes = "family".equals(appType) 
+            ? R.drawable.ic_fab_family 
+            : R.drawable.ic_header_flavor;
         ((com.google.android.material.floatingactionbutton.FloatingActionButton) fabSubject)
-                .setImageResource(R.drawable.ic_header_flavor);
+                .setImageResource(fabIconRes);
         ((com.google.android.material.floatingactionbutton.FloatingActionButton) fabEvent)
                 .setImageResource(R.drawable.ic_event);
 
@@ -1739,6 +1743,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void insertLocal(String title, String subjectId, Double cost, long dueAt, Double kilometersAtEvent) {
         new Thread(() -> {
+            // Verificar si es el primer evento ANTES de insertar
+            int eventCountBefore = eventDao.countEventsForApp(appType);
+            boolean isFirstEvent = (eventCountBefore == 0);
+            
             // Obtener UID del usuario actual
             String uid = getCurrentUserId();
             
@@ -1765,6 +1773,11 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 Toast.makeText(this, getString(R.string.event_saved), Toast.LENGTH_SHORT).show();
                 com.gastonlesbegueris.caretemplate.util.ReviewHelper.checkAndRequestReview(this, appName, isExpense);
+                
+                // Mostrar celebración si es el primer evento
+                if (isFirstEvent) {
+                    com.gastonlesbegueris.caretemplate.util.FirstEventCelebrationHelper.checkAndShowCelebration(this, appType);
+                }
             });
         }).start();
     }
@@ -1960,13 +1973,60 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateLocal(EventEntity e, String title, Double cost, long dueAt) {
         new Thread(() -> {
-            e.title = title;
-            e.cost = cost;
-            e.dueAt = dueAt;
-            e.updatedAt = System.currentTimeMillis();
-            e.dirty = 1;
-            eventDao.update(e);
-            runOnUiThread(() -> Toast.makeText(this, getString(R.string.event_updated), Toast.LENGTH_SHORT).show());
+            // Determinar si es evento original o repetido
+            EventEntity originalEvent = e;
+            boolean isRepeatedEvent = e.originalEventId != null;
+            
+            if (isRepeatedEvent) {
+                // Si es un evento repetido, obtener el original
+                originalEvent = eventDao.findOriginalEvent(e.originalEventId);
+                if (originalEvent == null) {
+                    // Si no se encuentra el original, actualizar solo este evento
+                    e.title = title;
+                    e.cost = cost;
+                    e.dueAt = dueAt;
+                    e.updatedAt = System.currentTimeMillis();
+                    e.dirty = 1;
+                    eventDao.update(e);
+                    runOnUiThread(() -> Toast.makeText(this, getString(R.string.event_updated), Toast.LENGTH_SHORT).show());
+                    return;
+                }
+            }
+            
+            // Si el evento original tiene repetición, actualizar todas las repeticiones
+            if (originalEvent.repeatType != null) {
+                // Actualizar el evento original
+                originalEvent.title = title;
+                originalEvent.cost = cost;
+                originalEvent.dueAt = dueAt;
+                originalEvent.updatedAt = System.currentTimeMillis();
+                originalEvent.dirty = 1;
+                eventDao.update(originalEvent);
+                
+                // Obtener todas las repeticiones y actualizarlas
+                List<EventEntity> repeatedEvents = eventDao.findRepeatedEvents(originalEvent.id);
+                if (repeatedEvents != null) {
+                    for (EventEntity repeated : repeatedEvents) {
+                        repeated.title = title;
+                        // No actualizar el costo de los repetidos (se actualiza cuando se realizan)
+                        // No actualizar dueAt de los repetidos (mantienen su fecha calculada)
+                        repeated.updatedAt = System.currentTimeMillis();
+                        repeated.dirty = 1;
+                        eventDao.update(repeated);
+                    }
+                }
+                
+                runOnUiThread(() -> Toast.makeText(this, "Evento y todas sus repeticiones actualizadas ✅", Toast.LENGTH_SHORT).show());
+            } else {
+                // No tiene repetición, actualizar solo este evento
+                e.title = title;
+                e.cost = cost;
+                e.dueAt = dueAt;
+                e.updatedAt = System.currentTimeMillis();
+                e.dirty = 1;
+                eventDao.update(e);
+                runOnUiThread(() -> Toast.makeText(this, getString(R.string.event_updated), Toast.LENGTH_SHORT).show());
+            }
         }).start();
     }
 

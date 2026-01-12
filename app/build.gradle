@@ -13,8 +13,8 @@ android {
         applicationId "com.gastonlesbegueris.caretemplate"
         minSdk 24
         targetSdk 35   // 👈 igual o menor a compileSdk
-        versionCode 10
-        versionName "1.9"
+        versionCode 11
+        versionName "2.0"
         vectorDrawables.useSupportLibrary = true
 
     }
@@ -138,7 +138,7 @@ dependencies {
     implementation 'com.appodeal.ads:sdk:3.12.0.0'
     
     // AdMob SDK for interstitial ads
-    implementation 'com.google.android.gms:play-services-ads:23.0.0'
+    implementation 'com.google.android.gms:play-services-ads:24.9.0'
    // implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
 
     // Google Play In-App Review
