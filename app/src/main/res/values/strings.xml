@@ -9,6 +9,29 @@
     <string name="menu_recovery">Código de recuperación</string>
     <string name="menu_tutorial">Ver tutorial</string>
     
+    <!-- Tutorial -->
+    <string name="tutorial_subject_step1_welcome">¡Bienvenido!</string>
+    <string name="tutorial_subject_step1_message">Toca el botón + para agregar tu primer %1$s</string>
+    <string name="tutorial_subject_step2_message">Ahora toca  para agregar tu primer %1$s</string>
+    <string name="tutorial_event_step1_welcome">¡Excelente!</string>
+    <string name="tutorial_event_step1_message">Ahora toca el botón + para crear tu primer evento</string>
+    <string name="tutorial_event_step2_message">Toca  para crear tu primer evento.\n\nPuedes configurar repeticiones, notificaciones y agregar el costo</string>
+    <string name="tutorial_button_continue">Continuar</string>
+    <string name="subject_type_pet">mascota</string>
+    <string name="subject_type_car">vehículo</string>
+    <string name="subject_type_family">familiar</string>
+    <string name="subject_type_house">casa</string>
+    <string name="subject_type_default">sujeto</string>
+    
+    <!-- Celebration messages -->
+    <string name="celebration_first_subject_title">¡Felicitaciones! 🎉</string>
+    <string name="celebration_first_subject_message">Has creado tu primer %1$s.\n\nAhora puedes crear eventos para recordar cosas importantes:\n\n• Repeticiones: configura eventos que se repitan cada hora, día, mes o año\n• Notificaciones: recibe recordatorios antes del evento\n• Costo: registra gastos asociados a cada evento\n\n¿Te gustaría crear tu primer evento ahora?</string>
+    <string name="celebration_first_subject_button_yes">Sí, crear evento</string>
+    <string name="celebration_first_subject_button_later">Más tarde</string>
+    <string name="celebration_first_event_title">¡Felicitaciones! 🎉</string>
+    <string name="celebration_first_event_message">Has creado tu primer evento para tu %1$s.\n\n💡 Recordatorios importantes:\n\n• Sincronizar: Para respaldar tus datos y mantenerlos actualizados, usa la opción \'Sincronizar\' del menú\n• Código de recuperación: Obtén tu código desde el menú para poder recuperar tus datos si reinstalas la app\n• Compartir: Puedes compartir los eventos y gastos de tu %1$s con otras personas usando la opción \'Compartir\' del menú\n\n¡Sigue agregando eventos para mantener todo organizado!</string>
+    <string name="celebration_first_event_button_ok">Entendido</string>
+    
     <!-- Subjects -->
     <string name="history_title">Historial</string>
     <string name="add_subject">Agregar sujeto</string>

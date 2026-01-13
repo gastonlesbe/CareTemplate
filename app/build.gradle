@@ -13,8 +13,8 @@ android {
         applicationId "com.gastonlesbegueris.caretemplate"
         minSdk 24
         targetSdk 35   // 👈 igual o menor a compileSdk
-        versionCode 11
-        versionName "2.0"
+        versionCode 12
+        versionName "2.1"
         vectorDrawables.useSupportLibrary = true
 
     }
