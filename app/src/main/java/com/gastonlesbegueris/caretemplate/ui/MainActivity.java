@@ -8,6 +8,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatDelegate;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -170,6 +171,33 @@ public class MainActivity extends AppCompatActivity {
         
         // 11) Inicializar y sincronizar código de recuperación
         initializeRecoveryCode();
+
+        // 12) Mensaje de bienvenida + anuncio solo en el primer inicio
+        showFirstRunWelcomeIfNeeded();
+    }
+
+    private void showFirstRunWelcomeIfNeeded() {
+        android.content.SharedPreferences prefs = getSharedPreferences("prefs", MODE_PRIVATE);
+        String key = "first_run_welcome_shown_" + appType;
+        if (prefs.getBoolean(key, false)) {
+            return;
+        }
+
+        prefs.edit().putBoolean(key, true).apply();
+
+        String appName = getString(R.string.app_name);
+        String title = getString(R.string.welcome_title, appName);
+        String message = getString(R.string.welcome_ad_message, appName);
+
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setCancelable(false)
+                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                    String interstitialId = getString(R.string.admob_interstitial_id);
+                    AdMobHelper.showInterstitial(this, interstitialId, null);
+                })
+                .show();
     }
     
     private void initializeRecoveryCode() {
@@ -308,7 +336,7 @@ public class MainActivity extends AppCompatActivity {
                 String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
                 versionItem.setTitle("v" + versionName);
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                versionItem.setTitle("v1.5");
+                versionItem.setTitle("v2.2");
             }
         }
         return super.onPrepareOptionsMenu(menu);

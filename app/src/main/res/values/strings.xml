@@ -8,12 +8,17 @@
     <string name="menu_expenses">Gastos</string>
     <string name="menu_recovery">Código de recuperación</string>
     <string name="menu_tutorial">Ver tutorial</string>
+    <string name="menu_demo_data">Datos de demostración (todo)</string>
+    <string name="menu_demo_subject_events">Crear sujeto y eventos</string>
+    <string name="menu_demo_expenses">Crear gastos</string>
     
     <!-- Tutorial -->
     <string name="tutorial_subject_step1_welcome">¡Bienvenido!</string>
     <string name="tutorial_subject_step1_message">Toca el botón + para agregar tu primer %1$s</string>
     <string name="tutorial_subject_step2_message">Ahora toca  para agregar tu primer %1$s</string>
     <string name="tutorial_event_step1_welcome">¡Excelente!</string>
+    <string name="welcome_title">Bienvenido a %1$s</string>
+    <string name="welcome_ad_message">Para mantener %1$s gratis, mostraremos un anuncio en este primer inicio. Gracias por tu apoyo.</string>
     <string name="tutorial_event_step1_message">Ahora toca el botón + para crear tu primer evento</string>
     <string name="tutorial_event_step2_message">Toca  para crear tu primer evento.\n\nPuedes configurar repeticiones, notificaciones y agregar el costo</string>
     <string name="tutorial_button_continue">Continuar</string>
@@ -34,12 +39,12 @@
     
     <!-- Subjects -->
     <string name="history_title">Historial</string>
-    <string name="add_subject">Agregar sujeto</string>
-    <string name="new_subject">Nuevo sujeto</string>
-    <string name="edit_subject">Editar sujeto</string>
-    <string name="delete_subject">Eliminar sujeto</string>
-    <string name="subject_created">Sujeto creado ✅</string>
-    <string name="subject_updated">Sujeto actualizado ✅</string>
+    <string name="add_subject">Agregar</string>
+    <string name="new_subject">Nuevo</string>
+    <string name="edit_subject">Editar</string>
+    <string name="delete_subject">Elimina</string>
+    <string name="subject_created">Creado ✅</string>
+    <string name="subject_updated">Actualizado ✅</string>
     <string name="subject_deleted">Eliminado ✅</string>
     <string name="subject_updated_simple">Actualizado ✅</string>
     

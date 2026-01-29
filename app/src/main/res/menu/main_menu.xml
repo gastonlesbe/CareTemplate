@@ -51,6 +51,24 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_demo_data"
+        android:title="@string/menu_demo_data"
+        android:icon="@drawable/ic_line_user"
+        app:showAsAction="never" />
+    
+    <item
+        android:id="@+id/action_demo_subject_events"
+        android:title="@string/menu_demo_subject_events"
+        android:icon="@drawable/ic_line_user"
+        app:showAsAction="never" />
+    
+    <item
+        android:id="@+id/action_demo_expenses"
+        android:title="@string/menu_demo_expenses"
+        android:icon="@drawable/ic_line_money"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_version"
         android:title="v1.2"
         app:showAsAction="never"

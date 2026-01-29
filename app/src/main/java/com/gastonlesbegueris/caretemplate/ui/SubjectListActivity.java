@@ -946,9 +946,26 @@ public class SubjectListActivity extends AppCompatActivity {
                 String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
                 versionItem.setTitle("v" + versionName);
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                versionItem.setTitle("v1.5");
+                versionItem.setTitle("v2.2");
             }
         }
+        
+        // Ocultar opciones de demo en builds de producción (solo mostrar en debug)
+        boolean isDebug = com.gastonlesbegueris.caretemplate.BuildConfig.DEBUG;
+        MenuItem demoDataItem = menu.findItem(R.id.action_demo_data);
+        MenuItem demoSubjectEventsItem = menu.findItem(R.id.action_demo_subject_events);
+        MenuItem demoExpensesItem = menu.findItem(R.id.action_demo_expenses);
+        
+        if (demoDataItem != null) {
+            demoDataItem.setVisible(isDebug);
+        }
+        if (demoSubjectEventsItem != null) {
+            demoSubjectEventsItem.setVisible(isDebug);
+        }
+        if (demoExpensesItem != null) {
+            demoExpensesItem.setVisible(isDebug);
+        }
+        
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -986,6 +1003,27 @@ public class SubjectListActivity extends AppCompatActivity {
             // Resetear y mostrar tutorial (forzar visualización incluso si hay sujetos y eventos)
             com.gastonlesbegueris.caretemplate.util.TutorialHelper.resetTutorial(this);
             com.gastonlesbegueris.caretemplate.util.TutorialHelper.checkAndShowTutorial(this, appType, true);
+            return true;
+        } else if (id == R.id.action_demo_data) {
+            // Populate demo data for current flavor (todo en uno)
+            com.gastonlesbegueris.caretemplate.util.DemoDataHelper.populateDemoData(this, appType, () -> {
+                // Refresh the list after demo data is created
+                // The LiveData observer will automatically update the UI
+            });
+            return true;
+        } else if (id == R.id.action_demo_subject_events) {
+            // Create only subject and events (part 1)
+            com.gastonlesbegueris.caretemplate.util.DemoDataHelper.populateSubjectAndEvents(this, appType, () -> {
+                // Refresh the list after subject and events are created
+                // The LiveData observer will automatically update the UI
+            });
+            return true;
+        } else if (id == R.id.action_demo_expenses) {
+            // Create only expenses (part 2) - requires subject to exist
+            com.gastonlesbegueris.caretemplate.util.DemoDataHelper.populateExpenses(this, appType, () -> {
+                // Refresh the list after expenses are created
+                // The LiveData observer will automatically update the UI
+            });
             return true;
         }
         return super.onOptionsItemSelected(item);

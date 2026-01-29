@@ -136,7 +136,7 @@ public class ExpensesActivity extends AppCompatActivity {
                 String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
                 versionItem.setTitle("v" + versionName);
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                versionItem.setTitle("v1.5");
+                versionItem.setTitle("v2.2");
             }
         }
         return super.onPrepareOptionsMenu(menu);

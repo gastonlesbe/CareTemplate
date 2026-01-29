@@ -13,10 +13,12 @@ android {
         applicationId "com.gastonlesbegueris.caretemplate"
         minSdk 24
         targetSdk 35   // 👈 igual o menor a compileSdk
-        versionCode 12
-        versionName "2.1"
+        versionCode 13
+        versionName "2.2"
         vectorDrawables.useSupportLibrary = true
-
+        
+        // Configurar el test runner para instrumentación
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     // Java 17 para evitar el warning de "source value 8 is obsolete"
@@ -34,15 +36,15 @@ android {
             resValue "string", "app_name", "CarePal: Pets"
             resValue "string", "app_type", "pets"     // 👈 para reemplazar BuildConfig.FLAVOR
             resValue "string", "admob_app_id", "ca-app-pub-9841764898906750~2089158049"
-            resValue "string", "admob_interstitial_id", "ca-app-pub-9841764898906750/6449521527"
+            resValue "string", "admob_interstitial_id", "ca-app-pub-9841764898906750/2894416051"
         }
         cars {
             dimension "vertical"
             applicationIdSuffix ".cars"
             resValue "string", "app_name", "CarePal: Cars"
             resValue "string", "app_type", "cars"
-            resValue "string", "admob_app_id", "ca-app-pub-9841764898906750~2089158049"
-            resValue "string", "admob_interstitial_id", "ca-app-pub-9841764898906750/7520553240"
+            resValue "string", "admob_app_id", "ca-app-pub-9841764898906750~6384453597"
+            resValue "string", "admob_interstitial_id", "ca-app-pub-9841764898906750/2828527941"
         }
         family {
             dimension "vertical"
@@ -50,15 +52,15 @@ android {
             resValue "string", "app_name", "CarePal Family"
             resValue "string", "app_type", "family"
             resValue "string", "admob_app_id", "ca-app-pub-9841764898906750~9388593714"
-            resValue "string", "admob_interstitial_id", "ca-app-pub-9841764898906750/6799440463"
+            resValue "string", "admob_interstitial_id", "ca-app-pub-9841764898906750/3628913224"
         }
         house {
             dimension "vertical"
             applicationIdSuffix ".house"
             resValue "string", "app_name", "CarePal: Houses"
             resValue "string", "app_type", "house"
-            resValue "string", "admob_app_id", "ca-app-pub-9841764898906750~2089158049"
-            resValue "string", "admob_interstitial_id", "ca-app-pub-9841764898906750/9832458605"
+            resValue "string", "admob_app_id", "ca-app-pub-9841764898906750~1868469990"
+            resValue "string", "admob_interstitial_id", "ca-app-pub-9841764898906750/9178313877"
         }
     }
 
@@ -143,5 +145,11 @@ dependencies {
 
     // Google Play In-App Review
     implementation 'com.google.android.play:review:2.0.2'
+
+    // Testing dependencies
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test:rules:1.6.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
 
 }

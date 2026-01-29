@@ -21,6 +21,9 @@ public class ExampleInstrumentedTest {
     public void useAppContext() {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        assertEquals("com.gastonlesbegueris.caretemplate", appContext.getPackageName());
+        // El package name puede variar según el flavor (.family, .pets, .cars, .house)
+        String packageName = appContext.getPackageName();
+        assertTrue("Package name debe contener caretemplate", 
+            packageName.contains("caretemplate"));
     }
 }
