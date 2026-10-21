@@ -1,0 +1,62 @@
+🏠 HousePal - Tu asistente para el cuidado de tu hogar
+
+HousePal es la aplicación perfecta para mantener organizado todo lo relacionado con el cuidado de tu hogar. Nunca más olvides un mantenimiento, una reparación, el pago de servicios o cualquier tarea importante de tu propiedad.
+
+✨ CARACTERÍSTICAS PRINCIPALES:
+
+📅 Recordatorios Inteligentes
+Crea eventos personalizados para tu hogar: mantenimiento, reparaciones, pagos de servicios, inspecciones, renovaciones, y más. Recibe notificaciones para no olvidar nada importante.
+
+💰 Seguimiento de Gastos
+Registra todos los gastos relacionados con tu hogar: servicios públicos, mantenimiento, reparaciones, mejoras, impuestos, seguros, y más. Mantén un control completo de tus finanzas del hogar.
+
+🏡 Múltiples Propiedades
+Gestiona todas tus propiedades en un solo lugar. Cada una con su propio perfil, eventos y gastos. Perfecto si tienes más de una propiedad o si alquilas.
+
+☁️ Sincronización en la Nube
+Tus datos se sincronizan automáticamente con Firebase, para que puedas acceder desde cualquier dispositivo. Tus datos están seguros y siempre disponibles.
+
+🎨 Interfaz Intuitiva
+Diseño moderno y fácil de usar. Navega rápidamente entre tus propiedades y eventos. Botón flotante disponible en todas las pantallas para agregar eventos o propiedades de forma rápida y sencilla.
+
+🔔 Notificaciones
+Recibe recordatorios automáticos de eventos importantes para que nunca olvides mantener tu hogar en perfectas condiciones.
+
+📊 Organización Total
+Mantén un historial completo de todos los eventos y gastos de tu hogar. Perfecto para llevar un registro detallado del mantenimiento y cuidado de tu propiedad.
+
+📱 Vista de Gastos por Mes
+Revisa todos tus gastos organizados por mes. Selecciona cualquier mes para ver los detalles de cada gasto realizado en tu hogar.
+
+📈 Historial Completo
+Accede al historial completo de eventos de cada propiedad. Ve todo lo que ha sucedido y lo que está por venir. Mantén un registro completo de todas las actividades relacionadas con tu hogar.
+
+🔄 Compartir Información
+Comparte información de tus propiedades con otros usuarios de forma segura. Ideal para compartir con familiares, inquilinos o administradores.
+
+🛠️ Gestión de Mantenimiento
+Lleva un control detallado de todas las tareas de mantenimiento: pintura, plomería, electricidad, jardinería, limpieza profunda, y más. Nunca más olvides cuándo fue la última vez que realizaste un mantenimiento.
+
+💡 Servicios y Utilidades
+Organiza todos los pagos de servicios: luz, agua, gas, internet, cable, y más. Mantén un registro de todos los pagos y fechas de vencimiento.
+
+🔐 Seguros y Documentos
+Gestiona información importante como seguros del hogar, documentos de propiedad, contratos, y más. Todo organizado en un solo lugar.
+
+---
+
+¿Por qué elegir HousePal?
+
+• Simple y fácil de usar
+• Diseñado específicamente para el cuidado del hogar
+• Sincronización automática entre dispositivos
+• Sin complicaciones, solo funcionalidad
+• Interfaz moderna y atractiva
+• Notificaciones personalizables
+• Control total de tus datos
+• Perfecto para propietarios e inquilinos
+• Organización completa de gastos y eventos
+
+Empieza a organizar mejor tu hogar hoy mismo. Descarga HousePal y mantén tu propiedad bajo control de manera sencilla y eficiente.
+
+🏠 ¡Porque tu hogar merece el mejor cuidado!

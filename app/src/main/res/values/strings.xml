@@ -272,10 +272,33 @@
     <string name="placeholder_subject_name">Kefu</string>
     <string name="placeholder_space"> </string>
     
+    <!-- Theme / Appearance -->
+    <string name="menu_theme">Apariencia</string>
+    <string name="theme_choose">Elegir apariencia</string>
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark">Oscuro</string>
+    <string name="theme_system">Seguir sistema</string>
+
+    <!-- Our Apps cross-promo -->
+    <string name="menu_our_apps">Nuestras apps</string>
+
+    <!-- Contact / Rate / Share -->
+    <string name="menu_contact">Contacto</string>
+    <string name="menu_rate">Calificar la app</string>
+    <string name="menu_share_app">Compartir app</string>
+    <string name="contact_title">Contacto</string>
+    <string name="contact_hint">Tu mensaje…</string>
+    <string name="contact_send">Enviar</string>
+    <string name="contact_cancel">Cancelar</string>
+    <string name="contact_empty_error">Escribí tu mensaje primero</string>
+
     <!-- AdMob codes are defined per flavor in build.gradle -->
     <!-- Estos valores son fallback, se sobrescriben por flavor -->
     <string name="admob_app_id">ca-app-pub-9841764898906750~2089158049</string>
     <string name="admob_interstitial_id">ca-app-pub-9841764898906750/6449521527</string>
     <string name="sync_completed">Sincronización realizada ✅</string>
     <string name="sync_completed_message">Tus datos se han sincronizado correctamente con la nube.</string>
+    <string name="griscal_promo_message">Organizá tu familia, mascotas, hogar y vehículos — todo en una sola app web. Gratis para probar.</string>
+    <string name="griscal_promo_cta">Probar Griscal</string>
+    <string name="griscal_promo_dismiss">Ahora no</string>
 </resources>

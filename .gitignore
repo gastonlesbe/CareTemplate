@@ -18,3 +18,14 @@ local.properties
 *.jks
 *.keystore
 keystore.properties
+
+# Heap dumps, service-account keys, local tooling
+*.hprof
+*-firebase-adminsdk-*.json
+.vscode/
+.idea/androidTestResultsUserPreferences.xml
+tests/node_modules/
+tests/venv/
+tests/__pycache__/
+tests/reports/
+app/src/griscal/google-services.json

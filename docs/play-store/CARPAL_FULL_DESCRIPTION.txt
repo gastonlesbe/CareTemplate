@@ -1,0 +1,40 @@
+🚗 CarPal - Tu asistente para el cuidado de vehículos
+
+CarPal es la aplicación perfecta para mantener organizado todo lo relacionado con el cuidado de tus vehículos. Nunca más olvides un mantenimiento, un cambio de aceite o una inspección importante.
+
+✨ CARACTERÍSTICAS PRINCIPALES:
+
+📅 Recordatorios Inteligentes
+Crea eventos personalizados para cada vehículo: mantenimiento, cambio de aceite, inspección técnica, seguro, y más. Recibe notificaciones para no olvidar nada importante.
+
+💰 Seguimiento de Gastos
+Registra todos los gastos relacionados con tus vehículos: combustible, mantenimiento, reparaciones, seguro, y más. Mantén un control completo de tus finanzas.
+
+🚙 Múltiples Vehículos
+Gestiona todos tus vehículos en un solo lugar. Cada uno con su propio perfil, eventos y gastos.
+
+☁️ Sincronización en la Nube
+Tus datos se sincronizan automáticamente con Firebase, para que puedas acceder desde cualquier dispositivo.
+
+🎨 Interfaz Intuitiva
+Diseño moderno y fácil de usar. Navega rápidamente entre tus vehículos y eventos. Botón flotante disponible en todas las pantallas para agregar eventos o vehículos de forma rápida y sencilla.
+
+🔔 Notificaciones
+Recibe recordatorios automáticos de eventos importantes para que nunca olvides mantener tus vehículos.
+
+📊 Organización Total
+Mantén un historial completo de todos los eventos y gastos de tus vehículos. Perfecto para llevar un registro detallado de su mantenimiento y condición.
+
+---
+
+¿Por qué elegir CarPal?
+
+• Simple y fácil de usar
+• Diseñado específicamente para vehículos
+• Sincronización automática
+• Sin complicaciones, solo funcionalidad
+• Interfaz intuitiva y moderna
+
+Empieza a cuidar mejor tus vehículos hoy mismo. Descarga CarPal y mantén tus vehículos en perfecto estado.
+
+🚗 ¡Mantén tus vehículos funcionando perfectamente!

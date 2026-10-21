@@ -1,0 +1,303 @@
+<resources>
+    <string name="app_name">CareTemplate</string>
+    
+    <!-- Menu items -->
+    <string name="menu_home">Home</string>
+    <string name="menu_agenda">Calendar</string>
+    <string name="menu_sync">Sync</string>
+    <string name="menu_expenses">Expenses</string>
+    <string name="menu_recovery">Recovery Code</string>
+    <string name="menu_tutorial">View tutorial</string>
+    <string name="menu_demo_data">Demo data (all)</string>
+    <string name="menu_demo_subject_events">Create subject and events</string>
+    <string name="menu_demo_expenses">Create expenses</string>
+    
+    <!-- Tutorial -->
+    <string name="tutorial_subject_step1_welcome">Welcome!</string>
+    <string name="tutorial_subject_step1_message">Tap the + button to add your first %1$s</string>
+    <string name="tutorial_subject_step2_message">Now tap  to add your first %1$s</string>
+    <string name="tutorial_event_step1_welcome">Excellent!</string>
+    <string name="welcome_title">Welcome to %1$s</string>
+    <string name="welcome_ad_message">To keep %1$s free, we will show an ad on this first launch. Thanks for your support.</string>
+    <string name="tutorial_event_step1_message">Now tap the + button to create your first event</string>
+    <string name="tutorial_event_step2_message">Tap  to create your first event.\n\nYou can configure repetitions, notifications and add the cost</string>
+    <string name="tutorial_button_continue">Continue</string>
+    <string name="subject_type_pet">pet</string>
+    <string name="subject_type_car">vehicle</string>
+    <string name="subject_type_family">family member</string>
+    <string name="subject_type_house">house</string>
+    <string name="subject_type_default">subject</string>
+    
+    <!-- Celebration messages -->
+    <string name="celebration_first_subject_title">Congratulations! 🎉</string>
+    <string name="celebration_first_subject_message">You have created your first %1$s.\n\nNow you can create events to remember important things:\n\n• Repetitions: configure events that repeat every hour, day, month or year\n• Notifications: receive reminders before the event\n• Cost: record expenses associated with each event\n\nWould you like to create your first event now?</string>
+    <string name="celebration_first_subject_button_yes">Yes, create event</string>
+    <string name="celebration_first_subject_button_later">Later</string>
+    <string name="celebration_first_event_title">Congratulations! 🎉</string>
+    <string name="celebration_first_event_message">You have created your first event for your %1$s.\n\n💡 Important reminders:\n\n• Sync: To backup your data and keep it updated, use the \'Sync\' option from the menu\n• Recovery code: Get your code from the menu to recover your data if you reinstall the app\n• Share: You can share events and expenses of your %1$s with other people using the \'Share\' option from the menu\n\nKeep adding events to keep everything organized!</string>
+    <string name="celebration_first_event_button_ok">Got it</string>
+    
+    <!-- Subjects -->
+
+    <string name="history_title">History</string>
+    <string name="add_subject">Add</string>
+    <string name="new_subject">New</string>
+    <string name="edit_subject">Edit</string>
+    <string name="delete_subject">Delete</string>
+    <string name="subject_created">Created ✅</string>
+    <string name="subject_updated">Updated ✅</string>
+    <string name="subject_deleted">Deleted ✅</string>
+    <string name="subject_updated_simple">Pet updated ✅</string>
+    
+    <!-- Subject fields -->
+    <string name="field_name">Name</string>
+    <string name="field_brand">Brand</string>
+    <string name="field_model">Model</string>
+    <string name="field_birth_date">Birth date (MM/dd/yyyy)</string>
+    <string name="field_odometer">Odometer (km)</string>
+    <string name="field_weight">Weight (kg)</string>
+    <string name="field_measure">Measure</string>
+    <string name="field_notes">Notes</string>
+    <string name="field_address">Address</string>
+    <string name="field_date">Date (MM/dd/yyyy)</string>
+    
+    <!-- Subject validation -->
+    <string name="error_brand_or_model_required">Brand or Model required</string>
+    <string name="error_name_required">Name required</string>
+    <string name="select_subject_first">Select a pet first to add events</string>
+    <string name="delete_subject_confirmation">Are you sure you want to delete %1$s?</string>
+    <string name="delete_subject_confirmation_full">Are you sure you want to delete %1$s? This action cannot be undone.</string>
+    
+    <!-- Subject info -->
+    <string name="odometer_label">Odometer: %1$s</string>
+    <string name="age_label">Age: %1$s</string>
+    <string name="weight_label"> · Weight: %1$s kg</string>
+    <string name="age_year_short">y</string>
+    <string name="age_month_short">m</string>
+    <string name="next_event_label">Next: %1$s</string>
+    <string name="next_event_with_title">Next: %1$s · %2$s</string>
+    <string name="next_event_none">Next: —</string>
+    
+    <!-- Buttons -->
+    <string name="button_save">Save</string>
+    <string name="button_cancel">Cancel</string>
+    <string name="button_delete">Delete</string>
+    <string name="button_close">Close</string>
+    <string name="button_recover">Recover</string>
+    <string name="button_watch_video">Watch video</string>
+    <string name="button_copy_code">Copy code</string>
+    <string name="button_recover_with_code">Recover data with code</string>
+    <string name="button_choose_date_time">Choose date/time</string>
+    <string name="event_date_hint">Date</string>
+    <string name="event_time_hint">Time</string>
+    <string name="button_mark_only">Mark only</string>
+    <string name="button_share">Share</string>
+    <string name="menu_import_subject">Import</string>
+    <string name="button_import">Import</string>
+    <string name="button_ok">OK</string>
+    
+    <!-- Recovery code -->
+    <string name="recovery_code_title">Recovery Code</string>
+    <string name="recovery_code_message">Your recovery code will allow you to restore your data if you reinstall the app or change devices.</string>
+    <string name="recovery_code_your_code">Your recovery code:</string>
+    <string name="recovery_code_save_message">Save this code in a safe place. You will need it if you reinstall the app or change devices.</string>
+    <string name="recovery_code_format">XXXX-XXXX-XXXX</string>
+    <string name="recovery_code_hint">Recovery code</string>
+    <string name="recovery_code_enter_hint">Enter your recovery code (format: XXXX-XXXX-XXXX)</string>
+    <string name="recovery_code_copied">Code copied to clipboard</string>
+    <string name="recovery_code_recover_title">Recover data</string>
+    <string name="recovery_code_recover_message">Enter your recovery code to restore your data</string>
+    <string name="recovery_code_invalid">Enter a valid code</string>
+    <string name="recovery_code_not_found">Recovery code not found</string>
+    <string name="recovery_code_error">Error getting code. Try again later.</string>
+    <string name="recovery_code_generate_error">Error: Could not generate code</string>
+    <string name="recovery_code_show_error">Error showing code: %1$s</string>
+    <string name="error_security_sha1">Security error. Check SHA-1 in Firebase Console</string>
+    
+    <!-- Share subject -->
+    <string name="share_subject">Share</string>
+    <string name="share_subject_title">Share</string>
+    <string name="share_subject_message">Generate a code to share with another person</string>
+    <string name="share_subject_code_title">Share code</string>
+    <string name="share_subject_code_message">Share this code with the person you want to have it:</string>
+    <string name="share_subject_code_copied">Code copied to clipboard</string>
+    <string name="share_subject_receive_title">Import</string>
+    <string name="share_subject_receive_message">Enter the share code you were sent</string>
+    <string name="share_subject_code_hint">Share code (format: XXXX-XXXX-XXXX)</string>
+    <string name="share_subject_invalid">Enter a valid code</string>
+    <string name="share_subject_not_found">Share code not found</string>
+    <string name="share_subject_error">Error sharing: %1$s</string>
+    <string name="share_subject_importing">Importing…</string>
+    <string name="share_subject_imported">Imported successfully ✅</string>
+    <string name="share_subject_import_error">Error importing: %1$s</string>
+    <string name="share_subject_select_one">Select one</string>
+    <string name="tab_history">History</string>
+    <string name="tab_upcoming">Upcoming</string>
+    <string name="no_events_upcoming">No upcoming events</string>
+    
+    <!-- Recovery process -->
+    <string name="recovering_data">Recovering data…</string>
+    <string name="user_recovered">User recovered. Syncing data…</string>
+    <string name="data_recovered">Data recovered ✅</string>
+    <string name="recovery_error">Error: %1$s</string>
+    
+    <!-- Sync -->
+    <string name="sync_success">Data synced ✅</string>
+    <string name="sync_push_success">Push OK ✅</string>
+    <string name="sync_pull_success">Pull OK ✅</string>
+    <string name="sync_error">Sync error: %1$s</string>
+    <string name="sync_error_connection">Connection error. Check your internet and try again</string>
+    <string name="sync_error_auth">Authentication error. Try syncing again</string>
+    <string name="sync_error_auth_title">Authentication error</string>
+    <string name="sync_error_security">Security error. Check Firebase configuration (SHA-1)</string>
+    <string name="sync_start_error">Error starting sync: %1$s</string>
+    <string name="sync_auth_error">Error: Could not authenticate</string>
+    <string name="sync_config_error">Configuration error. Check Firebase Console and SHA-1</string>
+    
+    <!-- Events -->
+    <string name="new_event">New event</string>
+    <string name="edit_event">Edit event</string>
+    <string name="event_title">Event title</string>
+    <string name="event_title_hint">Title</string>
+    <string name="event_cost_hint">Cost</string>
+    <string name="event_saved">Saved locally ✅</string>
+    <string name="event_updated">Updated locally ✅</string>
+    <string name="event_deleted">Deleted ✅</string>
+    <string name="event_title_required">Title required</string>
+    <string name="event_mark_realized">Mark as completed</string>
+    <string name="event_mark_realized_message">You can save the cost now.</string>
+    <string name="event_realized">Completed</string>
+    <string name="event_marked_realized">Mark as done</string>
+    <string name="event_marked_pending">Mark as to do</string>
+    <string name="event_subject_placeholder">(Pet)</string>
+    <string name="event_date_format">MM/dd HH:mm</string>
+    <string name="event_cost_format">$%1$.2f</string>
+    <string name="event_kilometers">Kilometers: %1$s km</string>
+    <string name="event_cost_zero">$0.00</string>
+    
+    <!-- Event repetition -->
+    <string name="event_repeat">Repeat event</string>
+    <string name="event_repeat_none">Don\'t repeat</string>
+    <string name="event_repeat_hourly">Hourly</string>
+    <string name="event_repeat_daily">Daily</string>
+    <string name="event_repeat_monthly">Monthly</string>
+    <string name="event_repeat_yearly">Yearly</string>
+    <string name="event_repeat_interval">Every %1$d %2$s</string>
+    <string name="event_repeat_interval_hours">hours</string>
+    <string name="event_repeat_interval_days">days</string>
+    <string name="event_repeat_interval_months">months</string>
+    <string name="event_repeat_interval_years">years</string>
+    <string name="event_repeat_until">Repeat until</string>
+    <string name="event_repeat_times">Repeat %1$d times</string>
+    <string name="event_repeat_interval_label">Repetition interval</string>
+    <string name="event_repeat_interval_number_hint">Amount</string>
+    <string name="event_repeat_interval_hint">Every how many</string>
+    <string name="event_repeat_end_date_hint">End date (optional)</string>
+    <string name="event_repeat_count_hint">Number of repetitions (optional)</string>
+    
+    <!-- Event notifications -->
+    <string name="event_notification">Notification</string>
+    <string name="event_notification_none">No notification</string>
+    <string name="event_notification_5min">5 minutes before</string>
+    <string name="event_notification_15min">15 minutes before</string>
+    <string name="event_notification_30min">30 minutes before</string>
+    <string name="event_notification_1hour">1 hour before</string>
+    <string name="event_notification_2hours">2 hours before</string>
+    <string name="event_notification_1day">1 day before</string>
+    <string name="event_notification_2days">2 days before</string>
+    <string name="event_notification_1week">1 week before</string>
+    <string name="notification_channel_name">Event reminders</string>
+    <string name="notification_channel_description">Notifications to remind you of important events</string>
+    <string name="notification_event_reminder">Event: %1$s</string>
+    <string name="notification_event_due">⚠️ Event void: %1$s</string>
+    <string name="notification_permission_denied">To receive event reminders, you need to allow notifications. You can enable it in App Settings.</string>
+    
+    <!-- Event validation -->
+    <string name="error_create_subject_first">Create a pet first</string>
+    <string name="error_create_subject">Error creating subject</string>
+    <string name="error_select_subject">Select a pet</string>
+    <string name="error_no_subjects">Add a pet first 🐶🐱</string>
+    
+    <!-- General -->
+    <string name="no_data_yet">No data entered yet</string>
+    <string name="no_events_history">No events in history</string>
+    <string name="loading_video">Loading advertisement video…</string>
+    <string name="video_load_error">Could not load video. Showing code…</string>
+    <string name="dialog_load_error">Error loading dialog</string>
+    
+    <!-- Date/Time -->
+    <string name="choose_day">Choose day</string>
+    <string name="select_icon_type">Select type</string>
+    
+    <!-- Expenses -->
+    <string name="expenses_total">Total spent: $%1$.2f</string>
+    <string name="expenses_plan">Plan: $%1$.2f</string>
+    <string name="expenses_real">Real: $%1$.2f</string>
+    <string name="expenses_plan_label">Planned: $%1$.2f</string>
+    <string name="expenses_real_label">Actual: $%1$.2f</string>
+    <string name="expenses_spent_label">Spent: $%1$.2f</string>
+    <string name="expenses_events">Events: %1$d</string>
+    <string name="expenses_subject_title">Pet · Title</string>
+    <string name="expenses_date_cost">Date · $Cost</string>
+    <string name="expenses_plan_real">Plan: $%1$.2f · Real: $%2$.2f</string>
+    <string name="month_summary">%1$s · Planned: $%2$.2f · Actual: $%3$.2f</string>
+    
+    <!-- Common -->
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    
+    <!-- Additional strings -->
+    <string name="cost_optional">Cost (optional)</string>
+    <string name="marked_as_realized">Marked as completed</string>
+    <string name="marked_as_pending">Marked as pending</string>
+    <string name="error_load_dialog">Error loading dialog</string>
+    <string name="error_get_code">Error getting code. Try again later.</string>
+    <string name="error_generate_code">Error: Could not generate code</string>
+    <string name="error_show_code">Error showing code: %1$s</string>
+    <string name="error_upload_events_recovery">Error uploading events during recovery: %1$s</string>
+    <string name="error_upload_subjects_recovery">Error uploading pets during recovery: %1$s</string>
+    <string name="auth_error_message">Auth error: %1$s</string>
+    
+    <!-- Layout placeholders (these are just placeholders, actual values come from code) -->
+    <string name="placeholder_name">Name</string>
+    <string name="placeholder_age_weight">Age: 3y 2m · Weight: 7.2 kg   |   152.000 km</string>
+    <string name="placeholder_next_event">Next: 10/21 10:00 · Vaccine</string>
+    <string name="placeholder_subject">(Pet)</string>
+    <string name="placeholder_event_title">Event title</string>
+    <string name="placeholder_kilometers">Kilometers: 0 km</string>
+    <string name="placeholder_cost">$0.00</string>
+    <string name="placeholder_empty">""</string>
+    <string name="placeholder_month">June 2025</string>
+    <string name="placeholder_subject_name">Kefu</string>
+    <string name="placeholder_space">Pets </string>
+    <string name="button_save_event">Save Event</string>
+    <string name="event_date_time">Date And Time</string>
+    <string name="sync_completed">Sync made ✅</string>
+    <string name="sync_completed_message">Your data was sync</string>
+
+
+    <!-- Theme / Appearance -->
+    <string name="menu_theme">Appearance</string>
+    <string name="theme_choose">Choose appearance</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_system">Follow system</string>
+
+    <!-- Our Apps cross-promo -->
+    <string name="menu_our_apps">Our apps</string>
+
+    <!-- Contact / Rate / Share -->
+    <string name="menu_contact">Contact us</string>
+    <string name="menu_rate">Rate the app</string>
+    <string name="menu_share_app">Share app</string>
+    <string name="contact_title">Contact us</string>
+    <string name="contact_hint">Your message…</string>
+    <string name="contact_send">Send</string>
+    <string name="contact_cancel">Cancel</string>
+    <string name="contact_empty_error">Please write your message first</string>
+
+    <!-- AdMob codes are defined per flavor -->
+    <string name="griscal_promo_message">Also try Griscal — organize your family, pets, home and vehicles in one web app. Free to start.</string>
+    <string name="griscal_promo_cta">Try Griscal</string>
+    <string name="griscal_promo_dismiss">Maybe later</string>
+</resources>

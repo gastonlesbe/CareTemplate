@@ -1,0 +1,51 @@
+👨‍👩‍👧‍👦 FamilyPal - Tu asistente para gestionar tu familia
+
+FamilyPal es la aplicación perfecta para mantener organizado todo lo relacionado con los miembros de tu familia. Nunca más olvides un cumpleaños, una cita médica, un evento escolar o cualquier actividad importante.
+
+✨ CARACTERÍSTICAS PRINCIPALES:
+
+📅 Recordatorios Inteligentes
+Crea eventos personalizados para cada miembro de la familia: cumpleaños, citas médicas, reuniones escolares, actividades deportivas, y más. Recibe notificaciones para no olvidar nada importante.
+
+💰 Seguimiento de Gastos
+Registra todos los gastos relacionados con tu familia: salud, educación, actividades, alimentación. Mantén un control completo de tus finanzas familiares.
+
+👨‍👩‍👧‍👦 Múltiples Miembros
+Gestiona todos los miembros de tu familia en un solo lugar. Cada uno con su propio perfil, eventos y gastos.
+
+☁️ Sincronización en la Nube
+Tus datos se sincronizan automáticamente con Firebase, para que puedas acceder desde cualquier dispositivo. Tus datos están seguros y siempre disponibles.
+
+🎨 Interfaz Intuitiva
+Diseño moderno y fácil de usar. Navega rápidamente entre los miembros de tu familia y sus eventos.
+
+🔔 Notificaciones
+Recibe recordatorios automáticos de eventos importantes para que nunca olvides las actividades de tu familia.
+
+📊 Organización Total
+Mantén un historial completo de todos los eventos y gastos de tu familia. Perfecto para llevar un registro detallado de la vida familiar.
+
+📱 Vista de Gastos por Mes
+Revisa todos tus gastos organizados por mes. Selecciona cualquier mes para ver los detalles de cada gasto realizado.
+
+📈 Historial Completo
+Accede al historial completo de eventos de cada miembro de la familia. Ve todo lo que ha sucedido y lo que está por venir.
+
+🔄 Compartir Información
+Comparte información de miembros de la familia con otros usuarios de forma segura.
+
+---
+
+¿Por qué elegir FamilyPal?
+
+• Simple y fácil de usar
+• Diseñado específicamente para familias
+• Sincronización automática entre dispositivos
+• Sin complicaciones, solo funcionalidad
+• Interfaz moderna y atractiva
+• Notificaciones personalizables
+• Control total de tus datos
+
+Empieza a organizar mejor tu familia hoy mismo. Descarga FamilyPal y mantén todo bajo control de manera sencilla y eficiente.
+
+👨‍👩‍👧‍👦 ¡Porque la familia es lo más importante!

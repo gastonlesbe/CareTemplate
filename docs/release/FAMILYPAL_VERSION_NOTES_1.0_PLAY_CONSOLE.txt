@@ -1,0 +1,86 @@
+<es-ES>
+¡Bienvenido a FamilyPal!
+
+Gestiona y organiza la información de los miembros de tu familia:
+- Gestiona información de familiares
+- Crea eventos y recordatorios
+- Registra gastos familiares
+- Sincroniza entre dispositivos
+- Historial completo de actividades
+
+Primera versión de FamilyPal.
+</es-ES>
+
+<en-GB>
+Welcome to FamilyPal!
+
+FamilyPal helps you manage and organize your family members' information in a simple and efficient way.
+
+Main features:
+- Manage your family members' information
+- Create important events and reminders
+- Track family expenses
+- Sync your data across devices
+- Complete history of events and activities
+- Intuitive and easy-to-use interface
+
+This is the first version of FamilyPal. We hope you find it useful!
+</en-GB>
+
+<en-IN>
+Welcome to FamilyPal!
+
+FamilyPal helps you manage and organize your family members' information in a simple and efficient way.
+
+Main features:
+- Manage your family members' information
+- Create important events and reminders
+- Track family expenses
+- Sync your data across devices
+- Complete history of events and activities
+- Intuitive and easy-to-use interface
+
+This is the first version of FamilyPal. We hope you find it useful!
+</en-IN>
+
+<en-US>
+Welcome to FamilyPal!
+
+FamilyPal helps you manage and organize your family members' information in a simple and efficient way.
+
+Main features:
+- Manage your family members' information
+- Create important events and reminders
+- Track family expenses
+- Sync your data across devices
+- Complete history of events and activities
+- Intuitive and easy-to-use interface
+
+This is the first version of FamilyPal. We hope you find it useful!
+</en-US>
+
+<es-419>
+¡Bienvenido a FamilyPal!
+
+Gestiona y organiza la información de los miembros de tu familia:
+- Gestiona información de familiares
+- Crea eventos y recordatorios
+- Registra gastos familiares
+- Sincroniza entre dispositivos
+- Historial completo de actividades
+
+Primera versión de FamilyPal.
+</es-419>
+
+<es-US>
+¡Bienvenido a FamilyPal!
+
+Gestiona y organiza la información de los miembros de tu familia:
+- Gestiona información de familiares
+- Crea eventos y recordatorios
+- Registra gastos familiares
+- Sincroniza entre dispositivos
+- Historial completo de actividades
+
+Primera versión de FamilyPal.
+</es-US>

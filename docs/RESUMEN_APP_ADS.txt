@@ -1,0 +1,55 @@
+═══════════════════════════════════════════════════════════════
+  RESUMEN: Configuración de app-ads.txt para PetPal
+═══════════════════════════════════════════════════════════════
+
+✅ ARCHIVO CREADO Y AGREGADO A GIT
+   - Archivo: app-ads.txt
+   - Contenido: google.com, pub-9841764898906750, DIRECT, f08c47fec0942fa0
+   - Estado: Agregado y commiteado
+
+📤 PRÓXIMOS PASOS:
+
+1. SUBIR A GITHUB (ejecuta esto ahora):
+   git push origin master
+
+2. HABILITAR GITHUB PAGES:
+   - Ve a: https://github.com/gastonlesbe/CareTemplate/settings/pages
+   - Source: "Deploy from a branch"
+   - Branch: "master"
+   - Folder: "/ (root)"
+   - Click en "Save"
+
+3. VERIFICAR URL (después de 2-3 minutos):
+   https://gastonlesbe.github.io/CareTemplate/app-ads.txt
+   
+   Debe mostrar el contenido del archivo.
+
+4. ACTUALIZAR GOOGLE PLAY CONSOLE:
+   - Ve a: https://play.google.com/console
+   - Selecciona "PetPal"
+   - Configuración de la app → Detalles de la app
+   - Campo "Sitio web": https://gastonlesbe.github.io
+   - Guarda
+
+5. VERIFICAR EN ADMOB:
+   - Ve a: https://apps.admob.com/
+   - Selecciona "PetPal"
+   - Configuración → app-ads.txt
+   - Click en "Verificar"
+   - Espera (puede tardar hasta 24 horas)
+
+═══════════════════════════════════════════════════════════════
+  URLs IMPORTANTES
+═══════════════════════════════════════════════════════════════
+
+Repositorio:        https://github.com/gastonlesbe/CareTemplate
+Archivo app-ads.txt: https://gastonlesbe.github.io/CareTemplate/app-ads.txt
+Config Pages:       https://github.com/gastonlesbe/CareTemplate/settings/pages
+Google Play:        https://play.google.com/console
+AdMob Console:     https://apps.admob.com/
+
+═══════════════════════════════════════════════════════════════
+
+Para más detalles, consulta: PASOS_APP_ADS_TXT.md
+
+

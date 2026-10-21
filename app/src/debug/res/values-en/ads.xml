@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DEBUG ONLY: overrides the per-flavor values-en ad unit IDs (src/<flavor>/res/values-en)
+     with Google's official sample IDs. The default-locale IDs are overridden by the debug
+     buildType resValues in app/build.gradle. -->
+<resources>
+    <string name="admob_interstitial_id" translatable="false">ca-app-pub-3940256099942544/1033173712</string>
+    <string name="admob_banner_id" translatable="false">ca-app-pub-3940256099942544/6300978111</string>
+    <string name="admob_rewarded_id" translatable="false">ca-app-pub-3940256099942544/5224354917</string>
+</resources>

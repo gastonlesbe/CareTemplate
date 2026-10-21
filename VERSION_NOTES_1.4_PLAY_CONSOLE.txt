@@ -1,0 +1,275 @@
+<es-ES>
+## 🎉 Nuevas Funcionalidades
+
+- **Nueva Pantalla de Agenda Mejorada**: 
+  - Los eventos ahora se muestran agrupados por día con cabeceras visuales
+  - Cada día muestra su fecha y debajo todos los eventos de ese día
+  - Ordenados del más próximo al más lejano
+  - Diseño consistente con la pantalla de Gastos
+
+## ✨ Mejoras de Interfaz
+
+- **FAB Unificado en Todas las Pantallas**: 
+  - El botón flotante (FAB) ahora tiene el mismo comportamiento en todas las pantallas
+  - Desde Agenda, al presionar "Agregar evento" se abre directamente el diálogo de creación
+  - Navegación más intuitiva y consistente
+
+- **Mejoras en la Agenda**:
+  - Separadores visuales entre días para mejor organización
+  - Eventos mostrados con nombre del evento y del sujeto
+  - Fácil selección de eventos para editarlos
+
+## 🔧 Mejoras Técnicas
+
+- **Optimización de Notificaciones**:
+  - Corrección del problema de límite de alarmas (500) en Android
+  - Los eventos repetitivos ahora se limitan a 100 eventos
+  - Las notificaciones solo se programan para eventos dentro de los próximos 60 días
+  - Mejor rendimiento y estabilidad
+
+- **Mejoras en la Importación de Datos**:
+  - Corrección para que se importen todos los sujetos correctamente
+  - La primera sincronización ahora trae todos los datos sin filtros
+  - Mejor manejo de la recuperación de datos entre dispositivos
+
+- **Filtrado de Eventos Mejorado**:
+  - La agenda ahora muestra solo eventos futuros (no eventos pasados)
+  - Mejor organización y visualización de eventos pendientes
+
+## 🐛 Correcciones
+
+- Corregido el problema donde solo se importaba un sujeto al recuperar datos
+- Corregido el crash por límite de alarmas al crear eventos repetitivos
+- Corregido el comportamiento del FAB en Agenda para abrir directamente el diálogo de eventos
+- Mejoras en el manejo de errores y estabilidad general
+</es-ES>
+
+<en-GB>
+## 🎉 New Features
+
+- **Improved Agenda Screen**: 
+  - Events are now grouped by day with visual headers
+  - Each day shows its date with all events listed below
+  - Sorted from nearest to furthest
+  - Consistent design with the Expenses screen
+
+## ✨ Interface Improvements
+
+- **Unified FAB Across All Screens**: 
+  - The floating action button (FAB) now has consistent behaviour on all screens
+  - From Agenda, pressing "Add event" opens the creation dialog directly
+  - More intuitive and consistent navigation
+
+- **Agenda Improvements**:
+  - Visual separators between days for better organisation
+  - Events displayed with event name and subject name
+  - Easy event selection for editing
+
+## 🔧 Technical Improvements
+
+- **Notification Optimisation**:
+  - Fixed Android alarm limit (500) issue
+  - Recurring events are now limited to 100 events
+  - Notifications are only scheduled for events within the next 60 days
+  - Better performance and stability
+
+- **Data Import Improvements**:
+  - Fixed issue where only one subject was imported
+  - First synchronisation now brings all data without filters
+  - Better handling of data recovery between devices
+
+- **Improved Event Filtering**:
+  - Agenda now shows only future events (not past events)
+  - Better organisation and display of pending events
+
+## 🐛 Bug Fixes
+
+- Fixed issue where only one subject was imported when recovering data
+- Fixed crash due to alarm limit when creating recurring events
+- Fixed FAB behaviour in Agenda to open event dialog directly
+- Improvements in error handling and overall stability
+</en-GB>
+
+<en-IN>
+## 🎉 New Features
+
+- **Improved Agenda Screen**: 
+  - Events are now grouped by day with visual headers
+  - Each day shows its date with all events listed below
+  - Sorted from nearest to furthest
+  - Consistent design with the Expenses screen
+
+## ✨ Interface Improvements
+
+- **Unified FAB Across All Screens**: 
+  - The floating action button (FAB) now has consistent behaviour on all screens
+  - From Agenda, pressing "Add event" opens the creation dialog directly
+  - More intuitive and consistent navigation
+
+- **Agenda Improvements**:
+  - Visual separators between days for better organisation
+  - Events displayed with event name and subject name
+  - Easy event selection for editing
+
+## 🔧 Technical Improvements
+
+- **Notification Optimisation**:
+  - Fixed Android alarm limit (500) issue
+  - Recurring events are now limited to 100 events
+  - Notifications are only scheduled for events within the next 60 days
+  - Better performance and stability
+
+- **Data Import Improvements**:
+  - Fixed issue where only one subject was imported
+  - First synchronisation now brings all data without filters
+  - Better handling of data recovery between devices
+
+- **Improved Event Filtering**:
+  - Agenda now shows only future events (not past events)
+  - Better organisation and display of pending events
+
+## 🐛 Bug Fixes
+
+- Fixed issue where only one subject was imported when recovering data
+- Fixed crash due to alarm limit when creating recurring events
+- Fixed FAB behaviour in Agenda to open event dialog directly
+- Improvements in error handling and overall stability
+</en-IN>
+
+<en-US>
+## 🎉 New Features
+
+- **Improved Agenda Screen**: 
+  - Events are now grouped by day with visual headers
+  - Each day shows its date with all events listed below
+  - Sorted from nearest to furthest
+  - Consistent design with the Expenses screen
+
+## ✨ Interface Improvements
+
+- **Unified FAB Across All Screens**: 
+  - The floating action button (FAB) now has consistent behavior on all screens
+  - From Agenda, pressing "Add event" opens the creation dialog directly
+  - More intuitive and consistent navigation
+
+- **Agenda Improvements**:
+  - Visual separators between days for better organization
+  - Events displayed with event name and subject name
+  - Easy event selection for editing
+
+## 🔧 Technical Improvements
+
+- **Notification Optimization**:
+  - Fixed Android alarm limit (500) issue
+  - Recurring events are now limited to 100 events
+  - Notifications are only scheduled for events within the next 60 days
+  - Better performance and stability
+
+- **Data Import Improvements**:
+  - Fixed issue where only one subject was imported
+  - First synchronization now brings all data without filters
+  - Better handling of data recovery between devices
+
+- **Improved Event Filtering**:
+  - Agenda now shows only future events (not past events)
+  - Better organization and display of pending events
+
+## 🐛 Bug Fixes
+
+- Fixed issue where only one subject was imported when recovering data
+- Fixed crash due to alarm limit when creating recurring events
+- Fixed FAB behavior in Agenda to open event dialog directly
+- Improvements in error handling and overall stability
+</en-US>
+
+<es-419>
+## 🎉 Nuevas Funcionalidades
+
+- **Nueva Pantalla de Agenda Mejorada**: 
+  - Los eventos ahora se muestran agrupados por día con cabeceras visuales
+  - Cada día muestra su fecha y debajo todos los eventos de ese día
+  - Ordenados del más próximo al más lejano
+  - Diseño consistente con la pantalla de Gastos
+
+## ✨ Mejoras de Interfaz
+
+- **FAB Unificado en Todas las Pantallas**: 
+  - El botón flotante (FAB) ahora tiene el mismo comportamiento en todas las pantallas
+  - Desde Agenda, al presionar "Agregar evento" se abre directamente el diálogo de creación
+  - Navegación más intuitiva y consistente
+
+- **Mejoras en la Agenda**:
+  - Separadores visuales entre días para mejor organización
+  - Eventos mostrados con nombre del evento y del sujeto
+  - Fácil selección de eventos para editarlos
+
+## 🔧 Mejoras Técnicas
+
+- **Optimización de Notificaciones**:
+  - Corrección del problema de límite de alarmas (500) en Android
+  - Los eventos repetitivos ahora se limitan a 100 eventos
+  - Las notificaciones solo se programan para eventos dentro de los próximos 60 días
+  - Mejor rendimiento y estabilidad
+
+- **Mejoras en la Importación de Datos**:
+  - Corrección para que se importen todos los sujetos correctamente
+  - La primera sincronización ahora trae todos los datos sin filtros
+  - Mejor manejo de la recuperación de datos entre dispositivos
+
+- **Filtrado de Eventos Mejorado**:
+  - La agenda ahora muestra solo eventos futuros (no eventos pasados)
+  - Mejor organización y visualización de eventos pendientes
+
+## 🐛 Correcciones
+
+- Corregido el problema donde solo se importaba un sujeto al recuperar datos
+- Corregido el crash por límite de alarmas al crear eventos repetitivos
+- Corregido el comportamiento del FAB en Agenda para abrir directamente el diálogo de eventos
+- Mejoras en el manejo de errores y estabilidad general
+</es-419>
+
+<es-US>
+## 🎉 Nuevas Funcionalidades
+
+- **Nueva Pantalla de Agenda Mejorada**: 
+  - Los eventos ahora se muestran agrupados por día con cabeceras visuales
+  - Cada día muestra su fecha y debajo todos los eventos de ese día
+  - Ordenados del más próximo al más lejano
+  - Diseño consistente con la pantalla de Gastos
+
+## ✨ Mejoras de Interfaz
+
+- **FAB Unificado en Todas las Pantallas**: 
+  - El botón flotante (FAB) ahora tiene el mismo comportamiento en todas las pantallas
+  - Desde Agenda, al presionar "Agregar evento" se abre directamente el diálogo de creación
+  - Navegación más intuitiva y consistente
+
+- **Mejoras en la Agenda**:
+  - Separadores visuales entre días para mejor organización
+  - Eventos mostrados con nombre del evento y del sujeto
+  - Fácil selección de eventos para editarlos
+
+## 🔧 Mejoras Técnicas
+
+- **Optimización de Notificaciones**:
+  - Corrección del problema de límite de alarmas (500) en Android
+  - Los eventos repetitivos ahora se limitan a 100 eventos
+  - Las notificaciones solo se programan para eventos dentro de los próximos 60 días
+  - Mejor rendimiento y estabilidad
+
+- **Mejoras en la Importación de Datos**:
+  - Corrección para que se importen todos los sujetos correctamente
+  - La primera sincronización ahora trae todos los datos sin filtros
+  - Mejor manejo de la recuperación de datos entre dispositivos
+
+- **Filtrado de Eventos Mejorado**:
+  - La agenda ahora muestra solo eventos futuros (no eventos pasados)
+  - Mejor organización y visualización de eventos pendientes
+
+## 🐛 Correcciones
+
+- Corregido el problema donde solo se importaba un sujeto al recuperar datos
+- Corregido el crash por límite de alarmas al crear eventos repetitivos
+- Corregido el comportamiento del FAB en Agenda para abrir directamente el diálogo de eventos
+- Mejoras en el manejo de errores y estabilidad general
+</es-US>

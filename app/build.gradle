@@ -7,14 +7,14 @@ android {
     namespace 'com.gastonlesbegueris.caretemplate'
 
     // Que compile y apunte a la misma API (evita warnings raros)
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.gastonlesbegueris.caretemplate"
         minSdk 24
-        targetSdk 35   // 👈 igual o menor a compileSdk
-        versionCode 13
-        versionName "2.2"
+        targetSdk 36
+        versionCode 17
+        versionName "2.6"
         vectorDrawables.useSupportLibrary = true
         
         // Configurar el test runner para instrumentación
@@ -52,7 +52,7 @@ android {
             resValue "string", "app_name", "CarePal Family"
             resValue "string", "app_type", "family"
             resValue "string", "admob_app_id", "ca-app-pub-9841764898906750~9388593714"
-            resValue "string", "admob_interstitial_id", "ca-app-pub-9841764898906750/3628913224"
+            resValue "string", "admob_interstitial_id", "ca-app-pub-9841764898906750/6799440463"
         }
         house {
             dimension "vertical"
@@ -61,6 +61,12 @@ android {
             resValue "string", "app_type", "house"
             resValue "string", "admob_app_id", "ca-app-pub-9841764898906750~1868469990"
             resValue "string", "admob_interstitial_id", "ca-app-pub-9841764898906750/9178313877"
+        }
+        griscal {
+            dimension "vertical"
+            applicationId "app.griscal"
+            versionCode 1
+            versionName "1.0"
         }
     }
 
@@ -97,6 +103,14 @@ android {
         }
         debug {
             signingConfig signingConfigs.debug
+            // Debug = Google's official sample ad units + Appodeal test mode, for EVERY
+            // flavor, so dev/emulator runs (incl. automated marketing screenshots) never
+            // serve or count live ads. buildType resValues override the flavor resValues
+            // above; the flavors' values-en strings are overridden in src/debug/res/values-en.
+            resValue "string", "admob_interstitial_id", "ca-app-pub-3940256099942544/1033173712"
+            resValue "string", "admob_banner_id", "ca-app-pub-3940256099942544/6300978111"
+            resValue "string", "admob_rewarded_id", "ca-app-pub-3940256099942544/5224354917"
+            resValue "bool", "appodeal_testing", "true"
         }
     }
     
@@ -117,39 +131,45 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.7.1'
-    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
-    implementation 'androidx.recyclerview:recyclerview:1.4.0'
-    implementation 'androidx.cardview:cardview:1.0.0'
+    implementation libs.appcompat.v171
+    implementation libs.constraintlayout.v221
+    implementation libs.recyclerview
+    implementation libs.cardview
 
 
     // Material: usa UNA sola versión
-    implementation 'com.google.android.material:material:1.13.0'
+    implementation libs.google.material
 
     // Firebase (BoM + módulos)
-    implementation platform('com.google.firebase:firebase-bom:34.7.0')
-    implementation 'com.google.firebase:firebase-auth'
-    implementation 'com.google.firebase:firebase-firestore'
-    implementation 'com.google.firebase:firebase-analytics'
+    implementation platform(libs.firebase.bom)
+    implementation libs.firebase.auth
+    implementation libs.firebase.firestore
+    implementation libs.firebase.analytics
 
     // Room (Java)
-    implementation 'androidx.room:room-runtime:2.8.4'
-    annotationProcessor 'androidx.room:room-compiler:2.8.4'
+    implementation libs.room.runtime
+    annotationProcessor libs.room.compiler
 
     // Ads - Appodeal SDK (replaces AdMob)
-    implementation 'com.appodeal.ads:sdk:3.12.0.0'
+    implementation libs.sdk
     
     // AdMob SDK for interstitial ads
-    implementation 'com.google.android.gms:play-services-ads:24.9.0'
+    implementation libs.play.services.ads
    // implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
 
     // Google Play In-App Review
-    implementation 'com.google.android.play:review:2.0.2'
+    implementation libs.review
 
-    // Testing dependencies
-    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
-    androidTestImplementation 'androidx.test:runner:1.6.2'
-    androidTestImplementation 'androidx.test:rules:1.6.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
+    // Google Sign-In (needed for griscal flavor)
+    implementation libs.play.services.auth
+
+    // Unit test dependencies (run on JVM - app/src/test)
+    testImplementation libs.junit
+
+    // Instrumentation test dependencies (run on device - app/src/androidTest)
+    androidTestImplementation libs.junit.v121
+    androidTestImplementation libs.runner
+    androidTestImplementation libs.rules
+    androidTestImplementation libs.espresso.core.v361
 
 }

@@ -1,0 +1,15 @@
+<es-419>
+¡Bienvenido a CarPal!
+
+Primera versión con todas las funciones principales:
+
+Funcionalidades:
+- Recordatorios inteligentes para mantenimiento, cambios de aceite, inspecciones y más
+- Seguimiento completo de gastos (combustible, reparaciones, seguro)
+- Gestiona múltiples vehículos en un solo lugar
+- Sincronización automática en la nube
+- Notificaciones para no olvidar eventos importantes
+- Interfaz intuitiva y fácil de usar
+
+¡Mantén tus vehículos en perfecto estado!
+</es-419>

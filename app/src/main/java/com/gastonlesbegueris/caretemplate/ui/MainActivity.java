@@ -163,17 +163,25 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        // 9) Appodeal Banner
-        initAppodeal();
-        
+        // 9) Appodeal Banner (solo si los anuncios están habilitados para este flavor)
+        if (getResources().getBoolean(R.bool.ads_enabled)) {
+            initAppodeal();
+        }
+
         // 10) Inicializar UserManager y autenticación (ID único para suscripciones y sincronización)
         initializeUserManager();
-        
+
         // 11) Inicializar y sincronizar código de recuperación
         initializeRecoveryCode();
 
-        // 12) Mensaje de bienvenida + anuncio solo en el primer inicio
-        showFirstRunWelcomeIfNeeded();
+        // 12) Mensaje de bienvenida + anuncio solo en el primer inicio (no en Griscal)
+        if (getResources().getBoolean(R.bool.ads_enabled)) {
+            showFirstRunWelcomeIfNeeded();
+        }
+
+        // 13) In-app review: ask after 10 opens (dialog is delayed 2 s inside the helper)
+        com.gastonlesbegueris.caretemplate.util.ReviewHelper
+                .checkAndRequestReviewOnAppOpen(this, getString(R.string.app_name));
     }
 
     private void showFirstRunWelcomeIfNeeded() {
@@ -322,10 +330,6 @@ public class MainActivity extends AppCompatActivity {
                     item.setIcon(R.drawable.ic_event);
                 } else if (itemId == R.id.action_sync) {
                     item.setIcon(R.drawable.ic_sync);
-                } else if (itemId == R.id.action_subjects) {
-                    item.setIcon(R.drawable.ic_line_user);
-                } else if (itemId == R.id.action_expenses) {
-                    item.setIcon(R.drawable.ic_line_money);
                 }
             }
         }
@@ -336,7 +340,7 @@ public class MainActivity extends AppCompatActivity {
                 String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
                 versionItem.setTitle("v" + versionName);
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                versionItem.setTitle("v2.2");
+                versionItem.setTitle("v" + com.gastonlesbegueris.caretemplate.BuildConfig.VERSION_NAME);
             }
         }
         return super.onPrepareOptionsMenu(menu);
@@ -389,12 +393,6 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
             return true;
-        } else if (id == R.id.action_subjects) {
-            startActivity(new android.content.Intent(this, SubjectListActivity.class));
-            return true;
-        } else if (id == R.id.action_expenses) {
-            startActivity(new android.content.Intent(this, ExpensesActivity.class));
-            return true;
         } else if (id == R.id.action_recovery) {
             showRecoveryCodeDialog();
             return true;
@@ -404,9 +402,44 @@ public class MainActivity extends AppCompatActivity {
             showSelectSubjectToShareDialog();
             return true;
         } else if (id == R.id.action_import_subject) {
-            // Mostrar diálogo para importar sujeto compartido
             Log.d("MainActivity", "action_import_subject selected");
             showImportSubjectDialog();
+            return true;
+        } else if (id == R.id.action_theme) {
+            com.gastonlesbegueris.caretemplate.util.ThemeHelper.showThemeDialog(this);
+            return true;
+        } else if (id == R.id.action_our_app_pets) {
+            openAppOnPlayStore("com.gastonlesbegueris.caretemplate.pets");
+            return true;
+        } else if (id == R.id.action_our_app_cars) {
+            openAppOnPlayStore("com.gastonlesbegueris.caretemplate.cars");
+            return true;
+        } else if (id == R.id.action_our_app_family) {
+            openAppOnPlayStore("com.gastonlesbegueris.caretemplate.family");
+            return true;
+        } else if (id == R.id.action_our_app_house) {
+            openAppOnPlayStore("com.gastonlesbegueris.caretemplate.house");
+            return true;
+        } else if (id == R.id.action_our_app_griscal) {
+            openAppOnPlayStore("app.griscal.notif");
+            return true;
+        } else if (id == R.id.action_our_app_milinterna) {
+            openAppOnPlayStore("lesbegueris.gaston.com.milinterna");
+            return true;
+        } else if (id == R.id.action_our_app_milupa) {
+            openAppOnPlayStore("lesbegueris.gaston.com.milupa");
+            return true;
+        } else if (id == R.id.action_our_app_permission_inspector) {
+            openAppOnPlayStore("com.griscal.permissioninspector");
+            return true;
+        } else if (id == R.id.action_contact) {
+            showContactDialog();
+            return true;
+        } else if (id == R.id.action_rate) {
+            openAppOnPlayStore(getPackageName());
+            return true;
+        } else if (id == R.id.action_share_app) {
+            shareApp();
             return true;
         }
 
@@ -420,8 +453,8 @@ public class MainActivity extends AppCompatActivity {
                 .setTitle(getString(R.string.recovery_code_title))
                 .setMessage(getString(R.string.recovery_code_message))
                 .setPositiveButton(getString(R.string.button_ok), (d, w) -> {
-                    // Mostrar código directamente sin intersticial
-                    showRecoveryCodeAfterAd();
+                    // Mostrar intersticial antes de mostrar el código
+                    showInterstitialAdForRecoveryCode();
                 })
                 .setNegativeButton(getString(R.string.button_cancel), null)
                 .setIcon(android.R.drawable.ic_dialog_info)
@@ -429,8 +462,8 @@ public class MainActivity extends AppCompatActivity {
     }
     
     private void showInterstitialAdForRecoveryCode() {
-        // Intersticial removido - mostrar código directamente
-        showRecoveryCodeAfterAd();
+        String interstitialId = getString(R.string.admob_interstitial_id);
+        AdMobHelper.showInterstitial(this, interstitialId, this::showRecoveryCodeAfterAd);
     }
     
     private void showRecoveryCodeAfterAd() {
@@ -2108,6 +2141,54 @@ public class MainActivity extends AppCompatActivity {
                 cb.onPicked(cal.getTimeInMillis());
             }, hh, mm, true).show();
         }, y, m, d).show();
+    }
+
+    private void openAppOnPlayStore(String packageName) {
+        try {
+            startActivity(new android.content.Intent(
+                    android.content.Intent.ACTION_VIEW,
+                    android.net.Uri.parse("market://details?id=" + packageName)));
+        } catch (android.content.ActivityNotFoundException e) {
+            startActivity(new android.content.Intent(
+                    android.content.Intent.ACTION_VIEW,
+                    android.net.Uri.parse("https://play.google.com/store/apps/details?id=" + packageName)));
+        }
+    }
+
+    private void showContactDialog() {
+        android.widget.EditText editText = new android.widget.EditText(this);
+        editText.setHint(getString(R.string.contact_hint));
+        editText.setMinLines(3);
+        editText.setGravity(android.view.Gravity.TOP);
+        int pad = (int) (16 * getResources().getDisplayMetrics().density);
+        editText.setPadding(pad, pad, pad, pad);
+
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle(getString(R.string.contact_title))
+                .setView(editText)
+                .setPositiveButton(getString(R.string.contact_send), (dialog, which) -> {
+                    String msg = editText.getText() != null ? editText.getText().toString().trim() : "";
+                    if (msg.isEmpty()) {
+                        Toast.makeText(this, getString(R.string.contact_empty_error), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    android.content.Intent emailIntent = new android.content.Intent(android.content.Intent.ACTION_SENDTO);
+                    emailIntent.setData(android.net.Uri.parse("mailto:lesberweb@gmail.com"));
+                    emailIntent.putExtra(android.content.Intent.EXTRA_SUBJECT,
+                            getString(R.string.app_name) + " — Consulta");
+                    emailIntent.putExtra(android.content.Intent.EXTRA_TEXT, msg);
+                    startActivity(android.content.Intent.createChooser(emailIntent, getString(R.string.contact_send)));
+                })
+                .setNegativeButton(getString(R.string.contact_cancel), null)
+                .show();
+    }
+
+    private void shareApp() {
+        android.content.Intent share = new android.content.Intent(android.content.Intent.ACTION_SEND);
+        share.setType("text/plain");
+        share.putExtra(android.content.Intent.EXTRA_TEXT,
+                "https://play.google.com/store/apps/details?id=" + getPackageName());
+        startActivity(android.content.Intent.createChooser(share, getString(R.string.menu_share_app)));
     }
 
     // ===== Auto-realizar eventos vencidos =====

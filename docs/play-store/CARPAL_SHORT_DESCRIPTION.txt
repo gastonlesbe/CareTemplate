@@ -1,0 +1,71 @@
+Opciones de Descripción Corta para CarPal (máximo 80 caracteres)
+
+═══════════════════════════════════════════════════════════
+
+OPCIÓN 1 - RECOMENDADA
+─────────────────────────────────────────
+Gestiona el cuidado de tus vehículos con recordatorios y seguimiento de gastos
+Caracteres: 75/80 ✅
+Ventajas: Completa, menciona las funciones principales
+
+─────────────────────────────────────────
+
+OPCIÓN 2 - Más concisa
+─────────────────────────────────────────
+Gestiona tus vehículos con recordatorios de mantenimiento y gastos
+Caracteres: 64/80 ✅
+Ventajas: Más corta, enfocada en mantenimiento
+
+─────────────────────────────────────────
+
+OPCIÓN 3 - Enfoque en autos
+─────────────────────────────────────────
+Gestiona el cuidado de tus autos con recordatorios y seguimiento de gastos
+Caracteres: 72/80 ✅
+Ventajas: Usa "autos" (más común en Latinoamérica)
+
+─────────────────────────────────────────
+
+OPCIÓN 4 - Con "asistente"
+─────────────────────────────────────────
+Tu asistente para el cuidado de vehículos. Recordatorios, eventos y gastos
+Caracteres: 70/80 ✅
+Ventajas: Personal, menciona "asistente"
+
+─────────────────────────────────────────
+
+OPCIÓN 5 - Más directa
+─────────────────────────────────────────
+Organiza el mantenimiento de tus vehículos: recordatorios y control de gastos
+Caracteres: 76/80 ✅
+Ventajas: Enfatiza "organización" y "mantenimiento"
+
+─────────────────────────────────────────
+
+OPCIÓN 6 - Simple y directa
+─────────────────────────────────────────
+Gestiona tus vehículos con recordatorios y seguimiento de gastos
+Caracteres: 66/80 ✅
+Ventajas: Simple, directa al punto
+
+─────────────────────────────────────────
+
+OPCIÓN 7 - Con "mantenimiento"
+─────────────────────────────────────────
+Mantén tus vehículos al día con recordatorios de mantenimiento y gastos
+Caracteres: 73/80 ✅
+Ventajas: Enfoque práctico, "al día"
+
+─────────────────────────────────────────
+
+OPCIÓN 8 - Máxima descriptiva
+─────────────────────────────────────────
+Gestiona el cuidado de tus vehículos: recordatorios, eventos y gastos
+Caracteres: 70/80 ✅
+Ventajas: Menciona "eventos" explícitamente
+
+═══════════════════════════════════════════════════════════
+
+RECOMENDACIÓN:
+La OPCIÓN 1 es la más completa y balanceada, similar al estilo de PetPal.
+Si prefieres algo más corto, la OPCIÓN 6 es excelente.

@@ -1,0 +1,39 @@
+═══════════════════════════════════════════════════════════════
+  SOLUCIÓN RÁPIDA: Data Safety Declaration - HousePal
+═══════════════════════════════════════════════════════════════
+
+PROBLEMA:
+  Google Play detectó que HousePal transmite "Device or other IDs" 
+  sin declararlo en Data Safety (versión 5).
+
+CAUSA:
+  - Appodeal SDK recopila Advertising ID para publicidad
+  - Firebase Analytics recopila IDs de dispositivo para análisis
+
+SOLUCIÓN (5 minutos):
+
+1. Ve a Google Play Console → HousePal → Política → Seguridad de los datos
+
+2. Marca "Sí" a "¿Recopila o comparte datos?"
+
+3. Agrega el tipo de dato:
+   ✅ "Dispositivo u otros IDs" → Advertising ID
+
+4. Indica los propósitos:
+   ✅ Publicidad o marketing (Appodeal)
+   ✅ Análisis (Firebase Analytics)
+
+5. Marca que SÍ se comparte con terceros:
+   - Appodeal (Publicidad)
+   - Google/Firebase (Análisis)
+
+6. Guarda y espera 24-48 horas
+
+IMPORTANTE:
+  - No deshabilites la recopilación (afectaría ingresos)
+  - Asegúrate que tu política de privacidad mencione esto
+  - Verifica que la política sea accesible desde Play Store
+
+═══════════════════════════════════════════════════════════════
+  Para más detalles, ver: docs/fixes/FIX_HOUSEPAL_DATA_SAFETY.md
+═══════════════════════════════════════════════════════════════

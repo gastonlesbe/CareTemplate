@@ -1,0 +1,83 @@
+═══════════════════════════════════════════════════════════════
+  VERIFICACIÓN DE app-ads.txt - Estado Actual
+═══════════════════════════════════════════════════════════════
+
+✅ ARCHIVO CORRECTO Y ACCESIBLE
+   URL: https://gastonlesbe.github.io/app-ads.txt
+   Contenido: google.com, pub-9841764898906750, DIRECT, f08c47fec0942fa0
+   Publisher ID: pub-9841764898906750 (VERIFICADO)
+   Content-Type: text/plain; charset=utf-8 ✅
+   HTTP Status: 200 ✅
+
+═══════════════════════════════════════════════════════════════
+  CHECKLIST DE VERIFICACIÓN EN GOOGLE PLAY CONSOLE
+═══════════════════════════════════════════════════════════════
+
+1. Ve a: https://play.google.com/console
+2. Selecciona la app "PetPal"
+3. Ve a: Configuración de la app → Detalles de la app
+4. Busca el campo "Sitio web" o "Developer website"
+5. DEBE decir exactamente: https://gastonlesbe.github.io
+   ❌ NO debe tener: /app-ads.txt
+   ❌ NO debe tener: /CareTemplate
+   ❌ NO debe tener: /github.io
+   ✅ Solo el dominio: https://gastonlesbe.github.io
+
+═══════════════════════════════════════════════════════════════
+  VERIFICACIÓN EN ADMOB
+═══════════════════════════════════════════════════════════════
+
+1. Ve a: https://apps.admob.com/
+2. Selecciona la app "PetPal"
+3. Ve a: Configuración → app-ads.txt
+4. Verifica que:
+   - El dominio mostrado sea: https://gastonlesbe.github.io
+   - El Publisher ID sea: pub-9841764898906750
+5. Haz clic en "Rastrear" o "Verificar"
+6. Espera: Puede tardar desde minutos hasta 24 horas
+
+═══════════════════════════════════════════════════════════════
+  POSIBLES PROBLEMAS Y SOLUCIONES
+═══════════════════════════════════════════════════════════════
+
+PROBLEMA: "Los detalles no coinciden con tu cuenta de AdMob"
+
+SOLUCIÓN 1: Verificar nombre del paquete de la app
+   - El nombre del paquete en Google Play Console debe coincidir
+     con el que está registrado en AdMob
+   - Verifica en AdMob → Apps → PetPal → Configuración
+   - Compara con Google Play Console → Detalles de la app
+
+SOLUCIÓN 2: Esperar más tiempo
+   - AdMob puede tardar hasta 24 horas en verificar
+   - Intenta verificar de nuevo después de 1-2 horas
+
+SOLUCIÓN 3: Verificar que el dominio esté correcto
+   - En Google Play Console debe ser: https://gastonlesbe.github.io
+   - Sin barras al final, sin rutas adicionales
+
+SOLUCIÓN 4: Limpiar caché y reintentar
+   - Espera 10-15 minutos después de cualquier cambio
+   - Intenta verificar de nuevo en AdMob
+
+═══════════════════════════════════════════════════════════════
+  VERIFICACIÓN RÁPIDA DEL ARCHIVO
+═══════════════════════════════════════════════════════════════
+
+Para verificar que el archivo está accesible, abre en el navegador:
+   https://gastonlesbe.github.io/app-ads.txt
+
+Debe mostrar (sin líneas en blanco adicionales):
+   google.com, pub-9841764898906750, DIRECT, f08c47fec0942fa0
+
+═══════════════════════════════════════════════════════════════
+  PRÓXIMOS PASOS
+═══════════════════════════════════════════════════════════════
+
+1. ✅ Archivo publicado y accesible
+2. ⏳ Verificar dominio en Google Play Console
+3. ⏳ Verificar en AdMob después de 1-2 horas
+4. ⏳ Si sigue fallando, verificar nombre del paquete
+
+═══════════════════════════════════════════════════════════════
+

@@ -1,0 +1,53 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===== CÓDIGOS DE RECUPERACIÓN (NIVEL SUPERIOR) =====
+    // ⚠️ IMPORTANTE: Esta regla DEBE estar al nivel superior
+    match /recovery_codes/{code} {
+      allow read: if true; // Permitir lectura pública (necesario para recuperación)
+      allow write: if request.auth != null; // Solo usuarios autenticados pueden escribir
+    }
+    
+    // ===== COMPARTIR SUJETOS (NIVEL SUPERIOR) =====
+    // ⚠️ IMPORTANTE: Esta regla DEBE estar al nivel superior
+    match /shared_subjects/{code} {
+      allow read: if true; // Lectura pública para permitir importar
+      allow write: if request.auth != null; // Solo usuarios autenticados pueden compartir
+    }
+    
+    // ===== DATOS DE USUARIOS =====
+    match /users/{userId} {
+      // Permitir acceso solo al propio usuario
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Permitir acceso a apps y sus subcolecciones
+      match /apps/{appId} {
+        // ⚠️ SEGURIDAD: Solo el dueño puede leer/escribir sus propios datos
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+        
+        match /subjects/{subjectId} {
+          // ⚠️ SEGURIDAD: Solo el dueño puede leer/escribir sus propios sujetos
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
+        
+        match /events/{eventId} {
+          // ⚠️ SEGURIDAD: Solo el dueño puede leer/escribir sus propios eventos
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
+      }
+      
+      // Permitir acceso a recovery_codes dentro del usuario (para búsqueda alternativa)
+      match /recovery_codes/{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Permitir acceso a metadata
+      match /metadata/{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}
+

@@ -46,7 +46,8 @@ public class SubjectListActivity extends AppCompatActivity {
     private EventDao eventDao;
     private SubjectAdapter adapter;
     private String appType;
-    
+    private com.gastonlesbegueris.caretemplate.util.MenuHelper menuHelper;
+
     // Appodeal handles interstitial and rewarded ads automatically
     private Runnable syncCallback = null; // Callback para ejecutar después del anuncio
     
@@ -86,8 +87,17 @@ public class SubjectListActivity extends AppCompatActivity {
         
         // Configurar título con nombre de app y sección
         appType = getString(R.string.app_type); // viene del flavor
+        // Allow override from intent (used by GriscalDashboardActivity to open any category)
+        String intentAppType = getIntent() != null ? getIntent().getStringExtra("extra_app_type") : null;
+        if (intentAppType != null && !intentAppType.isEmpty()) {
+            appType = intentAppType;
+        }
+        menuHelper = new com.gastonlesbegueris.caretemplate.util.MenuHelper(this, appType);
         String appName = getString(R.string.app_name);
-        String sectionName = getString(R.string.subjects_title); // Mascotas, Autos, Casas, Sujetos según flavor
+        String intentTitle = getIntent() != null ? getIntent().getStringExtra("extra_section_title") : null;
+        String sectionName = (intentTitle != null && !intentTitle.isEmpty())
+                ? intentTitle
+                : getString(R.string.subjects_title);
         toolbar.setTitle(appName + " - " + sectionName);
 
 
@@ -153,19 +163,24 @@ public class SubjectListActivity extends AppCompatActivity {
         // Inicializar FAB Speed Dial
         initFabSpeedDial();
 
-        // Appodeal Banner
-        initAppodeal();
-        
-        // Precargar intersticial de AdMob
-        String interstitialId = getString(R.string.admob_interstitial_id);
-        AdMobHelper.loadInterstitial(this, interstitialId);
-        
+        // Appodeal Banner + AdMob (solo si los anuncios están habilitados para este flavor)
+        if (getResources().getBoolean(R.bool.ads_enabled)) {
+            initAppodeal();
+            String interstitialId = getString(R.string.admob_interstitial_id);
+            AdMobHelper.loadInterstitial(this, interstitialId);
+        }
+
         // Verificar si se debe mostrar el tutorial (primera vez)
         // Aumentar delay para asegurar que la base de datos esté lista
         findViewById(android.R.id.content).postDelayed(() -> {
             android.util.Log.d("SubjectListActivity", "Llamando a checkAndShowTutorial con appType: " + appType);
             com.gastonlesbegueris.caretemplate.util.TutorialHelper.checkAndShowTutorial(this, appType);
         }, 2000); // Esperar 2 segundos para que la UI y la base de datos estén completamente listas
+
+        // Solo mostrar el promo de Griscal en otros flavors, no en Griscal mismo
+        if (!"griscal".equals(appType)) {
+            showGriscalPromo();
+        }
 
         // observar lista de sujetos
         dao.observeActive(appType).observe(this, (List<SubjectEntity> list) -> {
@@ -946,7 +961,7 @@ public class SubjectListActivity extends AppCompatActivity {
                 String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
                 versionItem.setTitle("v" + versionName);
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                versionItem.setTitle("v2.2");
+                versionItem.setTitle("v" + com.gastonlesbegueris.caretemplate.BuildConfig.VERSION_NAME);
             }
         }
         
@@ -974,12 +989,6 @@ public class SubjectListActivity extends AppCompatActivity {
         int id = item.getItemId();
         if (id == R.id.action_agenda) {
             startActivity(new android.content.Intent(this, com.gastonlesbegueris.caretemplate.ui.AgendaActivity.class));
-            return true;
-        } else if (id == R.id.action_subjects) {
-            // Already on subjects page
-            return true;
-        } else if (id == R.id.action_expenses) {
-            startActivity(new android.content.Intent(this, com.gastonlesbegueris.caretemplate.ui.ExpensesActivity.class));
             return true;
         } else if (id == R.id.action_sync) {
             // Sincronizar directamente sin mostrar anuncio intersticial
@@ -1024,6 +1033,10 @@ public class SubjectListActivity extends AppCompatActivity {
                 // Refresh the list after expenses are created
                 // The LiveData observer will automatically update the UI
             });
+            return true;
+        }
+        // Theme, Our Apps, Contact, Rate, Share — delegate to MenuHelper
+        if (menuHelper.handleMenuSelection(item, SubjectListActivity.class)) {
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -1169,8 +1182,8 @@ public class SubjectListActivity extends AppCompatActivity {
                 .setTitle(getString(R.string.recovery_code_title))
                 .setMessage(getString(R.string.recovery_code_message))
                 .setPositiveButton(getString(R.string.button_ok), (d, w) -> {
-                    // Mostrar código directamente sin intersticial
-                    showRecoveryCodeAfterAd();
+                    // Mostrar intersticial antes de mostrar el código
+                    showInterstitialAdForRecoveryCode();
                 })
                 .setNegativeButton(getString(R.string.button_cancel), null)
                 .setIcon(android.R.drawable.ic_dialog_info)
@@ -1178,8 +1191,8 @@ public class SubjectListActivity extends AppCompatActivity {
     }
     
     private void showInterstitialAdForRecoveryCode() {
-        // Intersticial removido - mostrar código directamente
-        showRecoveryCodeAfterAd();
+        String interstitialId = getString(R.string.admob_interstitial_id);
+        AdMobHelper.showInterstitial(this, interstitialId, this::showRecoveryCodeAfterAd);
     }
     
     private void showRecoveryCodeAfterAd() {
@@ -2785,6 +2798,26 @@ public class SubjectListActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    private void showGriscalPromo() {
+        android.content.SharedPreferences promoPrefs = getSharedPreferences("griscal_promo", MODE_PRIVATE);
+        if (promoPrefs.getBoolean("shown", false)) return;
+        android.view.View promoView = getLayoutInflater().inflate(R.layout.dialog_griscal_promo, null);
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setView(promoView);
+        builder.setCancelable(true);
+        androidx.appcompat.app.AlertDialog dialog = builder.create();
+        promoView.findViewById(R.id.btnPromoCta).setOnClickListener(v -> {
+            promoPrefs.edit().putBoolean("shown", true).apply();
+            startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://griscal.app")));
+            dialog.dismiss();
+        });
+        promoView.findViewById(R.id.btnPromoDismiss).setOnClickListener(v -> {
+            promoPrefs.edit().putBoolean("shown", true).apply();
+            dialog.dismiss();
+        });
+        new android.os.Handler().postDelayed(dialog::show, 1500);
     }
 
 }

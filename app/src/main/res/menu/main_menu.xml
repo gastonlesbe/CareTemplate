@@ -15,18 +15,6 @@
         app:showAsAction="never" />
 
     <item
-        android:id="@+id/action_subjects"
-        android:title="@string/subjects_title"
-        android:icon="@drawable/ic_line_user"
-        app:showAsAction="never" />
-
-    <item
-        android:id="@+id/action_expenses"
-        android:title="@string/menu_expenses"
-        android:icon="@drawable/ic_line_money"
-        app:showAsAction="never" />
-
-    <item
         android:id="@+id/action_recovery"
         android:title="@string/menu_recovery"
         android:icon="@drawable/ic_sync"
@@ -45,6 +33,44 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_theme"
+        android:title="@string/menu_theme"
+        android:icon="@drawable/ic_theme"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_our_apps"
+        android:title="@string/menu_our_apps"
+        android:icon="@drawable/ic_home"
+        app:showAsAction="never">
+        <menu>
+            <item android:id="@+id/action_our_app_pets"               android:title="CarePal: Mascotas y Salud" />
+            <item android:id="@+id/action_our_app_cars"               android:title="CarePal: Autos y Service" />
+            <item android:id="@+id/action_our_app_family"             android:title="CarePal: Familia y Agenda" />
+            <item android:id="@+id/action_our_app_house"              android:title="CarePal: Hogar y Mantenimiento" />
+            <item android:id="@+id/action_our_app_griscal"            android:title="Griscal: Hogar y Familia" />
+            <item android:id="@+id/action_our_app_milinterna"         android:title="Mi Linterna" />
+            <item android:id="@+id/action_our_app_milupa"             android:title="MiLupa" />
+            <item android:id="@+id/action_our_app_permission_inspector" android:title="Permission Inspector" />
+        </menu>
+    </item>
+
+    <item
+        android:id="@+id/action_contact"
+        android:title="@string/menu_contact"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_rate"
+        android:title="@string/menu_rate"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_share_app"
+        android:title="@string/menu_share_app"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_tutorial"
         android:title="@string/menu_tutorial"
         android:icon="@drawable/ic_event"
@@ -55,13 +81,13 @@
         android:title="@string/menu_demo_data"
         android:icon="@drawable/ic_line_user"
         app:showAsAction="never" />
-    
+
     <item
         android:id="@+id/action_demo_subject_events"
         android:title="@string/menu_demo_subject_events"
         android:icon="@drawable/ic_line_user"
         app:showAsAction="never" />
-    
+
     <item
         android:id="@+id/action_demo_expenses"
         android:title="@string/menu_demo_expenses"
@@ -73,6 +99,5 @@
         android:title="v1.2"
         app:showAsAction="never"
         android:enabled="false" />
-
 
 </menu>

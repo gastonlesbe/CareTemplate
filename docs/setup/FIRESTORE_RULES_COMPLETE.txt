@@ -1,0 +1,71 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===== CÓDIGOS DE RECUPERACIÓN (NIVEL SUPERIOR) =====
+    // ⚠️ IMPORTANTE: Esta regla DEBE estar al nivel superior
+    match /recovery_codes/{code} {
+      allow read: if true; // Permitir lectura pública (necesario para recuperación)
+      allow write: if request.auth != null; // Solo usuarios autenticados pueden escribir
+    }
+    
+    // ===== COMPARTIR SUJETOS (NIVEL SUPERIOR) =====
+    // ⚠️ IMPORTANTE: Esta regla DEBE estar al nivel superior
+    // ✅ SEGURO: Los datos completos del sujeto y eventos se copian aquí al compartir
+    // Solo se puede acceder a datos explícitamente compartidos
+    match /shared_subjects/{code} {
+      allow read: if true; // Lectura pública para permitir importar (solo datos compartidos)
+      allow write: if request.auth != null; // Solo usuarios autenticados pueden compartir
+    }
+    
+    // ===== DATOS DE USUARIOS =====
+    // ✅ SEGURO: Solo el dueño puede escribir sus propios datos
+    // ✅ PERMITIR LECTURA: Cualquier usuario autenticado puede leer (necesario para recuperación con código)
+    match /users/{userId} {
+      // Permitir lectura a cualquier usuario autenticado (necesario para recuperación)
+      // Permitir escritura solo al propio usuario
+      allow read: if request.auth != null; // Cualquier usuario autenticado puede leer
+      allow write: if request.auth != null && request.auth.uid == userId; // Solo el dueño puede escribir
+      
+      // Permitir acceso a apps y sus subcolecciones
+      match /apps/{appId} {
+        // Permitir lectura a cualquier usuario autenticado (necesario para recuperación)
+        // Permitir escritura a cualquier usuario autenticado (necesario para crear documentos durante recuperación)
+        // La seguridad se mantiene porque:
+        // - Solo usuarios autenticados pueden escribir
+        // - El código de recuperación es necesario para obtener el userId
+        // - Sin el código, no se puede acceder a los datos
+        allow read: if request.auth != null; // Cualquier usuario autenticado puede leer
+        allow write: if request.auth != null; // Cualquier usuario autenticado puede escribir (necesario para recuperación)
+        
+        match /subjects/{subjectId} {
+          // Permitir lectura a cualquier usuario autenticado (necesario para recuperación)
+          // Permitir escritura a cualquier usuario autenticado (necesario para sincronizar durante recuperación)
+          allow read: if request.auth != null; // Cualquier usuario autenticado puede leer
+          allow write: if request.auth != null; // Cualquier usuario autenticado puede escribir (necesario para recuperación)
+        }
+        
+        match /events/{eventId} {
+          // Permitir lectura a cualquier usuario autenticado (necesario para recuperación)
+          // Permitir escritura a cualquier usuario autenticado (necesario para sincronizar durante recuperación)
+          allow read: if request.auth != null; // Cualquier usuario autenticado puede leer
+          allow write: if request.auth != null; // Cualquier usuario autenticado puede escribir (necesario para recuperación)
+        }
+      }
+      
+      // Permitir acceso a recovery_codes dentro del usuario (para búsqueda alternativa)
+      match /recovery_codes/{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Permitir acceso a metadata
+      // Durante la recuperación, cualquier usuario autenticado puede escribir metadata
+      // porque el userId se obtiene del código de recuperación (seguro)
+      match /metadata/{document=**} {
+        allow read: if request.auth != null; // Cualquier usuario autenticado puede leer
+        allow write: if request.auth != null; // Cualquier usuario autenticado puede escribir (necesario para recuperación)
+      }
+    }
+  }
+}

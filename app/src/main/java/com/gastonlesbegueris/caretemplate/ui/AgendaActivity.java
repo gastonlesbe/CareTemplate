@@ -173,7 +173,7 @@ public class AgendaActivity extends AppCompatActivity {
                 String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
                 versionItem.setTitle("v" + versionName);
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                versionItem.setTitle("v2.2");
+                versionItem.setTitle("v" + com.gastonlesbegueris.caretemplate.BuildConfig.VERSION_NAME);
             }
         }
         return super.onPrepareOptionsMenu(menu);

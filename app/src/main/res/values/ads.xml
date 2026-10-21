@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Appodeal test mode off in production; the debug buildType sets it true via resValue. -->
+<resources>
+    <bool name="appodeal_testing">false</bool>
+</resources>
