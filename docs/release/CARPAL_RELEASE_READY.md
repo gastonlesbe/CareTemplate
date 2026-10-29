@@ -40,7 +40,7 @@ ls -lh app/build/outputs/bundle/carsRelease/app-cars-release.aab
 ### 3. Checklist Antes de Publicar
 
 - [x] AdMob IDs configurados
-  - App ID: `ca-app-pub-9841764898906750~1020196913`
+  - App ID: `ca-app-pub-9841764898906750~6384453597`
   - Banner ID: `ca-app-pub-9841764898906750/2106866114`
 - [ ] App probada en dispositivo real
 - [ ] AdMob configurado y funcionando

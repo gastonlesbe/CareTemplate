@@ -110,7 +110,7 @@ Antes de rastrear en AdMob, verifica:
 
 ## 🔍 Información de CarePal: Cars
 
-- **App ID de AdMob**: `ca-app-pub-9841764898906750~1020196913`
+- **App ID de AdMob**: `ca-app-pub-9841764898906750~6384453597`
 - **Banner ID**: `ca-app-pub-9841764898906750/2106866114`
 - **Rewarded ID**: `ca-app-pub-9841764898906750/9935354864`
 - **Publisher ID**: `pub-9841764898906750`
