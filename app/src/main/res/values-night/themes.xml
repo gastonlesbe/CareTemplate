@@ -13,7 +13,6 @@
         <item name="android:statusBarColor">@color/app_surface</item>
         <item name="android:navigationBarColor">@color/app_surface</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowLightNavigationBar">false</item>
 
         <item name="textAppearanceHeadline6">@style/Text.H6</item>
         <item name="textAppearanceSubtitle1">@style/Text.Subtitle</item>

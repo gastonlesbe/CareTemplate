@@ -172,7 +172,7 @@
     <string name="event_subject_placeholder">(Pet)</string>
     <string name="event_date_format">MM/dd HH:mm</string>
     <string name="event_cost_format">$%1$.2f</string>
-    <string name="event_kilometers">Kilometers: %1$s km</string>
+    <string name="event_kilometers">Kilometers: %1$d km</string>
     <string name="event_cost_zero">$0.00</string>
     
     <!-- Event repetition -->

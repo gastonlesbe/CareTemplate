@@ -4,8 +4,8 @@
     <string name="app_type">griscal</string>
     <string name="subjects_title">Sujetos</string>
     <!-- Ads disabled for Griscal (subscription-based) -->
-    <string name="appodeal_app_key">disabled</string>
+    <string name="appodeal_app_key" translatable="false">disabled</string>
     <!-- AdMob test app ID — replace with real one if ads are ever enabled -->
-    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>
-    <string name="admob_interstitial_id">ca-app-pub-3940256099942544/1033173712</string>
+    <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
+    <string name="admob_interstitial_id" translatable="false">ca-app-pub-3940256099942544/1033173712</string>
 </resources>

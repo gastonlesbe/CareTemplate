@@ -173,7 +173,7 @@
     <string name="event_subject_placeholder">(Sujeto)</string>
     <string name="event_date_format">dd/MM HH:mm</string>
     <string name="event_cost_format">$%1$.2f</string>
-    <string name="event_kilometers">Kilómetros: %1$s km</string>
+    <string name="event_kilometers">Kilómetros: %1$d km</string>
     <string name="event_cost_zero">$0.00</string>
     
     <!-- Event repetition -->
@@ -294,8 +294,8 @@
 
     <!-- AdMob codes are defined per flavor in build.gradle -->
     <!-- Estos valores son fallback, se sobrescriben por flavor -->
-    <string name="admob_app_id">ca-app-pub-9841764898906750~2089158049</string>
-    <string name="admob_interstitial_id">ca-app-pub-9841764898906750/6449521527</string>
+    <string name="admob_app_id" translatable="false">ca-app-pub-9841764898906750~2089158049</string>
+    <string name="admob_interstitial_id" translatable="false">ca-app-pub-9841764898906750/6449521527</string>
     <string name="sync_completed">Sincronización realizada ✅</string>
     <string name="sync_completed_message">Tus datos se han sincronizado correctamente con la nube.</string>
     <string name="griscal_promo_message">Organizá tu familia, mascotas, hogar y vehículos — todo en una sola app web. Gratis para probar.</string>

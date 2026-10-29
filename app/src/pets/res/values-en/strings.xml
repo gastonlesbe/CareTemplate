@@ -1,9 +1,4 @@
 <resources>
     <string name="app_name">CarePal: Pets</string>
     <string name="subjects_title">Pets</string>
-    <string name="admob_app_id">ca-app-pub-9841764898906750~2089158049</string>
-    <string name="admob_banner_id">ca-app-pub-9841764898906750/6124498176</string>
-    <!-- Rewarded Ad ID para código de recuperación -->
-    <string name="admob_rewarded_id">ca-app-pub-9841764898906750/9091394091</string>
 </resources>
-
