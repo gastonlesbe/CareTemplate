@@ -73,7 +73,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
         toolbar.setNavigationOnClickListener(v -> finish());
         String appName = getString(R.string.app_name);
         String displayTitle = subjectName != null ? subjectName : getString(R.string.history_title);
-        toolbar.setTitle(appName + " - " + displayTitle);
+        toolbar.setTitle(getString(R.string.toolbar_title_format, appName, displayTitle));
 
         // RecyclerView
         RecyclerView rv = findViewById(R.id.rvEvents);
@@ -196,7 +196,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
                 eventDao.markUnrealizedOne(id, now);
             }
             runOnUiThread(() -> {
-                String msg = realized ? "Marcado como realizado" : "Marcado como pendiente";
+                String msg = realized ? getString(R.string.event_marked_realized) : getString(R.string.event_marked_pending);
                 android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_SHORT).show();
             });
         }).start();
@@ -224,7 +224,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
         final com.google.android.material.textfield.TextInputEditText etEventTime = view.findViewById(R.id.etEventTime);
 
         if (etTitle == null || etCost == null || sp == null) {
-            android.widget.Toast.makeText(this, "Error al cargar el diálogo", android.widget.Toast.LENGTH_SHORT).show();
+            android.widget.Toast.makeText(this, getString(R.string.dialog_load_error), android.widget.Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -286,11 +286,11 @@ public class SubjectHistoryActivity extends AppCompatActivity {
         // Configurar Spinner de repetición
         if (spRepeatType != null) {
             java.util.List<String> repeatOptions = new java.util.ArrayList<>();
-            repeatOptions.add("No repetir");
-            repeatOptions.add("Cada hora");
-            repeatOptions.add("Cada día");
-            repeatOptions.add("Cada mes");
-            repeatOptions.add("Cada año");
+            repeatOptions.add(getString(R.string.event_repeat_none));
+            repeatOptions.add(getString(R.string.event_repeat_hourly));
+            repeatOptions.add(getString(R.string.event_repeat_daily));
+            repeatOptions.add(getString(R.string.event_repeat_monthly));
+            repeatOptions.add(getString(R.string.event_repeat_yearly));
             android.widget.ArrayAdapter<String> repeatAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, repeatOptions);
             spRepeatType.setAdapter(repeatAdapter);
             
@@ -305,10 +305,10 @@ public class SubjectHistoryActivity extends AppCompatActivity {
                     if (tvRepeatIntervalUnit != null && position > 0) {
                         String unit = "";
                         switch (position) {
-                            case 1: unit = "horas"; break;
-                            case 2: unit = "días"; break;
-                            case 3: unit = "meses"; break;
-                            case 4: unit = "años"; break;
+                            case 1: unit = getString(R.string.event_repeat_interval_hours); break;
+                            case 2: unit = getString(R.string.event_repeat_interval_days); break;
+                            case 3: unit = getString(R.string.event_repeat_interval_months); break;
+                            case 4: unit = getString(R.string.event_repeat_interval_years); break;
                         }
                         tvRepeatIntervalUnit.setText(unit);
                     }
@@ -332,15 +332,15 @@ public class SubjectHistoryActivity extends AppCompatActivity {
         // Configurar Spinner de notificación
         if (spNotification != null) {
             java.util.List<String> notificationOptions = new java.util.ArrayList<>();
-            notificationOptions.add("Sin notificación");
-            notificationOptions.add("5 minutos antes");
-            notificationOptions.add("15 minutos antes");
-            notificationOptions.add("30 minutos antes");
-            notificationOptions.add("1 hora antes");
-            notificationOptions.add("2 horas antes");
-            notificationOptions.add("1 día antes");
-            notificationOptions.add("2 días antes");
-            notificationOptions.add("1 semana antes");
+            notificationOptions.add(getString(R.string.event_notification_none));
+            notificationOptions.add(getString(R.string.event_notification_5min));
+            notificationOptions.add(getString(R.string.event_notification_15min));
+            notificationOptions.add(getString(R.string.event_notification_30min));
+            notificationOptions.add(getString(R.string.event_notification_1hour));
+            notificationOptions.add(getString(R.string.event_notification_2hours));
+            notificationOptions.add(getString(R.string.event_notification_1day));
+            notificationOptions.add(getString(R.string.event_notification_2days));
+            notificationOptions.add(getString(R.string.event_notification_1week));
             android.widget.ArrayAdapter<String> notificationAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, notificationOptions);
             spNotification.setAdapter(notificationAdapter);
         }
@@ -359,7 +359,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
                 final android.widget.ImageButton ibClose = view.findViewById(R.id.ibClose);
                 
                 if (tvDialogTitle != null) {
-                    tvDialogTitle.setText("Nuevo evento");
+                    tvDialogTitle.setText(getString(R.string.new_event));
                 }
                 
                 // Ocultar botones al final
@@ -386,7 +386,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
                     ibSave.setOnClickListener(v -> {
                             final String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
                             if (title.isEmpty()) {
-                                android.widget.Toast.makeText(this, "Título requerido", android.widget.Toast.LENGTH_SHORT).show();
+                                android.widget.Toast.makeText(this, getString(R.string.event_title_required), android.widget.Toast.LENGTH_SHORT).show();
                                 return;
                             }
 
@@ -700,9 +700,9 @@ public class SubjectHistoryActivity extends AppCompatActivity {
             }
 
             runOnUiThread(() -> {
-                String message = "Evento creado ✅";
+                String message = getString(R.string.event_created);
                 if (repeatType != null) {
-                    message += " (con repetición)";
+                    message = getString(R.string.with_repeat_suffix, message);
                 }
                 android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show();
                 
@@ -762,7 +762,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
                                 performSync(authResult.getUser().getUid());
                             } else {
                                 runOnUiThread(() -> {
-                                    android.widget.Toast.makeText(this, "Error: No se pudo autenticar", android.widget.Toast.LENGTH_LONG).show();
+                                    android.widget.Toast.makeText(this, getString(R.string.sync_auth_error), android.widget.Toast.LENGTH_LONG).show();
                                 });
                             }
                         })
@@ -825,7 +825,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
                                         refreshEvents();
                                         showSyncCompletedDialog();
                                     } else {
-                                        showSyncError("Error al recuperar datos", e);
+                                        showSyncError(getString(R.string.sync_ctx_pull_data), e);
                                     }
                                 })
                         );
@@ -836,7 +836,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
                             refreshEvents();
                             showSyncCompletedDialog();
                         } else {
-                            showSyncError("Error al recuperar sujetos", e);
+                            showSyncError(getString(R.string.sync_ctx_pull_subjects), e);
                         }
                     }));
                 }, e -> runOnUiThread(() -> {
@@ -846,7 +846,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
                         android.widget.Toast.makeText(this, getString(R.string.sync_success), android.widget.Toast.LENGTH_SHORT).show();
                         refreshEvents();
                     } else {
-                        showSyncError("Error al subir eventos", e);
+                        showSyncError(getString(R.string.sync_ctx_push_events), e);
                     }
                 }));
             }, e -> runOnUiThread(() -> {
@@ -856,7 +856,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
                     android.widget.Toast.makeText(this, getString(R.string.sync_success), android.widget.Toast.LENGTH_SHORT).show();
                     refreshEvents();
                 } else {
-                    showSyncError("Error al subir sujetos", e);
+                    showSyncError(getString(R.string.sync_ctx_push_subjects), e);
                 }
             }));
         } catch (SecurityException e) {
@@ -878,7 +878,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
                     android.widget.Toast.makeText(this, getString(R.string.sync_success), android.widget.Toast.LENGTH_SHORT).show();
                     refreshEvents();
                 } else {
-                    showSyncError("Error al iniciar sync", e);
+                    showSyncError(getString(R.string.sync_ctx_start), e);
                 }
             });
         }
@@ -903,13 +903,13 @@ public class SubjectHistoryActivity extends AppCompatActivity {
     private void showSyncCompletedDialog() {
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle(getString(R.string.sync_success))
-                .setMessage("Los datos se han sincronizado correctamente.")
+                .setMessage(getString(R.string.sync_data_synced_message))
                 .setPositiveButton(android.R.string.ok, null)
                 .show();
     }
     
     private void showSyncError(String title, Exception e) {
-        String message = e != null ? e.getMessage() : "Error desconocido";
+        String message = e != null ? e.getMessage() : getString(R.string.error_unknown);
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle(title)
                 .setMessage(message)
@@ -930,9 +930,9 @@ public class SubjectHistoryActivity extends AppCompatActivity {
         if (versionItem != null) {
             try {
                 String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
-                versionItem.setTitle("v" + versionName);
+                versionItem.setTitle(getString(R.string.version_format, versionName));
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                versionItem.setTitle("v" + com.gastonlesbegueris.caretemplate.BuildConfig.VERSION_NAME);
+                versionItem.setTitle(getString(R.string.version_format, com.gastonlesbegueris.caretemplate.BuildConfig.VERSION_NAME));
             }
         }
         return super.onPrepareOptionsMenu(menu);
@@ -1012,7 +1012,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
                     android.util.Log.e("SubjectHistoryActivity", "Error al buscar evento original", ex);
                     runOnUiThread(() -> {
                         if (!isFinishing() && !isDestroyed()) {
-                            android.widget.Toast.makeText(this, "Error al cargar evento", android.widget.Toast.LENGTH_SHORT).show();
+                            android.widget.Toast.makeText(this, getString(R.string.error_load_event), android.widget.Toast.LENGTH_SHORT).show();
                         }
                     });
                 }
@@ -1072,7 +1072,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
         final com.google.android.material.textfield.TextInputEditText etEventTime = view.findViewById(R.id.etEventTime);
 
         if (etTitle == null || etCost == null) {
-            android.widget.Toast.makeText(this, "Error al cargar el diálogo", android.widget.Toast.LENGTH_SHORT).show();
+            android.widget.Toast.makeText(this, getString(R.string.dialog_load_error), android.widget.Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -1143,11 +1143,11 @@ public class SubjectHistoryActivity extends AppCompatActivity {
         // Configurar Spinner de repetición
         if (spRepeatType != null) {
             java.util.List<String> repeatOptions = new java.util.ArrayList<>();
-            repeatOptions.add("No repetir");
-            repeatOptions.add("Cada hora");
-            repeatOptions.add("Cada día");
-            repeatOptions.add("Cada mes");
-            repeatOptions.add("Cada año");
+            repeatOptions.add(getString(R.string.event_repeat_none));
+            repeatOptions.add(getString(R.string.event_repeat_hourly));
+            repeatOptions.add(getString(R.string.event_repeat_daily));
+            repeatOptions.add(getString(R.string.event_repeat_monthly));
+            repeatOptions.add(getString(R.string.event_repeat_yearly));
             android.widget.ArrayAdapter<String> repeatAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, repeatOptions);
             spRepeatType.setAdapter(repeatAdapter);
             
@@ -1191,10 +1191,10 @@ public class SubjectHistoryActivity extends AppCompatActivity {
                     if (tvRepeatIntervalUnit != null && position > 0) {
                         String unit = "";
                         switch (position) {
-                            case 1: unit = "horas"; break;
-                            case 2: unit = "días"; break;
-                            case 3: unit = "meses"; break;
-                            case 4: unit = "años"; break;
+                            case 1: unit = getString(R.string.event_repeat_interval_hours); break;
+                            case 2: unit = getString(R.string.event_repeat_interval_days); break;
+                            case 3: unit = getString(R.string.event_repeat_interval_months); break;
+                            case 4: unit = getString(R.string.event_repeat_interval_years); break;
                         }
                         tvRepeatIntervalUnit.setText(unit);
                     }
@@ -1210,10 +1210,10 @@ public class SubjectHistoryActivity extends AppCompatActivity {
                 if (tvRepeatIntervalUnit != null) {
                     String unit = "";
                     switch (finalEvent.repeatType) {
-                        case "hourly": unit = "horas"; break;
-                        case "daily": unit = "días"; break;
-                        case "monthly": unit = "meses"; break;
-                        case "yearly": unit = "años"; break;
+                        case "hourly": unit = getString(R.string.event_repeat_interval_hours); break;
+                        case "daily": unit = getString(R.string.event_repeat_interval_days); break;
+                        case "monthly": unit = getString(R.string.event_repeat_interval_months); break;
+                        case "yearly": unit = getString(R.string.event_repeat_interval_years); break;
                     }
                     tvRepeatIntervalUnit.setText(unit);
                 }
@@ -1235,15 +1235,15 @@ public class SubjectHistoryActivity extends AppCompatActivity {
         // Configurar Spinner de notificación
         if (spNotification != null) {
             java.util.List<String> notificationOptions = new java.util.ArrayList<>();
-            notificationOptions.add("Sin notificación");
-            notificationOptions.add("5 minutos antes");
-            notificationOptions.add("15 minutos antes");
-            notificationOptions.add("30 minutos antes");
-            notificationOptions.add("1 hora antes");
-            notificationOptions.add("2 horas antes");
-            notificationOptions.add("1 día antes");
-            notificationOptions.add("2 días antes");
-            notificationOptions.add("1 semana antes");
+            notificationOptions.add(getString(R.string.event_notification_none));
+            notificationOptions.add(getString(R.string.event_notification_5min));
+            notificationOptions.add(getString(R.string.event_notification_15min));
+            notificationOptions.add(getString(R.string.event_notification_30min));
+            notificationOptions.add(getString(R.string.event_notification_1hour));
+            notificationOptions.add(getString(R.string.event_notification_2hours));
+            notificationOptions.add(getString(R.string.event_notification_1day));
+            notificationOptions.add(getString(R.string.event_notification_2days));
+            notificationOptions.add(getString(R.string.event_notification_1week));
             android.widget.ArrayAdapter<String> notificationAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, notificationOptions);
             spNotification.setAdapter(notificationAdapter);
             
@@ -1307,7 +1307,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
             ibSave.setOnClickListener(v -> {
                 String title = etTitle.getText() != null ? etTitle.getText().toString().trim() : "";
                 if (title.isEmpty()) {
-                    android.widget.Toast.makeText(this, "Título requerido", android.widget.Toast.LENGTH_SHORT).show();
+                    android.widget.Toast.makeText(this, getString(R.string.event_title_required), android.widget.Toast.LENGTH_SHORT).show();
                     return;
                 }
 
@@ -1419,7 +1419,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
         } catch (Exception ex) {
             android.util.Log.e("SubjectHistoryActivity", "Error al mostrar diálogo de edición", ex);
             if (!isFinishing() && !isDestroyed()) {
-                android.widget.Toast.makeText(this, "Error al cargar el diálogo de edición", android.widget.Toast.LENGTH_SHORT).show();
+                android.widget.Toast.makeText(this, getString(R.string.error_load_edit_dialog), android.widget.Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -1475,7 +1475,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
                         }
                         runOnUiThread(() -> {
                             if (!isFinishing() && !isDestroyed()) {
-                                android.widget.Toast.makeText(this, "Evento y todas sus repeticiones actualizadas ✅", android.widget.Toast.LENGTH_SHORT).show();
+                                android.widget.Toast.makeText(this, getString(R.string.event_all_repeats_updated), android.widget.Toast.LENGTH_SHORT).show();
                             }
                         });
                     } else {
@@ -1494,7 +1494,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
                 android.util.Log.e("SubjectHistoryActivity", "Error al actualizar evento", ex);
                 runOnUiThread(() -> {
                     if (!isFinishing() && !isDestroyed()) {
-                        android.widget.Toast.makeText(this, "Error al actualizar evento: " + ex.getMessage(), android.widget.Toast.LENGTH_LONG).show();
+                        android.widget.Toast.makeText(this, getString(R.string.error_update_event_detail, ex.getMessage()), android.widget.Toast.LENGTH_LONG).show();
                     }
                 });
             }
@@ -1542,7 +1542,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
             
             runOnUiThread(() -> {
                 if (!isFinishing() && !isDestroyed()) {
-                    android.widget.Toast.makeText(this, "Evento actualizado", android.widget.Toast.LENGTH_SHORT).show();
+                    android.widget.Toast.makeText(this, getString(R.string.event_updated_plain), android.widget.Toast.LENGTH_SHORT).show();
                 }
             });
         } catch (Exception ex) {
@@ -1551,9 +1551,9 @@ public class SubjectHistoryActivity extends AppCompatActivity {
                 if (!isFinishing() && !isDestroyed()) {
                     if (updateSuccess[0]) {
                         // Si la actualización fue exitosa pero hubo un error menor, mostrar éxito
-                        android.widget.Toast.makeText(this, "Evento actualizado", android.widget.Toast.LENGTH_SHORT).show();
+                        android.widget.Toast.makeText(this, getString(R.string.event_updated_plain), android.widget.Toast.LENGTH_SHORT).show();
                     } else {
-                        android.widget.Toast.makeText(this, "Error al actualizar evento", android.widget.Toast.LENGTH_LONG).show();
+                        android.widget.Toast.makeText(this, getString(R.string.error_update_event), android.widget.Toast.LENGTH_LONG).show();
                     }
                 }
             });
@@ -1624,9 +1624,9 @@ public class SubjectHistoryActivity extends AppCompatActivity {
             
             runOnUiThread(() -> {
                 if (!isFinishing() && !isDestroyed()) {
-                    String message = "Evento actualizado";
+                    String message = getString(R.string.event_updated_plain);
                     if (repeatType != null) {
-                        message += " (repetición actualizada)";
+                        message = getString(R.string.with_repeat_updated_suffix, message);
                     }
                     android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show();
                 }
@@ -1637,13 +1637,13 @@ public class SubjectHistoryActivity extends AppCompatActivity {
                 if (!isFinishing() && !isDestroyed()) {
                     if (updateSuccess[0]) {
                         // Si la actualización fue exitosa pero hubo un error menor, mostrar éxito
-                        String message = "Evento actualizado";
+                        String message = getString(R.string.event_updated_plain);
                         if (repeatType != null) {
-                            message += " (repetición actualizada)";
+                            message = getString(R.string.with_repeat_updated_suffix, message);
                         }
                         android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show();
                     } else {
-                        android.widget.Toast.makeText(this, "Error al actualizar evento", android.widget.Toast.LENGTH_LONG).show();
+                        android.widget.Toast.makeText(this, getString(R.string.error_update_event), android.widget.Toast.LENGTH_LONG).show();
                     }
                 }
             });
@@ -1740,7 +1740,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
                 com.gastonlesbegueris.caretemplate.util.NotificationHelper.cancelNotification(this, id);
             }
             eventDao.softDelete(id, System.currentTimeMillis());
-            runOnUiThread(() -> android.widget.Toast.makeText(this, "Evento eliminado", android.widget.Toast.LENGTH_SHORT).show());
+            runOnUiThread(() -> android.widget.Toast.makeText(this, getString(R.string.event_deleted_plain), android.widget.Toast.LENGTH_SHORT).show());
         }).start();
     }
     
@@ -1749,7 +1749,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
      */
     private void showShareSubjectDialog() {
         if (subjectId == null) {
-            android.widget.Toast.makeText(this, "Error: No hay sujeto seleccionado", android.widget.Toast.LENGTH_SHORT).show();
+            android.widget.Toast.makeText(this, getString(R.string.error_no_subject_selected), android.widget.Toast.LENGTH_SHORT).show();
             return;
         }
         
@@ -1763,7 +1763,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
     private void showShareSubjectDialogAfterAd() {
         String userId = getCurrentUserId();
         if (userId == null) {
-            android.widget.Toast.makeText(this, "Error: No se pudo obtener ID de usuario", android.widget.Toast.LENGTH_SHORT).show();
+            android.widget.Toast.makeText(this, getString(R.string.error_no_user_id), android.widget.Toast.LENGTH_SHORT).show();
             return;
         }
         
@@ -1787,9 +1787,9 @@ public class SubjectHistoryActivity extends AppCompatActivity {
                             .setMessage(getString(R.string.share_subject_code_message))
                             .setView(view)
                             .setPositiveButton(getString(R.string.button_ok), null)
-                            .setNeutralButton("Copiar", (dialog, which) -> {
+                            .setNeutralButton(getString(R.string.button_copy), (dialog, which) -> {
                                 android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(android.content.Context.CLIPBOARD_SERVICE);
-                                android.content.ClipData clip = android.content.ClipData.newPlainText("Código de compartir", shareCode);
+                                android.content.ClipData clip = android.content.ClipData.newPlainText(getString(R.string.share_subject_code_title), shareCode);
                                 clipboard.setPrimaryClip(clip);
                                 android.widget.Toast.makeText(SubjectHistoryActivity.this, getString(R.string.share_subject_code_copied), android.widget.Toast.LENGTH_SHORT).show();
                             })
@@ -1800,7 +1800,7 @@ public class SubjectHistoryActivity extends AppCompatActivity {
             @Override
             public void onError(Exception error) {
                 runOnUiThread(() -> {
-                    String errorMsg = error != null ? error.getMessage() : "Error desconocido";
+                    String errorMsg = error != null ? error.getMessage() : getString(R.string.error_unknown);
                     android.widget.Toast.makeText(SubjectHistoryActivity.this, getString(R.string.share_subject_error, errorMsg), android.widget.Toast.LENGTH_LONG).show();
                 });
             }

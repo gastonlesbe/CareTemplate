@@ -28,9 +28,9 @@ public class SubjectSummaryAdapter extends RecyclerView.Adapter<SubjectSummaryAd
     public void onBindViewHolder(@NonNull VH h, int position) {
         SubjectCostSummary s = items.get(position);
         h.tvSubjectName.setText(s.subjectName);
-        h.tvCount.setText("Eventos: " + s.count);
-        h.tvPlanned.setText(String.format(Locale.getDefault(), "Plan: $%.2f", s.planned));
-        h.tvRealized.setText(String.format(Locale.getDefault(), "Real: $%.2f", s.realized));
+        h.tvCount.setText(h.itemView.getContext().getString(R.string.expenses_events, s.count));
+        h.tvPlanned.setText(h.itemView.getContext().getString(R.string.expenses_plan, s.planned));
+        h.tvRealized.setText(h.itemView.getContext().getString(R.string.expenses_real, s.realized));
     }
 
     @Override public int getItemCount() { return items.size(); }

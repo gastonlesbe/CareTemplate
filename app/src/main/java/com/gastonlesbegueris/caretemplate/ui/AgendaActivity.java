@@ -55,7 +55,7 @@ public class AgendaActivity extends AppCompatActivity {
         tb.setNavigationOnClickListener(v -> finish());
         String appName = getString(R.string.app_name);
         String sectionName = getString(R.string.menu_agenda);
-        tb.setTitle(appName + " - " + sectionName);
+        tb.setTitle(getString(R.string.toolbar_title_format, appName, sectionName));
 
         // Recycler
         RecyclerView rv = findViewById(R.id.rvAgenda);
@@ -171,9 +171,9 @@ public class AgendaActivity extends AppCompatActivity {
         if (versionItem != null) {
             try {
                 String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
-                versionItem.setTitle("v" + versionName);
+                versionItem.setTitle(getString(R.string.version_format, versionName));
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                versionItem.setTitle("v" + com.gastonlesbegueris.caretemplate.BuildConfig.VERSION_NAME);
+                versionItem.setTitle(getString(R.string.version_format, com.gastonlesbegueris.caretemplate.BuildConfig.VERSION_NAME));
             }
         }
         return super.onPrepareOptionsMenu(menu);
@@ -215,7 +215,7 @@ public class AgendaActivity extends AppCompatActivity {
                     android.util.Log.e("AgendaActivity", "Error al buscar evento original", ex);
                     runOnUiThread(() -> {
                         if (!isFinishing() && !isDestroyed()) {
-                            android.widget.Toast.makeText(this, "Error al cargar evento", android.widget.Toast.LENGTH_SHORT).show();
+                            android.widget.Toast.makeText(this, getString(R.string.error_load_event), android.widget.Toast.LENGTH_SHORT).show();
                         }
                     });
                 }
@@ -622,7 +622,7 @@ public class AgendaActivity extends AppCompatActivity {
         } catch (Exception ex) {
             android.util.Log.e("AgendaActivity", "Error al mostrar diálogo de edición", ex);
             if (!isFinishing() && !isDestroyed()) {
-                android.widget.Toast.makeText(this, "Error al cargar el diálogo de edición", android.widget.Toast.LENGTH_SHORT).show();
+                android.widget.Toast.makeText(this, getString(R.string.error_load_edit_dialog), android.widget.Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -732,7 +732,7 @@ public class AgendaActivity extends AppCompatActivity {
                         }
                         runOnUiThread(() -> {
                             if (!isFinishing() && !isDestroyed()) {
-                                android.widget.Toast.makeText(this, "Evento y todas sus repeticiones actualizadas ✅", android.widget.Toast.LENGTH_SHORT).show();
+                                android.widget.Toast.makeText(this, getString(R.string.event_all_repeats_updated), android.widget.Toast.LENGTH_SHORT).show();
                             }
                         });
                     } else {
@@ -751,7 +751,7 @@ public class AgendaActivity extends AppCompatActivity {
                 android.util.Log.e("AgendaActivity", "Error al actualizar evento", ex);
                 runOnUiThread(() -> {
                     if (!isFinishing() && !isDestroyed()) {
-                        android.widget.Toast.makeText(this, "Error al actualizar evento: " + ex.getMessage(), android.widget.Toast.LENGTH_LONG).show();
+                        android.widget.Toast.makeText(this, getString(R.string.error_update_event_detail, ex.getMessage()), android.widget.Toast.LENGTH_LONG).show();
                     }
                 });
             }
@@ -810,7 +810,7 @@ public class AgendaActivity extends AppCompatActivity {
                         // Si la actualización fue exitosa pero hubo un error menor, mostrar éxito
                         android.widget.Toast.makeText(this, getString(R.string.event_updated), android.widget.Toast.LENGTH_SHORT).show();
                     } else {
-                        android.widget.Toast.makeText(this, "Error al actualizar evento", android.widget.Toast.LENGTH_LONG).show();
+                        android.widget.Toast.makeText(this, getString(R.string.error_update_event), android.widget.Toast.LENGTH_LONG).show();
                     }
                 }
             });
@@ -883,7 +883,7 @@ public class AgendaActivity extends AppCompatActivity {
                 if (!isFinishing() && !isDestroyed()) {
                     String message = getString(R.string.event_updated);
                     if (repeatType != null) {
-                        message += " (repetición actualizada)";
+                        message = getString(R.string.with_repeat_updated_suffix, message);
                     }
                     android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show();
                 }
@@ -896,11 +896,11 @@ public class AgendaActivity extends AppCompatActivity {
                         // Si la actualización fue exitosa pero hubo un error menor, mostrar éxito
                         String message = getString(R.string.event_updated);
                         if (repeatType != null) {
-                            message += " (repetición actualizada)";
+                            message = getString(R.string.with_repeat_updated_suffix, message);
                         }
                         android.widget.Toast.makeText(this, message, android.widget.Toast.LENGTH_SHORT).show();
                     } else {
-                        android.widget.Toast.makeText(this, "Error al actualizar evento", android.widget.Toast.LENGTH_LONG).show();
+                        android.widget.Toast.makeText(this, getString(R.string.error_update_event), android.widget.Toast.LENGTH_LONG).show();
                     }
                 }
             });

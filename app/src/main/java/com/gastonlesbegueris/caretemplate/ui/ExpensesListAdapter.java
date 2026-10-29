@@ -25,8 +25,8 @@ public class ExpensesListAdapter extends RecyclerView.Adapter<ExpensesListAdapte
     @Override public void onBindViewHolder(@NonNull VH h, int pos) {
         MonthTotal m = items.get(pos);
         h.tvMonth.setText(m.monthStart); // "YYYY-MM-01"
-        h.tvPlanned.setText(String.format(Locale.getDefault(),"Planificado: $%.2f", m.plannedSum == null? 0.0 : m.plannedSum));
-        h.tvRealized.setText(String.format(Locale.getDefault(),"Realizado: $%.2f", m.realizedSum == null? 0.0 : m.realizedSum));
+        h.tvPlanned.setText(h.itemView.getContext().getString(R.string.expenses_plan_label, m.plannedSum == null? 0.0 : m.plannedSum));
+        h.tvRealized.setText(h.itemView.getContext().getString(R.string.expenses_real_label, m.realizedSum == null? 0.0 : m.realizedSum));
     }
 
     @Override public int getItemCount() { return items.size(); }

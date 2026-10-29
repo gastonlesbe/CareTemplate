@@ -70,7 +70,7 @@
         android:layout_marginEnd="24dp"
         android:layout_marginBottom="100dp"
         app:srcCompat="@drawable/ic_event"
-        android:contentDescription="Agregar evento" />
+        android:contentDescription="@string/cd_add_event" />
 
     <!-- Appodeal Banner Container -->
     <FrameLayout

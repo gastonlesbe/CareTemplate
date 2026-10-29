@@ -44,14 +44,14 @@
         android:icon="@drawable/ic_home"
         app:showAsAction="never">
         <menu>
-            <item android:id="@+id/action_our_app_pets"               android:title="CarePal: Mascotas y Salud" />
-            <item android:id="@+id/action_our_app_cars"               android:title="CarePal: Autos y Service" />
-            <item android:id="@+id/action_our_app_family"             android:title="CarePal: Familia y Agenda" />
-            <item android:id="@+id/action_our_app_house"              android:title="CarePal: Hogar y Mantenimiento" />
-            <item android:id="@+id/action_our_app_griscal"            android:title="Griscal: Hogar y Familia" />
-            <item android:id="@+id/action_our_app_milinterna"         android:title="Mi Linterna" />
-            <item android:id="@+id/action_our_app_milupa"             android:title="MiLupa" />
-            <item android:id="@+id/action_our_app_permission_inspector" android:title="Permission Inspector" />
+            <item android:id="@+id/action_our_app_pets"               android:title="@string/menu_app_carepal_pets" />
+            <item android:id="@+id/action_our_app_cars"               android:title="@string/menu_app_carepal_cars" />
+            <item android:id="@+id/action_our_app_family"             android:title="@string/menu_app_carepal_family" />
+            <item android:id="@+id/action_our_app_house"              android:title="@string/menu_app_carepal_house" />
+            <item android:id="@+id/action_our_app_griscal"            android:title="@string/menu_app_griscal" />
+            <item android:id="@+id/action_our_app_milinterna"         android:title="@string/menu_app_milinterna" />
+            <item android:id="@+id/action_our_app_milupa"             android:title="@string/menu_app_milupa" />
+            <item android:id="@+id/action_our_app_permission_inspector" android:title="@string/menu_app_permission_inspector" />
         </menu>
     </item>
 
@@ -96,7 +96,7 @@
 
     <item
         android:id="@+id/action_version"
-        android:title="v1.2"
+        android:title="@string/version_placeholder"
         app:showAsAction="never"
         android:enabled="false" />
 

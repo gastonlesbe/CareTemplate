@@ -1,5 +1,6 @@
 package com.gastonlesbegueris.caretemplate.util;
 
+import com.gastonlesbegueris.caretemplate.R;
 import android.app.Activity;
 import android.content.SharedPreferences;
 import android.util.Log;
@@ -79,16 +80,16 @@ public class ReviewHelper {
         prefs.edit().putInt(KEY_REVIEW_ATTEMPT_COUNT, attemptCount).apply();
         
         // Obtener mensaje según el número de intento
-        String message = getReviewMessage(attemptCount, appName);
-        String title = getReviewTitle(attemptCount, appName);
+        String message = getReviewMessage(activity, attemptCount, appName);
+        String title = getReviewTitle(activity, attemptCount, appName);
         
         new MaterialAlertDialogBuilder(activity)
                 .setTitle(title)
                 .setMessage(message)
-                .setPositiveButton("Sí, claro", (dialog, which) -> {
+                .setPositiveButton(R.string.review_yes, (dialog, which) -> {
                     requestReview(activity);
                 })
-                .setNegativeButton("Ahora no", (dialog, which) -> {
+                .setNegativeButton(R.string.review_not_now, (dialog, which) -> {
                     // No marcar como completado, seguirá pidiendo cada 5 cargas
                     dialog.dismiss();
                 })
@@ -99,45 +100,45 @@ public class ReviewHelper {
     /**
      * Obtiene el título del diálogo según el número de intento
      */
-    private static String getReviewTitle(int attemptCount, String appName) {
+    private static String getReviewTitle(android.content.Context ctx, int attemptCount, String appName) {
         if (attemptCount == 1) {
-            return "¡Gracias por usar " + appName + "!";
+            return ctx.getString(R.string.review_title_1, appName);
         } else if (attemptCount == 2) {
-            return "Recordatorio";
+            return ctx.getString(R.string.review_title_2);
         } else if (attemptCount == 3) {
-            return "Disculpas";
+            return ctx.getString(R.string.review_title_3);
         } else if (attemptCount == 4) {
-            return "Tu ayuda es importante";
+            return ctx.getString(R.string.review_title_4);
         } else {
-            return "Última vez";
+            return ctx.getString(R.string.review_title_5);
         }
     }
 
     /**
      * Obtiene el mensaje del diálogo según el número de intento
      */
-    private static String getReviewMessage(int attemptCount, String appName) {
+    private static String getReviewMessage(android.content.Context ctx, int attemptCount, String appName) {
         switch (attemptCount) {
             case 1:
                 // Primera vez: mensaje sencillo
-                return "¿Te está sirviendo " + appName + "? ⭐\n¿Podés dejar una reseña? (toma 10s)";
+                return ctx.getString(R.string.review_message_1, appName);
             
             case 2:
                 // Segunda vez: recordatorio
-                return "Recordatorio: ¿Podrías dejar una reseña de " + appName + "? ⭐\nSolo toma unos segundos.";
+                return ctx.getString(R.string.review_message_2, appName);
             
             case 3:
                 // Tercera vez: disculpas pero aclarando que es importante
-                return "Disculpas por insistir, pero para nosotros es muy importante.\n¿Podrías calificar " + appName + "? ⭐";
+                return ctx.getString(R.string.review_message_3, appName);
             
             case 4:
                 // Cuarta vez: mencionar que es desarrollador independiente
-                return "Como desarrollador independiente, las buenas calificaciones me ayudan mucho.\n¿Podrías dejar una reseña de " + appName + "? ⭐";
+                return ctx.getString(R.string.review_message_4, appName);
             
             case 5:
             default:
                 // Quinta vez (y siguientes): si no quiere ser molestado, que califique
-                return "Si no quieres volver a ser molestado, califica esta app.\n¿Podrías dejar una reseña de " + appName + "? ⭐";
+                return ctx.getString(R.string.review_message_5, appName);
         }
     }
 

@@ -546,14 +546,6 @@ public class TutorialHelper {
     }
     
     /**
-     * Obtiene el mensaje del tutorial de sujetos paso 2 según el flavor
-     */
-    private static String getTutorialMessageStep2(Activity activity, String appType) {
-        String subjectType = getSubjectTypeName(activity, appType);
-        return "Ahora toca este botón para agregar tu primer " + subjectType;
-    }
-    
-    /**
      * Obtiene el mensaje del tutorial de sujetos paso 2 con imagen del botón
      */
     private static CharSequence getTutorialMessageStep2WithIcon(Activity activity, String appType) {
@@ -579,8 +571,12 @@ public class TutorialHelper {
         // Crear ImageSpan
         android.text.style.ImageSpan imageSpan = new android.text.style.ImageSpan(drawable, android.text.style.DynamicDrawableSpan.ALIGN_BASELINE);
         
-        // Encontrar la posición donde insertar la imagen (después de "toca ")
-        int insertPos = text.indexOf("toca ") + "toca ".length();
+        // El icono reemplaza el espacio del medio del hueco de tres espacios que deja el
+        // string ("toca   para" / "tap   to"); así no dependemos del idioma del texto.
+        // El string va entre comillas para que aapt no colapse los espacios.
+        int gap = text.indexOf("   ");
+        if (gap < 0) return text;
+        int insertPos = gap + 1;
         
         // Insertar la imagen
         spannable.setSpan(imageSpan, insertPos, insertPos + 1, android.text.Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
@@ -595,13 +591,6 @@ public class TutorialHelper {
         String welcome = activity.getString(R.string.tutorial_event_step1_welcome);
         String message = activity.getString(R.string.tutorial_event_step1_message);
         return welcome + "\n\n" + message;
-    }
-    
-    /**
-     * Obtiene el mensaje del tutorial de eventos paso 2 según el flavor
-     */
-    private static String getEventTutorialMessageStep2(Activity activity, String appType) {
-        return "Toca este botón para crear tu primer evento.\n\nPuedes configurar repeticiones, notificaciones y agregar el costo";
     }
     
     /**
@@ -624,8 +613,12 @@ public class TutorialHelper {
         // Crear ImageSpan
         android.text.style.ImageSpan imageSpan = new android.text.style.ImageSpan(drawable, android.text.style.DynamicDrawableSpan.ALIGN_BASELINE);
         
-        // Encontrar la posición donde insertar la imagen (después de "Toca ")
-        int insertPos = text.indexOf("Toca ") + "Toca ".length();
+        // El icono reemplaza el espacio del medio del hueco de tres espacios que deja el
+        // string ("toca   para" / "tap   to"); así no dependemos del idioma del texto.
+        // El string va entre comillas para que aapt no colapse los espacios.
+        int gap = text.indexOf("   ");
+        if (gap < 0) return text;
+        int insertPos = gap + 1;
         
         // Insertar la imagen
         spannable.setSpan(imageSpan, insertPos, insertPos + 1, android.text.Spannable.SPAN_INCLUSIVE_EXCLUSIVE);

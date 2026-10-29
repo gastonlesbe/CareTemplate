@@ -81,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
         
         String appName = getString(R.string.app_name);
         String sectionName = getString(R.string.menu_home);
-        toolbar.setTitle(appName + " - " + sectionName);
+        toolbar.setTitle(getString(R.string.toolbar_title_format, appName, sectionName));
         toolbar.setSubtitle(null);
         // Set default icon immediately (will be updated by refreshHeader() if subject exists)
         // No aplicar tint, el icono ya tiene el color fijo #03DAC5
@@ -338,9 +338,9 @@ public class MainActivity extends AppCompatActivity {
         if (versionItem != null) {
             try {
                 String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
-                versionItem.setTitle("v" + versionName);
+                versionItem.setTitle(getString(R.string.version_format, versionName));
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                versionItem.setTitle("v" + com.gastonlesbegueris.caretemplate.BuildConfig.VERSION_NAME);
+                versionItem.setTitle(getString(R.string.version_format, com.gastonlesbegueris.caretemplate.BuildConfig.VERSION_NAME));
             }
         }
         return super.onPrepareOptionsMenu(menu);
@@ -367,7 +367,7 @@ public class MainActivity extends AppCompatActivity {
                                     doSync();
                                 } else {
                                     stopSyncIconAnimation();
-                                    Toast.makeText(this, "Error: No se pudo autenticar", Toast.LENGTH_LONG).show();
+                                    Toast.makeText(this, getString(R.string.sync_auth_error), Toast.LENGTH_LONG).show();
                                 }
                             })
                             .addOnFailureListener(e -> {
@@ -389,7 +389,7 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     stopSyncIconAnimation();
-                    showSyncError("Error al iniciar sync", e);
+                    showSyncError(getString(R.string.sync_ctx_start), e);
                 });
             }
             return true;
@@ -903,7 +903,7 @@ public class MainActivity extends AppCompatActivity {
                                         refreshHeader();
                                     } else {
                                         // Solo mostrar error si NO estamos en modo silencioso
-                                        showSyncError("Error al recuperar datos", e);
+                                        showSyncError(getString(R.string.sync_ctx_pull_data), e);
                                     }
                                 })
                         );
@@ -931,7 +931,7 @@ public class MainActivity extends AppCompatActivity {
                             refreshHeader();
                         } else {
                             // Solo mostrar error si NO estamos en modo silencioso
-                            showSyncError("Error al recuperar sujetos", e);
+                            showSyncError(getString(R.string.sync_ctx_pull_subjects), e);
                         }
                     }));
                 }, e -> runOnUiThread(() -> {
@@ -949,7 +949,7 @@ public class MainActivity extends AppCompatActivity {
                         refreshHeader();
                     } else {
                         // Solo mostrar error si NO estamos en modo silencioso
-                        showSyncError("Error al subir eventos", e);
+                        showSyncError(getString(R.string.sync_ctx_push_events), e);
                     }
                 }));
                     }, e -> runOnUiThread(() -> {
@@ -967,7 +967,7 @@ public class MainActivity extends AppCompatActivity {
                             refreshHeader();
                         } else {
                             // Solo mostrar error si NO estamos en modo silencioso
-                            showSyncError("Error al subir sujetos", e);
+                            showSyncError(getString(R.string.sync_ctx_push_subjects), e);
                         }
                     }));
         } catch (SecurityException e) {
@@ -1130,7 +1130,7 @@ public class MainActivity extends AppCompatActivity {
         
         String userMessage;
         if (errorMsg == null) {
-            userMessage = context + ": Error desconocido";
+            userMessage = getString(R.string.error_with_context, context, getString(R.string.error_unknown));
         } else if (errorMsg.contains("Failed to get service") || 
                    errorMsg.contains("reconnection") || 
                    errorMsg.contains("UNAVAILABLE") ||
@@ -1151,7 +1151,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("MainActivity", "Error de permisos SILENCIADO (verificación final): " + context);
                 return; // NO MOSTRAR NADA
             }
-            userMessage = context + ": " + errorMsg;
+            userMessage = getString(R.string.error_with_context, context, errorMsg);
         }
         
         // VERIFICACIÓN FINAL ANTES DE MOSTRAR: Si el mensaje contiene "permission", NO MOSTRAR
@@ -1175,7 +1175,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             runOnUiThread(() -> {
                 stopSyncIconAnimation();
-                showSyncError("Error al iniciar sync", e);
+                showSyncError(getString(R.string.sync_ctx_start), e);
             });
         }
     }
@@ -1194,7 +1194,7 @@ public class MainActivity extends AppCompatActivity {
                             } else {
                                 runOnUiThread(() -> {
                                     stopSyncIconAnimation();
-                                    Toast.makeText(this, "Error: No se pudo autenticar", Toast.LENGTH_LONG).show();
+                                    Toast.makeText(this, getString(R.string.sync_auth_error), Toast.LENGTH_LONG).show();
                                 });
                             }
                         })
@@ -1212,7 +1212,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             runOnUiThread(() -> {
                 stopSyncIconAnimation();
-                showSyncError("Error al iniciar sync", e);
+                showSyncError(getString(R.string.sync_ctx_start), e);
             });
         }
     }
@@ -1249,7 +1249,7 @@ public class MainActivity extends AppCompatActivity {
                                         // Mostrar popup de sincronización realizada
                                         showSyncCompletedDialog();
                                     } else {
-                                        showSyncError("Pull error", e);
+                                        showSyncError(getString(R.string.sync_ctx_pull_error), e);
                                     }
                                     stopSyncIconAnimation();
                                 })
@@ -1261,7 +1261,7 @@ public class MainActivity extends AppCompatActivity {
                             Log.d("MainActivity", "Error de permisos SILENCIADO en pullSubjects");
                             Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
                         } else {
-                            showSyncError("Pull subjects error", e);
+                            showSyncError(getString(R.string.sync_ctx_pull_subjects_error), e);
                         }
                         stopSyncIconAnimation();
                     }));
@@ -1272,7 +1272,7 @@ public class MainActivity extends AppCompatActivity {
                         Log.d("MainActivity", "Error de permisos SILENCIADO en push events");
                         Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
                     } else {
-                        showSyncError("Push events error", e);
+                        showSyncError(getString(R.string.sync_ctx_push_events_error), e);
                     }
                     stopSyncIconAnimation();
                 }));
@@ -1283,7 +1283,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("MainActivity", "Error de permisos SILENCIADO en pushSubjects");
                     Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
                 } else {
-                    showSyncError("Push subjects error", e);
+                    showSyncError(getString(R.string.sync_ctx_push_subjects_error), e);
                 }
                 stopSyncIconAnimation();
             }));
@@ -1296,7 +1296,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("MainActivity", "Error de permisos SILENCIADO en doSync SecurityException");
                     Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(this, "Error de seguridad. Verifica la configuración de Firebase (SHA-1)", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, getString(R.string.sync_error_security), Toast.LENGTH_LONG).show();
                 }
             });
         } catch (Exception e) {
@@ -1308,7 +1308,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("MainActivity", "Error de permisos SILENCIADO en doSync Exception");
                     Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(this, "Error en sync: " + errorMsg, Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, getString(R.string.sync_error, errorMsg), Toast.LENGTH_LONG).show();
                 }
             });
         }
@@ -1419,7 +1419,7 @@ public class MainActivity extends AppCompatActivity {
             // Siempre: nombre de la app - sección
             String appName = getString(R.string.app_name);
             String sectionName = getString(R.string.menu_home);
-            toolbar.setTitle(appName + " - " + sectionName);
+            toolbar.setTitle(getString(R.string.toolbar_title_format, appName, sectionName));
 
             // Nunca mostramos subtítulo acá
             toolbar.setSubtitle(null);
@@ -2077,7 +2077,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 
-                runOnUiThread(() -> Toast.makeText(this, "Evento y todas sus repeticiones actualizadas ✅", Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> Toast.makeText(this, getString(R.string.event_all_repeats_updated), Toast.LENGTH_SHORT).show());
             } else {
                 // No tiene repetición, actualizar solo este evento
                 e.title = title;
@@ -2175,7 +2175,7 @@ public class MainActivity extends AppCompatActivity {
                     android.content.Intent emailIntent = new android.content.Intent(android.content.Intent.ACTION_SENDTO);
                     emailIntent.setData(android.net.Uri.parse("mailto:lesberweb@gmail.com"));
                     emailIntent.putExtra(android.content.Intent.EXTRA_SUBJECT,
-                            getString(R.string.app_name) + " — Consulta");
+                            getString(R.string.contact_email_subject, getString(R.string.app_name)));
                     emailIntent.putExtra(android.content.Intent.EXTRA_TEXT, msg);
                     startActivity(android.content.Intent.createChooser(emailIntent, getString(R.string.contact_send)));
                 })
@@ -2213,7 +2213,7 @@ public class MainActivity extends AppCompatActivity {
             eventDao.markRealized(ids, now);
 
             runOnUiThread(() ->
-                    Toast.makeText(this, "Marcados como realizados: " + ids.size(), Toast.LENGTH_SHORT).show());
+                    Toast.makeText(this, getString(R.string.marked_realized_count, ids.size()), Toast.LENGTH_SHORT).show());
         }).start();
     }
 
@@ -2256,7 +2256,7 @@ public class MainActivity extends AppCompatActivity {
             // Para cars/house: ocultar fecha de nacimiento, mostrar odómetro
             if (tilBirth != null) tilBirth.setVisibility(android.view.View.GONE);
             if (tilMeasure != null) {
-                tilMeasure.setHint("Odómetro (km)");
+                tilMeasure.setHint(getString(R.string.field_odometer));
                 tilMeasure.setVisibility(android.view.View.VISIBLE);
             }
             if (etMeasure != null) {
@@ -2265,7 +2265,7 @@ public class MainActivity extends AppCompatActivity {
         } else if ("family".equals(appType)) {
             // Para family: mostrar fecha de nacimiento, ocultar peso
             if (tilBirth != null) {
-                tilBirth.setHint("Fecha de nacimiento (dd/MM/aaaa)");
+                tilBirth.setHint(getString(R.string.field_birth_date));
                 tilBirth.setVisibility(android.view.View.VISIBLE);
             }
             if (tilMeasure != null) {
@@ -2277,11 +2277,11 @@ public class MainActivity extends AppCompatActivity {
         } else {
             // Para pets: mostrar fecha de nacimiento y peso
             if (tilBirth != null) {
-                tilBirth.setHint("Fecha de nacimiento (dd/MM/aaaa)");
+                tilBirth.setHint(getString(R.string.field_birth_date));
                 tilBirth.setVisibility(android.view.View.VISIBLE);
             }
             if (tilMeasure != null) {
-                tilMeasure.setHint("Peso (kg)");
+                tilMeasure.setHint(getString(R.string.field_weight));
                 tilMeasure.setVisibility(android.view.View.VISIBLE);
             }
             if (etMeasure != null) {
@@ -2305,16 +2305,16 @@ public class MainActivity extends AppCompatActivity {
         final String[] selectedIconKey = {defaultIconForFlavor()};
 
         new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Nuevo sujeto")
+                .setTitle(getString(R.string.dialog_new_subject_title))
                 .setView(view)
-                .setPositiveButton("Guardar", (d, w) -> {
+                .setPositiveButton(getString(R.string.button_save), (d, w) -> {
                     String name;
                     if ("cars".equals(appType)) {
                         // Para cars: concatenar marca + modelo
                         String brand = etBrand != null ? etBrand.getText().toString().trim() : "";
                         String model = etModel != null ? etModel.getText().toString().trim() : "";
                         if (brand.isEmpty() && model.isEmpty()) {
-                            Toast.makeText(this, "Marca o Modelo requerido", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this, getString(R.string.error_brand_or_model_required), Toast.LENGTH_SHORT).show();
                             return;
                         }
                         if (brand.isEmpty()) {
@@ -2328,7 +2328,7 @@ public class MainActivity extends AppCompatActivity {
                         // Para otros flavors: usar nombre normal
                         name = etName.getText().toString().trim();
                         if (name.isEmpty()) {
-                            Toast.makeText(this, "Nombre requerido", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this, getString(R.string.error_name_required), Toast.LENGTH_SHORT).show();
                             return;
                         }
                     }
@@ -2406,7 +2406,7 @@ public class MainActivity extends AppCompatActivity {
                     .edit().putString("currentSubjectId_" + appType, currentSubjectId).apply();
 
             runOnUiThread(() -> {
-                Toast.makeText(this, "Sujeto creado ✅", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, getString(R.string.subject_created_full), Toast.LENGTH_SHORT).show();
                 refreshHeader();
             });
         }).start();
@@ -2447,7 +2447,7 @@ public class MainActivity extends AppCompatActivity {
             final java.util.List<SubjectEntity> subjects = subjectDao.listActiveNow(appType);
             runOnUiThread(() -> {
                 if (subjects == null || subjects.isEmpty()) {
-                    Toast.makeText(this, "No hay sujetos para compartir", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, getString(R.string.no_subjects_to_share), Toast.LENGTH_SHORT).show();
                     return;
                 }
                 
@@ -2503,7 +2503,7 @@ public class MainActivity extends AppCompatActivity {
                     shareDialog.show();
                 } catch (Exception e) {
                     android.util.Log.e("MainActivity", "Error al mostrar diálogo de selección", e);
-                    Toast.makeText(this, "Error al mostrar diálogo: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, getString(R.string.error_show_dialog, e.getMessage()), Toast.LENGTH_SHORT).show();
                 }
             });
         }).start();
@@ -2533,7 +2533,7 @@ public class MainActivity extends AppCompatActivity {
     private void generateShareCodeAfterAd(String subjectId) {
         String userId = getCurrentUserId();
         if (userId == null) {
-            Toast.makeText(this, "Error: No se pudo obtener ID de usuario", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.error_no_user_id), Toast.LENGTH_SHORT).show();
             return;
         }
         
@@ -2563,16 +2563,16 @@ public class MainActivity extends AppCompatActivity {
                                 .setMessage(getString(R.string.share_subject_code_message))
                                 .setView(view)
                                 .setPositiveButton(getString(R.string.button_ok), null)
-                                .setNeutralButton("Copiar", (dialog, which) -> {
+                                .setNeutralButton(getString(R.string.button_copy), (dialog, which) -> {
                                     android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(android.content.Context.CLIPBOARD_SERVICE);
-                                    android.content.ClipData clip = android.content.ClipData.newPlainText("Código de compartir", shareCode);
+                                    android.content.ClipData clip = android.content.ClipData.newPlainText(getString(R.string.share_subject_code_title), shareCode);
                                     clipboard.setPrimaryClip(clip);
                                     Toast.makeText(MainActivity.this, getString(R.string.share_subject_code_copied), Toast.LENGTH_SHORT).show();
                                 })
                                 .show();
                     } catch (Exception e) {
                         android.util.Log.e("MainActivity", "Error al mostrar diálogo de compartir", e);
-                        Toast.makeText(MainActivity.this, "Error al mostrar código: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, getString(R.string.error_show_share_code, e.getMessage()), Toast.LENGTH_SHORT).show();
                     }
                 });
             }
@@ -2583,7 +2583,7 @@ public class MainActivity extends AppCompatActivity {
                     if (isFinishing() || isDestroyed()) {
                         return;
                     }
-                    String errorMsg = error != null ? error.getMessage() : "Error desconocido";
+                    String errorMsg = error != null ? error.getMessage() : getString(R.string.error_unknown);
                     Toast.makeText(MainActivity.this, getString(R.string.share_subject_error, errorMsg), Toast.LENGTH_LONG).show();
                 });
             }
@@ -2598,7 +2598,7 @@ public class MainActivity extends AppCompatActivity {
         com.google.android.material.textfield.TextInputEditText etCode = view.findViewById(R.id.etRecoveryCode);
         
         if (etCode == null) {
-            Toast.makeText(this, "Error al cargar el diálogo", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.dialog_load_error), Toast.LENGTH_SHORT).show();
             return;
         }
         
@@ -2657,7 +2657,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d("MainActivity", "Longitud: " + normalizedCode.length());
         
         if (normalizedCode.length() != 12) {
-            Toast.makeText(this, "El código debe tener 12 caracteres. Código ingresado: " + normalizedCode.length() + " caracteres", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.share_code_length_error, normalizedCode.length()), Toast.LENGTH_LONG).show();
             return;
         }
         
@@ -2695,7 +2695,7 @@ public class MainActivity extends AppCompatActivity {
                         });
                     }),
                     () -> runOnUiThread(() -> {
-                        Toast.makeText(MainActivity.this, getString(R.string.share_subject_import_error, "Error desconocido"), Toast.LENGTH_LONG).show();
+                        Toast.makeText(MainActivity.this, getString(R.string.share_subject_import_error, getString(R.string.error_unknown)), Toast.LENGTH_LONG).show();
                     })
                 );
             }
@@ -2703,8 +2703,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onError(Exception error) {
                 runOnUiThread(() -> {
-                    String errorMsg = error != null ? error.getMessage() : "Error desconocido";
-                    if (errorMsg != null && errorMsg.contains("no encontrado")) {
+                    String errorMsg = error != null ? error.getMessage() : getString(R.string.error_unknown);
+                    if (error instanceof com.gastonlesbegueris.caretemplate.util.SubjectShareManager.ShareCodeNotFoundException) {
                         Toast.makeText(MainActivity.this, getString(R.string.share_subject_not_found), Toast.LENGTH_LONG).show();
                     } else {
                         Toast.makeText(MainActivity.this, getString(R.string.share_subject_import_error, errorMsg), Toast.LENGTH_LONG).show();

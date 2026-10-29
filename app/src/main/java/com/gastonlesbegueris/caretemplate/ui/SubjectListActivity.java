@@ -98,7 +98,7 @@ public class SubjectListActivity extends AppCompatActivity {
         String sectionName = (intentTitle != null && !intentTitle.isEmpty())
                 ? intentTitle
                 : getString(R.string.subjects_title);
-        toolbar.setTitle(appName + " - " + sectionName);
+        toolbar.setTitle(getString(R.string.toolbar_title_format, appName, sectionName));
 
 
         db  = AppDb.get(this);
@@ -372,7 +372,7 @@ public class SubjectListActivity extends AppCompatActivity {
         if (tvDialogTitle != null) {
             // Para house: solo "Nuevo", para otros: "Nuevo sujeto"
             if ("house".equals(appType)) {
-                tvDialogTitle.setText("Nuevo");
+                tvDialogTitle.setText(getString(R.string.new_subject));
             } else {
                 tvDialogTitle.setText(getString(R.string.new_subject));
             }
@@ -758,7 +758,7 @@ public class SubjectListActivity extends AppCompatActivity {
                     SubjectEntity subjectToUpdate = AppDb.get(this).subjectDao().findOne(subjectId);
                     if (subjectToUpdate == null) {
                         runOnUiThread(() -> {
-                            android.widget.Toast.makeText(this, "Error: No se pudo encontrar el sujeto", android.widget.Toast.LENGTH_SHORT).show();
+                            android.widget.Toast.makeText(this, getString(R.string.error_subject_not_found), android.widget.Toast.LENGTH_SHORT).show();
                         });
                         return;
                     }
@@ -810,7 +810,7 @@ public class SubjectListActivity extends AppCompatActivity {
         // Obtener el nombre del sujeto para el mensaje de confirmación
         new Thread(() -> {
             SubjectEntity subject = dao.findOne(id);
-            String subjectName = subject != null && subject.name != null ? subject.name : "este sujeto";
+            String subjectName = subject != null && subject.name != null ? subject.name : getString(R.string.this_subject);
             
             runOnUiThread(() -> {
                 // Mostrar diálogo de confirmación
@@ -906,7 +906,7 @@ public class SubjectListActivity extends AppCompatActivity {
             // Si no hay dirección, mostrar "-"
             return address.isEmpty() ? "-" : address;
         } else if ("cars".equals(appType)) {
-            String km = (subj.currentMeasure == null) ? "-" : (Math.round(subj.currentMeasure) + " km");
+            String km = (subj.currentMeasure == null) ? "-" : getString(R.string.km_value, Math.round(subj.currentMeasure));
             return getString(R.string.odometer_label, km);
         } else {
             String age = formatAge(subj.birthDate);
@@ -959,9 +959,9 @@ public class SubjectListActivity extends AppCompatActivity {
         if (versionItem != null) {
             try {
                 String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
-                versionItem.setTitle("v" + versionName);
+                versionItem.setTitle(getString(R.string.version_format, versionName));
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                versionItem.setTitle("v" + com.gastonlesbegueris.caretemplate.BuildConfig.VERSION_NAME);
+                versionItem.setTitle(getString(R.string.version_format, com.gastonlesbegueris.caretemplate.BuildConfig.VERSION_NAME));
             }
         }
         
@@ -1790,7 +1790,7 @@ public class SubjectListActivity extends AppCompatActivity {
                                 performSync(authResult.getUser().getUid());
                             } else {
                                 runOnUiThread(() -> {
-                                    Toast.makeText(this, "Error: No se pudo autenticar", Toast.LENGTH_LONG).show();
+                                    Toast.makeText(this, getString(R.string.sync_auth_error), Toast.LENGTH_LONG).show();
                                 });
                             }
                         })
@@ -1857,7 +1857,7 @@ public class SubjectListActivity extends AppCompatActivity {
                                         // Mostrar popup de sincronización realizada
                                         showSyncCompletedDialog();
                                     } else {
-                                        showSyncError("Error al recuperar datos", e);
+                                        showSyncError(getString(R.string.sync_ctx_pull_data), e);
                                     }
                                 })
                         );
@@ -1870,7 +1870,7 @@ public class SubjectListActivity extends AppCompatActivity {
                             // Mostrar popup de sincronización realizada
                             showSyncCompletedDialog();
                         } else {
-                            showSyncError("Error al recuperar sujetos", e);
+                            showSyncError(getString(R.string.sync_ctx_pull_subjects), e);
                         }
                     }));
                 }, e -> runOnUiThread(() -> {
@@ -1881,7 +1881,7 @@ public class SubjectListActivity extends AppCompatActivity {
                         Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
                         refreshSubjectsList();
                     } else {
-                        showSyncError("Error al subir eventos", e);
+                        showSyncError(getString(R.string.sync_ctx_push_events), e);
                     }
                 }));
                     }, e -> runOnUiThread(() -> {
@@ -1892,7 +1892,7 @@ public class SubjectListActivity extends AppCompatActivity {
                             Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
                             refreshSubjectsList();
                         } else {
-                            showSyncError("Error al subir sujetos", e);
+                            showSyncError(getString(R.string.sync_ctx_push_subjects), e);
                         }
                     }));
         } catch (SecurityException e) {
@@ -1916,7 +1916,7 @@ public class SubjectListActivity extends AppCompatActivity {
                     Toast.makeText(this, getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
                     refreshSubjectsList();
                 } else {
-                    showSyncError("Error al iniciar sync", e);
+                    showSyncError(getString(R.string.sync_ctx_start), e);
                 }
             });
         }
@@ -1965,7 +1965,7 @@ public class SubjectListActivity extends AppCompatActivity {
         
         String userMessage;
         if (errorMsg == null) {
-            userMessage = context + ": Error desconocido";
+            userMessage = getString(R.string.error_with_context, context, getString(R.string.error_unknown));
         } else if (errorMsg.contains("Failed to get service") || 
                    errorMsg.contains("reconnection") || 
                    errorMsg.contains("UNAVAILABLE") ||
@@ -1984,7 +1984,7 @@ public class SubjectListActivity extends AppCompatActivity {
                 refreshSubjectsList();
                 return;
             }
-            userMessage = context + ": " + errorMsg;
+            userMessage = getString(R.string.error_with_context, context, errorMsg);
         }
         
         // CUARTA VERIFICACIÓN: Antes de mostrar el Toast, verificar una vez más
@@ -2559,7 +2559,7 @@ public class SubjectListActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 String message = getString(R.string.event_saved);
                 if (repeatType != null) {
-                    message += " (con repetición)";
+                    message = getString(R.string.with_repeat_suffix, message);
                 }
                 Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
                 
@@ -2687,7 +2687,7 @@ public class SubjectListActivity extends AppCompatActivity {
         com.google.android.material.textfield.TextInputEditText etCode = view.findViewById(R.id.etRecoveryCode);
         
         if (etCode == null) {
-            Toast.makeText(this, "Error al cargar el diálogo", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.dialog_load_error), Toast.LENGTH_SHORT).show();
             return;
         }
         
@@ -2746,7 +2746,7 @@ public class SubjectListActivity extends AppCompatActivity {
         Log.d("SubjectListActivity", "Longitud: " + normalizedCode.length());
         
         if (normalizedCode.length() != 12) {
-            Toast.makeText(this, "El código debe tener 12 caracteres. Código ingresado: " + normalizedCode.length() + " caracteres", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.share_code_length_error, normalizedCode.length()), Toast.LENGTH_LONG).show();
             return;
         }
         
@@ -2781,7 +2781,7 @@ public class SubjectListActivity extends AppCompatActivity {
                         // Intersticial removido
                     }),
                     () -> runOnUiThread(() -> {
-                        Toast.makeText(SubjectListActivity.this, getString(R.string.share_subject_import_error, "Error desconocido"), Toast.LENGTH_LONG).show();
+                        Toast.makeText(SubjectListActivity.this, getString(R.string.share_subject_import_error, getString(R.string.error_unknown)), Toast.LENGTH_LONG).show();
                     })
                 );
             }
@@ -2789,8 +2789,8 @@ public class SubjectListActivity extends AppCompatActivity {
             @Override
             public void onError(Exception error) {
                 runOnUiThread(() -> {
-                    String errorMsg = error != null ? error.getMessage() : "Error desconocido";
-                    if (errorMsg != null && errorMsg.contains("no encontrado")) {
+                    String errorMsg = error != null ? error.getMessage() : getString(R.string.error_unknown);
+                    if (error instanceof com.gastonlesbegueris.caretemplate.util.SubjectShareManager.ShareCodeNotFoundException) {
                         Toast.makeText(SubjectListActivity.this, getString(R.string.share_subject_not_found), Toast.LENGTH_LONG).show();
                     } else {
                         Toast.makeText(SubjectListActivity.this, getString(R.string.share_subject_import_error, errorMsg), Toast.LENGTH_LONG).show();

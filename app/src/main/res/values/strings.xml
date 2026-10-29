@@ -15,12 +15,12 @@
     <!-- Tutorial -->
     <string name="tutorial_subject_step1_welcome">¡Bienvenido!</string>
     <string name="tutorial_subject_step1_message">Toca el botón + para agregar tu primer %1$s</string>
-    <string name="tutorial_subject_step2_message">Ahora toca  para agregar tu primer %1$s</string>
+    <string name="tutorial_subject_step2_message">"Ahora toca   para agregar tu primer %1$s"</string>
     <string name="tutorial_event_step1_welcome">¡Excelente!</string>
     <string name="welcome_title">Bienvenido a %1$s</string>
     <string name="welcome_ad_message">Para mantener %1$s gratis, mostraremos un anuncio en este primer inicio. Gracias por tu apoyo.</string>
     <string name="tutorial_event_step1_message">Ahora toca el botón + para crear tu primer evento</string>
-    <string name="tutorial_event_step2_message">Toca  para crear tu primer evento.\n\nPuedes configurar repeticiones, notificaciones y agregar el costo</string>
+    <string name="tutorial_event_step2_message">"Toca   para crear tu primer evento.\n\nPuedes configurar repeticiones, notificaciones y agregar el costo"</string>
     <string name="tutorial_button_continue">Continuar</string>
     <string name="subject_type_pet">mascota</string>
     <string name="subject_type_car">vehículo</string>
@@ -301,4 +301,79 @@
     <string name="griscal_promo_message">Organizá tu familia, mascotas, hogar y vehículos — todo en una sola app web. Gratis para probar.</string>
     <string name="griscal_promo_cta">Probar Griscal</string>
     <string name="griscal_promo_dismiss">Ahora no</string>
+
+    <!-- Extracted from code/layouts 2026-10-29 (default text kept verbatim) -->
+    <string name="version_format" translatable="false">v%1$s</string>
+    <string name="version_placeholder" translatable="false">v1.2</string>
+    <string name="toolbar_title_format" translatable="false">%1$s - %2$s</string>
+    <string name="error_with_context" translatable="false">%1$s: %2$s</string>
+    <string name="contact_email_subject">%1$s — Consulta</string>
+    <string name="error_unknown">Error desconocido</string>
+    <string name="sync_data_synced_message">Los datos se han sincronizado correctamente.</string>
+    <string name="sync_ctx_pull_data">Error al recuperar datos</string>
+    <string name="sync_ctx_pull_subjects">Error al recuperar sujetos</string>
+    <string name="sync_ctx_push_events">Error al subir eventos</string>
+    <string name="sync_ctx_push_subjects">Error al subir sujetos</string>
+    <string name="sync_ctx_start">Error al iniciar sync</string>
+    <string name="sync_ctx_pull_error">Pull error</string>
+    <string name="sync_ctx_pull_subjects_error">Pull subjects error</string>
+    <string name="sync_ctx_push_events_error">Push events error</string>
+    <string name="sync_ctx_push_subjects_error">Push subjects error</string>
+    <string name="error_load_event">Error al cargar evento</string>
+    <string name="error_load_edit_dialog">Error al cargar el diálogo de edición</string>
+    <string name="event_all_repeats_updated">Evento y todas sus repeticiones actualizadas ✅</string>
+    <string name="error_update_event_detail">Error al actualizar evento: %1$s</string>
+    <string name="error_update_event">Error al actualizar evento</string>
+    <string name="with_repeat_suffix">%1$s (con repetición)</string>
+    <string name="with_repeat_updated_suffix">%1$s (repetición actualizada)</string>
+    <string name="event_created">Evento creado ✅</string>
+    <string name="event_updated_plain">Evento actualizado</string>
+    <string name="event_deleted_plain">Evento eliminado</string>
+    <string name="error_no_subject_selected">Error: No hay sujeto seleccionado</string>
+    <string name="error_no_user_id">Error: No se pudo obtener ID de usuario</string>
+    <string name="button_copy">Copiar</string>
+    <string name="error_subject_not_found">Error: No se pudo encontrar el sujeto</string>
+    <string name="this_subject">este sujeto</string>
+    <string name="km_value">%1$d km</string>
+    <string name="share_code_length_error">El código debe tener 12 caracteres. Código ingresado: %1$d caracteres</string>
+    <string name="marked_realized_count">Marcados como realizados: %1$d</string>
+    <string name="dialog_new_subject_title">Nuevo sujeto</string>
+    <string name="subject_created_full">Sujeto creado ✅</string>
+    <string name="no_subjects_to_share">No hay sujetos para compartir</string>
+    <string name="error_show_dialog">Error al mostrar diálogo: %1$s</string>
+    <string name="error_show_share_code">Error al mostrar código: %1$s</string>
+    <string name="event_cost_label">Costo: $%1$.2f</string>
+    <string name="day_summary_counts">Eventos: %1$d · Realizados: %2$d</string>
+    <string name="day_expenses">Gastos: $%1$.2f</string>
+    <string name="repeat_interval_default" translatable="false">1</string>
+    <string name="or_separator">o</string>
+    <string name="cd_delete">Borrar</string>
+    <string name="cd_add_event">Agregar evento</string>
+    <string name="cd_subject_icon">Icono del sujeto</string>
+    <string name="brand_griscal" translatable="false">Griscal</string>
+
+    <!-- In-app review prompt (attempt 1..5) -->
+    <string name="review_yes">Sí, claro</string>
+    <string name="review_not_now">Ahora no</string>
+    <string name="review_title_1">¡Gracias por usar %1$s!</string>
+    <string name="review_title_2">Recordatorio</string>
+    <string name="review_title_3">Disculpas</string>
+    <string name="review_title_4">Tu ayuda es importante</string>
+    <string name="review_title_5">Última vez</string>
+    <string name="review_message_1">¿Te está sirviendo %1$s? ⭐\n¿Podés dejar una reseña? (toma 10s)</string>
+    <string name="review_message_2">Recordatorio: ¿Podrías dejar una reseña de %1$s? ⭐\nSolo toma unos segundos.</string>
+    <string name="review_message_3">Disculpas por insistir, pero para nosotros es muy importante.\n¿Podrías calificar %1$s? ⭐</string>
+    <string name="review_message_4">Como desarrollador independiente, las buenas calificaciones me ayudan mucho.\n¿Podrías dejar una reseña de %1$s? ⭐</string>
+    <string name="review_message_5">Si no quieres volver a ser molestado, califica esta app.\n¿Podrías dejar una reseña de %1$s? ⭐</string>
+
+    <!-- "Our apps" submenu -->
+    <string name="menu_app_carepal_pets">CarePal: Mascotas y Salud</string>
+    <string name="menu_app_carepal_cars">CarePal: Autos y Service</string>
+    <string name="menu_app_carepal_family">CarePal: Familia y Agenda</string>
+    <string name="menu_app_carepal_house">CarePal: Hogar y Mantenimiento</string>
+    <string name="menu_app_griscal">Griscal: Hogar y Familia</string>
+    <string name="menu_app_milinterna" translatable="false">Mi Linterna</string>
+    <string name="menu_app_milupa" translatable="false">MiLupa</string>
+    <string name="menu_app_permission_inspector" translatable="false">Permission Inspector</string>
+    <string name="event_default_title">Evento</string>
 </resources>

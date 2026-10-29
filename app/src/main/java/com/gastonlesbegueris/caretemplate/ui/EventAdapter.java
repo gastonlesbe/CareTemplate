@@ -121,7 +121,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.VH> {
 
         // Mostrar costo si existe
         if (e.cost != null) {
-            h.tvCost.setText("Costo: $" + String.format(Locale.getDefault(), "%.2f", e.cost));
+            h.tvCost.setText(h.itemView.getContext().getString(R.string.event_cost_label, e.cost));
             h.tvCost.setVisibility(View.VISIBLE);
         } else {
             h.tvCost.setVisibility(View.GONE);
@@ -130,7 +130,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.VH> {
         // Mostrar kilómetros si es un auto y tiene kilómetros guardados
         if ("cars".equals(appType) && e.kilometersAtEvent != null) {
             if (h.tvKilometers != null) {
-                h.tvKilometers.setText("Kilómetros: " + Math.round(e.kilometersAtEvent) + " km");
+                h.tvKilometers.setText(h.itemView.getContext().getString(R.string.event_kilometers, Math.round(e.kilometersAtEvent)));
                 h.tvKilometers.setVisibility(View.VISIBLE);
             }
         } else {

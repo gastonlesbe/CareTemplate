@@ -74,10 +74,10 @@ public class MonthExpensesDetailActivity extends AppCompatActivity {
             java.util.Date date = inputFmt.parse(monthStart);
             String monthTitle = outputFmt.format(date);
             String appName = getString(R.string.app_name);
-            toolbar.setTitle(appName + " - " + monthTitle);
+            toolbar.setTitle(getString(R.string.toolbar_title_format, appName, monthTitle));
         } catch (Exception e) {
             String appName = getString(R.string.app_name);
-            toolbar.setTitle(appName + " - " + monthStart);
+            toolbar.setTitle(getString(R.string.toolbar_title_format, appName, monthStart));
         }
 
         tvTotal = findViewById(R.id.tvTotalMonth);
@@ -244,9 +244,9 @@ public class MonthExpensesDetailActivity extends AppCompatActivity {
         if (versionItem != null) {
             try {
                 String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
-                versionItem.setTitle("v" + versionName);
+                versionItem.setTitle(getString(R.string.version_format, versionName));
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                versionItem.setTitle("v" + com.gastonlesbegueris.caretemplate.BuildConfig.VERSION_NAME);
+                versionItem.setTitle(getString(R.string.version_format, com.gastonlesbegueris.caretemplate.BuildConfig.VERSION_NAME));
             }
         }
         return super.onPrepareOptionsMenu(menu);

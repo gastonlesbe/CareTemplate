@@ -1,5 +1,6 @@
 package com.gastonlesbegueris.caretemplate.util;
 
+import com.gastonlesbegueris.caretemplate.R;
 import android.content.Context;
 import com.gastonlesbegueris.caretemplate.data.local.AppDb;
 import com.gastonlesbegueris.caretemplate.data.local.EventDao;
@@ -88,7 +89,7 @@ public class SharedSubjectImporter {
                         event.subjectId = newSubject.id; // ID del nuevo sujeto
                         event.title = (String) eventData.get("title");
                         if (event.title == null || event.title.trim().isEmpty()) {
-                            event.title = "Evento";
+                            event.title = context.getString(R.string.event_default_title);
                         }
                         event.note = (String) eventData.get("note");
                         

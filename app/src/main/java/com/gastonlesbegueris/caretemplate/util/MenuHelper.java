@@ -141,7 +141,7 @@ public class MenuHelper {
                     android.content.Intent emailIntent = new android.content.Intent(android.content.Intent.ACTION_SENDTO);
                     emailIntent.setData(android.net.Uri.parse("mailto:lesberweb@gmail.com"));
                     emailIntent.putExtra(android.content.Intent.EXTRA_SUBJECT,
-                            activity.getString(R.string.app_name) + " — Consulta");
+                            activity.getString(R.string.contact_email_subject, activity.getString(R.string.app_name)));
                     emailIntent.putExtra(android.content.Intent.EXTRA_TEXT, msg);
                     activity.startActivity(android.content.Intent.createChooser(emailIntent,
                             activity.getString(R.string.contact_send)));
@@ -189,7 +189,7 @@ public class MenuHelper {
                                     performSync(authResult.getUser().getUid());
                                 } else {
                                     activity.runOnUiThread(() -> {
-                                        Toast.makeText(activity, "Error: No se pudo autenticar", Toast.LENGTH_LONG).show();
+                                        Toast.makeText(activity, activity.getString(R.string.sync_auth_error), Toast.LENGTH_LONG).show();
                                     });
                                 }
                             })
@@ -253,7 +253,7 @@ public class MenuHelper {
                                         android.util.Log.d("MenuHelper", "Error de permisos silenciado en pull: " + errorMsg);
                                         notifySyncCompleted();
                                     } else {
-                                        showSyncError("Error al recuperar datos", e);
+                                        showSyncError(activity.getString(R.string.sync_ctx_pull_data), e);
                                     }
                                 })
                         );
@@ -263,7 +263,7 @@ public class MenuHelper {
                             android.util.Log.d("MenuHelper", "Error de permisos SILENCIADO en pullSubjects");
                             notifySyncCompleted();
                         } else {
-                            showSyncError("Error al recuperar sujetos", e);
+                            showSyncError(activity.getString(R.string.sync_ctx_pull_subjects), e);
                         }
                     }));
                 }, e -> activity.runOnUiThread(() -> {
@@ -273,7 +273,7 @@ public class MenuHelper {
                         Toast.makeText(activity, activity.getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
                         notifySyncCompleted();
                     } else {
-                        showSyncError("Error al subir eventos", e);
+                        showSyncError(activity.getString(R.string.sync_ctx_push_events), e);
                     }
                 }));
             }, e -> activity.runOnUiThread(() -> {
@@ -283,7 +283,7 @@ public class MenuHelper {
                     Toast.makeText(activity, activity.getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
                     notifySyncCompleted();
                 } else {
-                    showSyncError("Error al subir sujetos", e);
+                    showSyncError(activity.getString(R.string.sync_ctx_push_subjects), e);
                 }
             }));
         } catch (SecurityException e) {
@@ -305,7 +305,7 @@ public class MenuHelper {
                     Toast.makeText(activity, activity.getString(R.string.sync_success), Toast.LENGTH_SHORT).show();
                     notifySyncCompleted();
                 } else {
-                    showSyncError("Error al iniciar sync", e);
+                    showSyncError(activity.getString(R.string.sync_ctx_start), e);
                 }
             });
         }
@@ -331,7 +331,7 @@ public class MenuHelper {
         // Mostrar diálogo de éxito
         new AlertDialog.Builder(activity)
                 .setTitle(activity.getString(R.string.sync_success))
-                .setMessage("Los datos se han sincronizado correctamente.")
+                .setMessage(activity.getString(R.string.sync_data_synced_message))
                 .setPositiveButton(android.R.string.ok, null)
                 .show();
     }
@@ -340,7 +340,7 @@ public class MenuHelper {
      * Muestra un error de sincronización
      */
     private void showSyncError(String title, Exception e) {
-        String message = e != null ? e.getMessage() : "Error desconocido";
+        String message = e != null ? e.getMessage() : activity.getString(R.string.error_unknown);
         new AlertDialog.Builder(activity)
                 .setTitle(title)
                 .setMessage(message)

@@ -56,7 +56,7 @@ public class AgendaMonthActivity extends AppCompatActivity {
         toolbar.setNavigationOnClickListener(v -> finish());
         String appName = getString(R.string.app_name);
         String sectionName = getString(R.string.menu_agenda);
-        toolbar.setTitle(appName + " - " + sectionName);
+        toolbar.setTitle(getString(R.string.toolbar_title_format, appName, sectionName));
 
         rv = findViewById(R.id.rvMonth);
         rv.setLayoutManager(new LinearLayoutManager(this));
@@ -191,9 +191,9 @@ public class AgendaMonthActivity extends AppCompatActivity {
         if (versionItem != null) {
             try {
                 String versionName = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
-                versionItem.setTitle("v" + versionName);
+                versionItem.setTitle(getString(R.string.version_format, versionName));
             } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                versionItem.setTitle("v" + com.gastonlesbegueris.caretemplate.BuildConfig.VERSION_NAME);
+                versionItem.setTitle(getString(R.string.version_format, com.gastonlesbegueris.caretemplate.BuildConfig.VERSION_NAME));
             }
         }
         return super.onPrepareOptionsMenu(menu);

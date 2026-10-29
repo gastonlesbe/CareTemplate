@@ -296,7 +296,7 @@ public class SubjectShareManager {
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "❌ Error buscando por campo 'code'", e);
                     if (callback != null) {
-                        callback.onError(new Exception("Código de compartir no encontrado. Verifica que el código sea correcto."));
+                        callback.onError(new ShareCodeNotFoundException("Código de compartir no encontrado. Verifica que el código sea correcto."));
                     }
                 });
     }
@@ -318,13 +318,13 @@ public class SubjectShareManager {
                     
                     Log.w(TAG, "❌ Código no encontrado en ninguna estrategia");
                     if (callback != null) {
-                        callback.onError(new Exception("Código de compartir no encontrado. Verifica que el código sea correcto y que el sujeto haya sido compartido correctamente."));
+                        callback.onError(new ShareCodeNotFoundException("Código de compartir no encontrado. Verifica que el código sea correcto y que el sujeto haya sido compartido correctamente."));
                     }
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "❌ Error en búsqueda final", e);
                     if (callback != null) {
-                        callback.onError(new Exception("Código de compartir no encontrado. Verifica que el código sea correcto."));
+                        callback.onError(new ShareCodeNotFoundException("Código de compartir no encontrado. Verifica que el código sea correcto."));
                     }
                 });
     }
@@ -451,6 +451,16 @@ public class SubjectShareManager {
     
     // ===== Callbacks =====
     
+    /**
+     * The share code does not exist in Firestore. The UI checks for this type
+     * instead of matching the (displayed) message text.
+     */
+    public static class ShareCodeNotFoundException extends Exception {
+        public ShareCodeNotFoundException(String message) {
+            super(message);
+        }
+    }
+
     public interface ShareCodeCallback {
         void onShareCode(String shareCode);
         void onError(Exception error);

@@ -51,11 +51,11 @@ public class DaySummaryAdapter extends RecyclerView.Adapter<DaySummaryAdapter.VH
         Double sum      = s.getExpensesSum();
 
         h.tvDay.setText(fmtDay.format(new Date(dayStart)));
-        h.tvCounts.setText("Eventos: " + evCount + " · Realizados: " + done);
+        h.tvCounts.setText(h.itemView.getContext().getString(R.string.day_summary_counts, evCount, done));
 
         if (sum != null) {
             h.tvExpenses.setVisibility(View.VISIBLE);
-            h.tvExpenses.setText(String.format(Locale.getDefault(), "Gastos: $%.2f", sum));
+            h.tvExpenses.setText(h.itemView.getContext().getString(R.string.day_expenses, sum));
         } else {
             h.tvExpenses.setVisibility(View.GONE);
         }

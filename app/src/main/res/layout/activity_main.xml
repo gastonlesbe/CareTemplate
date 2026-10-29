@@ -74,7 +74,7 @@
         android:layout_marginEnd="24dp"
         android:layout_marginBottom="172dp"
         style="@style/Widget.App.FAB"
-        android:contentDescription="Nuevo sujeto"
+        android:contentDescription="@string/dialog_new_subject_title"
         app:srcCompat="@drawable/ic_header_flavor"
         android:visibility="gone"
         android:alpha="0" />
@@ -88,7 +88,7 @@
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="24dp"
         android:layout_marginBottom="244dp"
-        android:contentDescription="Nuevo evento"
+        android:contentDescription="@string/new_event"
         app:srcCompat="@drawable/ic_event"
         android:visibility="gone"
         android:alpha="0" />
