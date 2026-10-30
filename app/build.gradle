@@ -108,8 +108,6 @@ android {
             // serve or count live ads. buildType resValues override the flavor resValues
             // above; the flavors' values-en strings are overridden in src/debug/res/values-en.
             resValue "string", "admob_interstitial_id", "ca-app-pub-3940256099942544/1033173712"
-            resValue "string", "admob_banner_id", "ca-app-pub-3940256099942544/6300978111"
-            resValue "string", "admob_rewarded_id", "ca-app-pub-3940256099942544/5224354917"
             resValue "bool", "appodeal_testing", "true"
         }
     }

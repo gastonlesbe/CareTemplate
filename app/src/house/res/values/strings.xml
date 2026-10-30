@@ -4,7 +4,5 @@
     <!-- Appodeal App Key -->
     <string name="appodeal_app_key" translatable="false">12d4ea28bdce8e90df4f41bab7bebe5adb144e8938eb260c</string>
     
-    <!-- Legacy AdMob IDs (kept for reference, can be removed later) -->
-    <string name="admob_rewarded_id" translatable="false">ca-app-pub-3940256099942544/5224354917</string>
 </resources>
 
