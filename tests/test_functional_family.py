@@ -3,8 +3,8 @@ Tests funcionales para CarePal Family - Crear, editar, borrar sujetos y eventos
 """
 import pytest
 from appium.webdriver.common.appiumby import AppiumBy
-from appium.webdriver.support.ui import WebDriverWait
-from appium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import time
 
 
